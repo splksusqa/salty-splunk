@@ -4,43 +4,14 @@ import subprocess
 import platform
 import ConfigParser
 
-
-# salt
+# salt utils
 import salt.utils
-
-if platform.system() == 'Windows':
-    HOME = ur'C:\Program Files\Splunk'
-else:
-    HOME = '/opt/splunk'
-
-dummy_section = 'undefined_section'
-
-path = {
-
-    'splunk_bin':     os.path.join(HOME, 'bin', 'splunk'),
-    'etc':            os.path.join(HOME, 'etc'),
-    'system':         os.path.join(HOME, 'etc', 'system'),
-    'apps_search':    os.path.join(HOME, 'etc', 'apps', 'search'),
-    'splunk_db':      os.path.join(HOME, 'var', 'lib', 'splunk'),
-    'splunk_db_main': os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb')
-}
-
-# conf = {
-#     'system': {
-#         'local':   os.path.join(path['system'], 'local'),
-#         'default': os.path.join(path['system'], 'default')
-#     },
-#     'apps_search': {
-#         'local':   os.path.join(path['apps_search'], 'local'),
-#         'default': os.path.join(path['apps_search'], 'default')
-#     }
-# }
-
+import salt.execptions
 
 
 class _FakeSecHead(object):
     '''
-    Handle conf file for key-value without setcion.
+    Handle conf file for key-value without section.
     This piece of codes is mainly from Alex's answer here:
     http://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
 
@@ -62,6 +33,7 @@ class _FakeSecHead(object):
     def __init__(self, fp, sechead=dummy_section):
         self.fp = fp
         self.sechead = "[{s}]\n".format(s=sechead)
+
     def readline(self):
         if self.sechead:
             try:
@@ -75,9 +47,18 @@ class _FakeSecHead(object):
 def __virtual__(splunk_home=''):
     ''' salt virtual '''
     if not splunk_home:
-        splunk_home = HOME
+        splunk_home = get_splunkhome()
     return True
-    #os.path.exists('/opt/splunk/bin/splunk')
+
+
+def get_splunkhome():
+    if platform.system() == 'Windows':
+        default = ur'C:\Program Files\Splunk'
+    else:
+        default = '/opt/splunk'
+    #return __pillar__.get(splunk_home, {'splunk_home': default})
+    return default
+
 
 def start():   return cmd('start')
 def restart(): return cmd('restart')
@@ -100,7 +81,7 @@ def cmd(command, auth='admin:changeme'):
             cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
     else:
         cmd_ += ['-auth', auth]
-    return subprocess.check_output([path['splunk_bin']]+ cmd_)
+    return subprocess.check_output([path['bin_splunk']]+ cmd_)
 
 
 def _read_config(conf_file):
@@ -112,6 +93,7 @@ def _read_config(conf_file):
 
 def _write_config(conf_file, cp):
     ''' '''
+    # TODO: need to handle dummy section
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
@@ -133,7 +115,8 @@ def edit_stanza(conf, kv, stanza='', scope='system:local'):
 
 
 def remove_stanza(conf, key='', stanza='', scope='system:local'):
-    ''' remove a stanza or key-value from a conf
+    '''
+    remove a stanza or key-value from a conf
     to remove a stanza, just leave key as empty
     '''
     conf_file = locate_conf_file(scope, conf)
@@ -151,6 +134,36 @@ def set_role(mode, **kwargs):
             conf = {'mode': 'master'}
         elif mode in ['cluster-searchhead', 'cluster-slave']:
             conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
+        else:
+            raise salt.execptions.
         edit_stanza('server.conf', conf, 'clustering')
 
 
+HOME = get_splunkhome()
+dummy_section = 'undefined_section'
+
+path = {
+    'bin':         os.path.join(HOME, 'bin'),
+    'bin_splunk':  os.path.join(HOME, 'bin', 'splunk'),
+    'etc':         os.path.join(HOME, 'etc'),
+    'system':      os.path.join(HOME, 'etc', 'system'),
+    'apps_search': os.path.join(HOME, 'etc', 'apps', 'search'),
+    'var':         os.path.join(HOME, 'var'),
+    'var_log':     os.path.join(HOME, 'var', 'log'),
+    'var_lib':     os.path.join(HOME, 'var', 'lib'),
+    'db':          os.path.join(HOME, 'var', 'lib', 'splunk'),
+    'db_main':     os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
+    'db_default':  os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb')
+}
+
+
+# conf = {
+#     'system': {
+#         'local':   os.path.join(path['system'], 'local'),
+#         'default': os.path.join(path['system'], 'default')
+#     },
+#     'apps_search': {
+#         'local':   os.path.join(path['apps_search'], 'local'),
+#         'default': os.path.join(path['apps_search'], 'default')
+#     }
+# }
