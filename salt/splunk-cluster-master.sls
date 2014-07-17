@@ -1,6 +1,7 @@
 splunk-cluster-master:
-  pkg.installed:
-    # - name: splunk
+  pkg
+    - installed:
+    - name: splunk
     {% if grains['os'] == 'Windows' %}
     - sources:
       - {{ pillar['splunk-version'] }}: http://releases.qa/{{ pillar['splunk-version'] }}/windows/splunk-6.1.3-217765-x64-release.msi
