@@ -141,7 +141,8 @@ def set_role(mode, **kwargs):
         elif mode in ['cluster-searchhead', 'cluster-slave']:
             conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
         else:
-            raise salt.execptions.
+            raise salt.execptions.CommandExecutionError(
+                      "Role '{r}' isn't supported".format(r=mode))
         edit_stanza('server.conf', conf, 'clustering')
 
 

@@ -1,0 +1,13 @@
+aws_ec2:
+  owner: self
+  id:
+  key:
+  keyname: cchung
+  private_key: /home/ubuntu/cchung_new_qasus.pem
+  ssh_interface: private_ips
+  del_root_vol_on_destroy: True
+  del_all_vol_on_destroy: True
+  flush_mine_on_destroy: True
+  rename_on_destroy: True
+  securitygroup: salt
+  provider: ec2
