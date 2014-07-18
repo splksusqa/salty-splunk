@@ -22,8 +22,8 @@ to write testing scripts for complex Splunk deployments.
 
 
 # Resources
-- https://github.com/techhat/salt/
 - https://github.com/saltstack/salt
+- https://github.com/techhat/salt/
 - http://www.slideshare.net/SaltStack/an-overvisaltstack-presentation-clean
 
 
