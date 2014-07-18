@@ -1,3 +1,9 @@
+# -*- coding: utf-8 -*-
+'''
+Module for splunk instances
+==========================
+'''
+
 __author__ = 'cchung'
 import os
 import subprocess
@@ -141,6 +147,7 @@ def set_role(mode, **kwargs):
 
 HOME = get_splunkhome()
 dummy_section = 'undefined_section'
+
 
 path = {
     'bin':         os.path.join(HOME, 'bin'),

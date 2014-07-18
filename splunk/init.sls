@@ -1,21 +1,16 @@
 base:
 
-  'id:*splunk-cluster-master*':
-    - match: grain
-    - splunk.cluster-master
+  'G@id:*splunk-cluster-master*':
+    - cluster-master
 
-  'id:*splunk-cluster-searchhead*':
-    - match: grain
-    - splunk.cluster-searchhead
+  'G@id:*splunk-cluster-searchhead*':
+    - cluster-searchhead
 
-  'id:*splunk-cluster-slave*':
-    - match: grain
-    - splunk.cluster-slave
+  'G@id:*splunk-cluster-slave*':
+    - cluster-slave
 
-  'id:*splunk-searchhead*':
-    - match: grain
-    - splunk.searchhead
+  'G@id:*splunk-searchhead*':
+    - searchhead
 
-  'id:*splunk-indexer*':
-    - match: grain
-    - splunk.indexer
+  'G@id:*splunk-indexer*':
+    - indexer
