@@ -18,10 +18,10 @@ to write testing scripts for complex Splunk deployments.
 
 
 # Documentation
+- Saltstack official documentation: http://docs.saltstack.com
 
 
 # Resources
-- http://docs.saltstack.com
 - https://github.com/techhat/salt/
 - https://github.com/saltstack/salt
 - http://www.slideshare.net/SaltStack/an-overvisaltstack-presentation-clean
