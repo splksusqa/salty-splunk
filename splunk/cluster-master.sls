@@ -9,5 +9,5 @@ cluster-master:
 #    - sources: http://releases.qa/{{ pillar['splunk-version'] }}/linux/splunk-6.1.3-217765-linux-2.6-amd64.deb
 #    {% endif %}
   splunk:
-    set_rol:
+    installed:
     - mode: master

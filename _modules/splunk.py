@@ -50,11 +50,12 @@ class _FakeSecHead(object):
             return self.fp.readline()
 
 
-def __virtual__(splunk_home=''):
+def __virtual__():
     ''' salt virtual '''
-    if not splunk_home:
-        splunk_home = get_splunkhome()
-    return True
+    if get_splunkhome():
+        return True
+    else:
+        return False
 
 
 def get_splunkhome():
@@ -148,7 +149,6 @@ def set_role(mode, **kwargs):
 
 HOME = get_splunkhome()
 dummy_section = 'undefined_section'
-
 
 path = {
     'bin':         os.path.join(HOME, 'bin'),

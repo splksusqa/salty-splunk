@@ -4,7 +4,7 @@ win2012:
   size: t2.small
   minion:
     master: salt-master.qa
-  win_installer: salt://data/Salt-Minion-2014.1.7-AMD64-Setup.exe
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
 
@@ -14,6 +14,6 @@ win2008:
   size: t2.small
   minion:
     master: salt-master.qa
-  win_installer: salt://data/Salt-Minion-2014.1.7-AMD64-Setup.exe
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
