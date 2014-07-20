@@ -12,8 +12,6 @@ import ConfigParser
 
 # salt utils
 import salt.utils
-import salt.execptions
-
 
 class _FakeSecHead(object):
     '''
@@ -36,7 +34,7 @@ class _FakeSecHead(object):
         commands.conf
         alert_actions.conf
     '''
-    def __init__(self, fp, sechead=dummy_section):
+    def __init__(self, fp, sechead):
         self.fp = fp
         self.sechead = "[{s}]\n".format(s=sechead)
 
@@ -59,6 +57,10 @@ def __virtual__():
 
 
 def get_splunkhome():
+    '''
+
+    :return: str: splunk_home
+    '''
     if platform.system() == 'Windows':
         default = ur'C:\Program Files\Splunk'
     else:
@@ -88,13 +90,14 @@ def cmd(command, auth='admin:changeme'):
             cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
     else:
         cmd_ += ['-auth', auth]
-    return subprocess.check_output([path['bin_splunk']]+ cmd_)
+    return subprocess.check_output([path['bin_splunk']]+ cmd_,
+                                   stderr=subprocess.STDOUT)
 
 
 def _read_config(conf_file):
     ''' '''
     cp = ConfigParser.SafeConfigParser()
-    cp.readfp(_FakeSecHead(open(conf_file)))
+    cp.readfp(_FakeSecHead(open(conf_file, 'w+'), no_section))
     return cp
 
 
@@ -110,45 +113,85 @@ def locate_conf_file(scope, conf):
     return os.path.join(*[path['etc']] + scope.split(':') + [conf])
 
 
-def edit_stanza(conf, kv, stanza='', scope='system:local'):
-    ''' edit a stanza from conf, will add the stanza if it doenst exist '''
+def edit_stanza(conf,
+                stanza,
+                scope='system:local',
+                restart_splunk=False,
+                action='edit'):
+    '''
+    edit a stanza from conf, will add the stanza if it doenst exist
+    :param conf: file, e.g.: server.conf
+    :param stanza: stanza in dict form, e.g. {'clustering': {'mode': 'master'}}
+    '''
+    if not action.strip() in ['edit', 'add', 'remove', 'delete']:
+        return "Unknown action '{a}' for editing stanza".format(a=action)
     conf_file = locate_conf_file(scope, conf)
     cp = _read_config(conf_file)
-    if not stanza in cp.sections():
-        cp.add_section(stanza)
-    for k,v in kv.items():
-        cp.set(stanza, k, v)
-    return _write_config(conf_file, cp)
 
-
-def remove_stanza(conf, key='', stanza='', scope='system:local'):
-    '''
-    remove a stanza or key-value from a conf
-    to remove a stanza, just leave key as empty
-    '''
-    conf_file = locate_conf_file(scope, conf)
-    cp = _read_config(conf_file)
-    if not key:
-        cp.remove_section(stanza)
-    else:
-        cp.remove_option(stanza, key)
-    return _write_config(conf_file, cp)
-
-
-def set_role(mode, **kwargs):
-    if mode.startswith('cluster'):
-        if mode == 'cluster-master':
-            conf = {'mode': 'master'}
-        elif mode in ['cluster-searchhead', 'cluster-slave']:
-            conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
+    # edit the whole stanza if it's a string
+    if type(stanza) == str:
+        if action.strip() in ['edit', 'add']:
+            if not stanza in cp.sections():
+                cp.add_section(stanza)
         else:
-            raise salt.execptions.CommandExecutionError(
-                      "Role '{r}' isn't supported".format(r=mode))
-        edit_stanza('server.conf', conf, 'clustering')
+            if stanza in cp.sections():
+                cp.remove_section(stanza)
+
+
+    # edit the key value if stanza is dict.
+    elif type(stanza) == dict:
+        for s, kv in stanza.iteritems():
+            if action.strip() in ['edit', 'add']:
+                if not s in cp.sections():
+                    cp.add_section(s)
+            else:
+                if not s in cp.sections():
+                    return ("Stanza to remove {s} not exist, skipping".format(
+                             s=s))
+
+            if type(kv) == dict:
+                if action.strip() in ['edit', 'add']:
+                    for k, v in kv.iteritems():
+                        cp.set(s, k, v)
+                else:
+                    for k, v in kv.iteritems():
+                        cp.remove_option(s, k)
+            else:
+                return ("The key, value to edit is not defined as dict, type="
+                        "{t}".format(t=type(kv)))
+    else:
+        return "Stanza is not defined as a str or dict, type={t}".format(
+                   t=type(stanza))
+
+    # if not stanza in cp.sections():
+    #     cp.add_section(stanza)
+    # for k,v in kv.items():
+    #     cp.set(stanza, k, v)
+    try:
+        _write_config(conf_file, cp)
+        if restart_splunk:
+            restart()
+        return "Successfully updated stanza {s} for conf {c}".format(
+                   s=stanza, c=conf)
+    except Exception as e:
+        return "Failed to update conf {c}, exception: {e}".format(c=conf, e=e)
+
+
+#
+# def set_role(mode, **kwargs):
+#     if mode.startswith('cluster'):
+#         if mode == 'cluster-master':
+#             conf = {'mode': 'master'}
+#         elif mode in ['cluster-searchhead', 'cluster-slave']:
+#             conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
+#         else:
+#             raise salt.execptions.CommandExecutionError(
+#                       "Role '{r}' isn't supported".format(r=mode))
+#         edit_stanza('server.conf', conf, 'clustering')
 
 
 HOME = get_splunkhome()
-dummy_section = 'undefined_section'
+no_section = 'no_section'
 
 path = {
     'bin':         os.path.join(HOME, 'bin'),
@@ -163,15 +206,3 @@ path = {
     'db_main':     os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
     'db_default':  os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb')
 }
-
-
-# conf = {
-#     'system': {
-#         'local':   os.path.join(path['system'], 'local'),
-#         'default': os.path.join(path['system'], 'default')
-#     },
-#     'apps_search': {
-#         'local':   os.path.join(path['apps_search'], 'local'),
-#         'default': os.path.join(path['apps_search'], 'default')
-#     }
-# }

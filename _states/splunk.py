@@ -12,13 +12,11 @@ import logging
 # salt
 import salt.utils
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 
 def installed(name,
-              source,
-              splunk_home=__salt__['splunk.get_splunkhome'],
-              role='indexer'):
+              sources):
     '''
     work flow:
       1. get source file,
@@ -34,7 +32,8 @@ def installed(name,
     :param splunk_home:
     :return:
     '''
-    pass
+    ret = {'name': name, 'changes': {'sources': sources}, 'result': False, 'comment': ''}
+    return ret
 
 
 def removed(name):
@@ -46,16 +45,31 @@ def removed(name):
     pass
 
 def set_role(mode, **kwargs):
-    if mode.startswith('cluster'):
-        if mode == 'cluster-master':
-            conf = {'mode': 'master'}
-        elif mode in ['cluster-searchhead', 'cluster-slave']:
-            conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
-        __salt__['splunk.edit_stanza']('server.conf', conf, 'clustering')
+    if mode == 'cluster-master':
+        stanza = {
+            'clustering': {'mode': 'master'}
+        }
 
+    elif mode == 'cluster-slave':
+        stanza = {
+            'clustering': {'mode': 'slave',
+                           'master_uri': 'https://' + kwargs.get('master')},
+            "replication_port://{p}".format(p=kwargs.get('replication_port')):{}
+        }
 
+    elif mode == 'cluster-searchhead':
+        stanza = {
+            'clustering': {'mode': 'slave',
+                           'master_uri': 'https://' + kwargs.get('master')}
+        }
 
-    ret = __salt__['splunk.restart']()
+    else:
+        raise salt.execptions.CommandExecutionError(
+                  "Role '{r}' isn't supported".format(r=mode))
+    ret = __salt__['splunk.edit_stanza'](conf='server.conf',
+                                         stanza=stanza,
+                                         restart_splunk=True)
+
     return {'name': 'set_role', 'changes': {'mode': mode}, 'result': True, 'comment': ret}
 
 
