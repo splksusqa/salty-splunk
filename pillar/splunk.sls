@@ -1,6 +1,6 @@
 splunk:
   version: 6.1.3
-  build: 217435
+  build: 217765
 
   {% if grains['os'] == 'RedHat'%}
   home: /opt/splunk
