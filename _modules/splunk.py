@@ -194,10 +194,6 @@ def edit_stanza(conf,
         return "Stanza is not defined as a str or dict, type={t}".format(
                    t=type(stanza))
 
-    # if not stanza in cp.sections():
-    #     cp.add_section(stanza)
-    # for k,v in kv.items():
-    #     cp.set(stanza, k, v)
     try:
         _write_config(conf_file, cp)
         if restart_splunk:

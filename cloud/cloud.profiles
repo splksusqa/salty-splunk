@@ -1,6 +1,6 @@
 win2012:
   provider: aws_ec2
-  image: ami-44c5022c
+  image: ami-e4a9618c # win2012_ami_20140724
   size: t2.small
   minion:
     master: salt-master.qa
@@ -10,7 +10,7 @@ win2012:
 
 win2008:
   provider: aws_ec2
-  image: ami-84985fec
+  image: ami-eca86084 # win2008_ami_20140724
   size: t2.small
   minion:
     master: salt-master.qa

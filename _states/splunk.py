@@ -42,6 +42,7 @@ def installed(name,
     pkg = os.path.basename(source)
     if _is_pkg_installed(pkg):
         ret['changes'] = {}
+        ret['result'] = True
         ret['comment'] = "pkg '{p}' is already installed".format(p=pkg)
         return ret
 
@@ -157,31 +158,43 @@ def set_role(mode, **kwargs):
 
     if mode == 'cluster-master':
         stanza = {
-            'clustering': {'mode': 'master'}
+            'clustering': {
+                'mode': 'master'
+            }
         }
 
     elif mode == 'cluster-slave':
         stanza = {
-            'clustering': {'mode': 'slave',
-                           'master_uri': 'https://' + kwargs.get('master')},
-            "replication_port://{p}".format(p=kwargs.get('replication_port')):{}
+            'clustering': {
+                'mode': 'slave',
+                'master_uri': 'https://' + kwargs.get('master')
+            },
+            "replication_port://{p}".format(p=kwargs.get('replication_port')): {
+            }
         }
 
     elif mode == 'cluster-searchhead':
         stanza = {
-            'clustering': {'mode': 'slave',
-                           'master_uri': 'https://' + kwargs.get('master')}
+            'clustering': {
+                'mode': 'slave',
+                'master_uri': 'https://' + kwargs.get('master')
+            }
         }
 
     else:
         raise salt.execptions.CommandExecutionError(
                   "Role '{r}' isn't supported".format(r=mode))
-    ret['comment'] = __salt__['splunk.edit_stanza'](
+
+    edit_stanza = __salt__['splunk.edit_stanza'](
                          conf='server.conf',
                          stanza=stanza,
                          restart_splunk=True)
-    if ret['comment'].startswith('Successfully'):
+
+    if edit_stanza.startswith('Successfully'):
+        ret['changes'] = {'mode': mode}
         ret['result'] = True
+        ret['comment'] = "Successfully set role {r} with stanza {s}".format(
+                             r=mode, s=stanza)
     return ret
 
 

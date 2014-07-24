@@ -10,3 +10,4 @@ set-cluster:
   splunk:
     - set_role
     - mode: cluster-master
+
