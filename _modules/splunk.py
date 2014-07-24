@@ -13,6 +13,11 @@ import ConfigParser
 # salt utils
 import salt.utils
 
+__salt__ = {}
+__pillar__ = {}
+no_section = 'no_section'
+
+
 class _FakeSecHead(object):
     '''
     Handle conf file for key-value without section.
@@ -50,30 +55,41 @@ class _FakeSecHead(object):
 
 def __virtual__():
     ''' salt virtual '''
-    if get_splunkhome():
+    if os.path.exists(get_splunk_home()):
         return True
     else:
         return False
 
 
-def get_splunkhome():
+def get_splunk_home():
     '''
-
+    get splunk_home location
     :return: str: splunk_home
     '''
-    if platform.system() == 'Windows':
-        default = ur'C:\Program Files\Splunk'
+    if salt.utils.is_windows():
+        default = r'C:\Program Files\Splunk'
     else:
         default = '/opt/splunk'
-    #return __pillar__.get(splunk_home, {'splunk_home': default})
-    return default
+    return __salt__['pillar.get']('splunk:home', default)
 
 
+def is_splunk_installed():  return __virtual__()
 def start():   return cmd('start')
 def restart(): return cmd('restart')
 def stop():    return cmd('stop')
 def status():  return cmd('status')
 def version(): return cmd('version')
+
+
+def info():
+    '''
+    splunk product information, contains version, build, product, and platform
+    :return: dict of product information
+    '''
+    if not is_splunk_installed():
+        return {}
+    f = open(os.path.join(path('etc'), 'splunk.version'), 'r')
+    return dict([l.strip().split('=') for l in f.readlines()])
 
 
 def cli(command, auth='admin:changeme'):
@@ -83,6 +99,8 @@ def cli(command, auth='admin:changeme'):
 
 def cmd(command, auth='admin:changeme'):
     ''' splunk command '''
+    if not is_splunk_installed():
+        return 'Splunk is not installed'
     cmd_ = command.split(' ')
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version']
     if cmd_[0] in no_auth_cmds:
@@ -90,8 +108,14 @@ def cmd(command, auth='admin:changeme'):
             cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
     else:
         cmd_ += ['-auth', auth]
-    return subprocess.check_output([path['bin_splunk']]+ cmd_,
+    return subprocess.check_output([path('bin_splunk')]+ cmd_,
                                    stderr=subprocess.STDOUT)
+
+
+def massive_cmd(command, func='cmd', flags={}):
+    '''
+    '''
+    raise NotImplementedError
 
 
 def _read_config(conf_file):
@@ -110,7 +134,7 @@ def _write_config(conf_file, cp):
 
 def locate_conf_file(scope, conf):
     ''' locate the conf file in specified scope.'''
-    return os.path.join(*[path['etc']] + scope.split(':') + [conf])
+    return os.path.join(*[path('etc')] + scope.split(':') + [conf])
 
 
 def edit_stanza(conf,
@@ -119,10 +143,17 @@ def edit_stanza(conf,
                 restart_splunk=False,
                 action='edit'):
     '''
-    edit a stanza from conf, will add the stanza if it doenst exist
-    :param conf: file, e.g.: server.conf
-    :param stanza: stanza in dict form, e.g. {'clustering': {'mode': 'master'}}
+    edit a stanza from a conf, will add the stanza if it doenst exist
+
+    :param conf: conf file, e.g.: server.conf
+    :param stanza: in dict form, e.g. {'clustering': {'mode': 'master'}}
+    :param scope: splunk's conf scope, delimited by colon
+    :param restart_splunk: if restart splunk after set stanza.
+    :param action: perform action on conf (edit, remove)
+    :returns: string indicating the results
     '''
+    if not is_splunk_installed():
+        return 'Splunk is not installed'
     if not action.strip() in ['edit', 'add', 'remove', 'delete']:
         return "Unknown action '{a}' for editing stanza".format(a=action)
     conf_file = locate_conf_file(scope, conf)
@@ -177,32 +208,22 @@ def edit_stanza(conf,
         return "Failed to update conf {c}, exception: {e}".format(c=conf, e=e)
 
 
-#
-# def set_role(mode, **kwargs):
-#     if mode.startswith('cluster'):
-#         if mode == 'cluster-master':
-#             conf = {'mode': 'master'}
-#         elif mode in ['cluster-searchhead', 'cluster-slave']:
-#             conf = {'mode': 'slave', 'master_uri': kwargs.get('master')}
-#         else:
-#             raise salt.execptions.CommandExecutionError(
-#                       "Role '{r}' isn't supported".format(r=mode))
-#         edit_stanza('server.conf', conf, 'clustering')
+def path(path_):
+    HOME = get_splunk_home()
+    p = {
+        'bin':         os.path.join(HOME, 'bin'),
+        'bin_splunk':  os.path.join(HOME, 'bin', 'splunk'),
+        'etc':         os.path.join(HOME, 'etc'),
+        'system':      os.path.join(HOME, 'etc', 'system'),
+        'apps_search': os.path.join(HOME, 'etc', 'apps', 'search'),
+        'var':         os.path.join(HOME, 'var'),
+        'var_log':     os.path.join(HOME, 'var', 'log'),
+        'var_lib':     os.path.join(HOME, 'var', 'lib'),
+        'db':          os.path.join(HOME, 'var', 'lib', 'splunk'),
+        'db_main':     os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
+        'db_default':  os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb')
+    }
+    return p[path_]
 
 
-HOME = get_splunkhome()
-no_section = 'no_section'
 
-path = {
-    'bin':         os.path.join(HOME, 'bin'),
-    'bin_splunk':  os.path.join(HOME, 'bin', 'splunk'),
-    'etc':         os.path.join(HOME, 'etc'),
-    'system':      os.path.join(HOME, 'etc', 'system'),
-    'apps_search': os.path.join(HOME, 'etc', 'apps', 'search'),
-    'var':         os.path.join(HOME, 'var'),
-    'var_log':     os.path.join(HOME, 'var', 'log'),
-    'var_lib':     os.path.join(HOME, 'var', 'lib'),
-    'db':          os.path.join(HOME, 'var', 'lib', 'splunk'),
-    'db_main':     os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
-    'db_default':  os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb')
-}

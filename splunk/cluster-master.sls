@@ -1,14 +1,12 @@
-cluster-master:
-  pkg:
+install-splunk:
+  splunk:
     - installed
-    - name: splunk
-    {% if grains['os'] == 'Windows' %}
-    - sources:
-      - {{ pillar['splunk-version'] }}: http://releases.qa/{{ pillar['splunk-version'] }}/windows/splunk-{{ pillar['splunk-version'] }}-{{ pillar['splunk-build'] }}-x64-release.msi
-    {% elif grains['os'] == 'Ubuntu' %}
-    - sources: http://releases.qa/{{ pillar['splunk-version'] }}/linux/splunk-{{ pillar['splunk-version'] }}-{{ pillar['splunk-build'] }}-linux-2.6-amd64.deb
-    {% endif %}
+    - source: {{ pillar['splunk']['pkg'] }}
+    - installer_flags: {{ pillar['installer_flags'] }}
+    - splunk_home: {{ pillar['splunk']['home'] }}
 
+
+set-cluster:
   splunk:
     - set_role
     - mode: cluster-master
