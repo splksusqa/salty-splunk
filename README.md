@@ -14,7 +14,6 @@ Splunk deployments.
 - salt-master (requires: http://docs.saltstack.com/en/latest/topics/installation/)
 - salt-cloud (requires: python-libcloud, smbclient, winexe)
 
-
 # Quickstart
 1. Launch an EC2 linux instance (will be running salt-master and salt-cloud)
 1. Install salt-master and salt-cloud and their dependencies.
@@ -50,6 +49,7 @@ Splunk deployments.
 - data
 - pillar
 - splunk
+
 
 
 # Resources
