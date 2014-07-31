@@ -22,12 +22,14 @@ Splunk deployments.
         peer:
           .*:
             - network.ip_addrs
+
 1. Set salt pillar_roots to /srv/salt/pillar (or copy pillar/ to your pillar_roots
 , default to */srv/pillar*):
 
         pillar_roots:
           base:
             - /srv/salt/pillar
+
 1. Clone this repo to your salt root (default is */srv/salt*):
     - `git clone https://susqa@bitbucket.org/splunksusqa/salt.git`
 1. Check the ip of the linux instance, set it in *cloud/cloud.profiles* (replace salt-master.qa)
