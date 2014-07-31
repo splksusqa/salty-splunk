@@ -1,3 +1,4 @@
+# http://salt-cloud.readthedocs.org/en/latest/topics/profiles.html
 win2012:
   provider: aws_ec2
   image: ami-e4a9618c # win2012_ami_20140724

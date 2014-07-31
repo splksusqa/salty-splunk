@@ -88,7 +88,7 @@ def info():
     '''
     if not is_splunk_installed():
         return {}
-    f = open(os.path.join(path('etc'), 'splunk.version'), 'r')
+    f = open(os.path.join(splunk_path('etc'), 'splunk.version'), 'r')
     return dict([l.strip().split('=') for l in f.readlines()])
 
 
@@ -108,25 +108,27 @@ def cmd(command, auth='admin:changeme'):
             cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
     else:
         cmd_ += ['-auth', auth]
-    return subprocess.check_output([path('bin_splunk')]+ cmd_,
+    return subprocess.check_output([splunk_path('bin_splunk')]+ cmd_,
                                    stderr=subprocess.STDOUT)
 
 
-def massive_cmd(command, func='cmd', flags={}):
+def massive_cmd(command, func='cmd', flags={}, parallel=False):
     '''
     '''
     raise NotImplementedError
 
 
 def _read_config(conf_file):
-    ''' '''
+    '''
+    '''
     cp = ConfigParser.SafeConfigParser()
     cp.readfp(_FakeSecHead(open(conf_file, 'w+'), no_section))
     return cp
 
 
 def _write_config(conf_file, cp):
-    ''' '''
+    '''
+    '''
     # TODO: need to handle dummy section
     with open(conf_file, 'w+') as f:
         return cp.write(f)
@@ -134,7 +136,7 @@ def _write_config(conf_file, cp):
 
 def locate_conf_file(scope, conf):
     ''' locate the conf file in specified scope.'''
-    return os.path.join(*[path('etc')] + scope.split(':') + [conf])
+    return os.path.join(*[splunk_path('etc')] + scope.split(':') + [conf])
 
 
 def edit_stanza(conf,
@@ -167,8 +169,6 @@ def edit_stanza(conf,
         else:
             if stanza in cp.sections():
                 cp.remove_section(stanza)
-
-
     # edit the key value if stanza is dict.
     elif type(stanza) == dict:
         for s, kv in stanza.iteritems():
@@ -204,7 +204,7 @@ def edit_stanza(conf,
         return "Failed to update conf {c}, exception: {e}".format(c=conf, e=e)
 
 
-def path(path_):
+def splunk_path(path_):
     HOME = get_splunk_home()
     p = {
         'bin':         os.path.join(HOME, 'bin'),

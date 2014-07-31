@@ -1,3 +1,4 @@
+# http://salt-cloud.readthedocs.org/en/latest/topics/aws.html
 aws_ec2:
   owner: self
   id:
@@ -9,5 +10,6 @@ aws_ec2:
   del_all_vol_on_destroy: True
   flush_mine_on_destroy: True
   rename_on_destroy: True
+  sync_after_install: all
   securitygroup: salt
   provider: ec2
