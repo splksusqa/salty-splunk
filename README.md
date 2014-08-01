@@ -24,7 +24,6 @@ Splunk deployments.
 # Quickstart
 1. Launch an EC2 ubuntu instance (will be running salt-master and salt-cloud)
 1. Install salt-master and salt-cloud and their dependencies
-1. Edit 
 1. Enable peer communications:
 
         peer:
@@ -188,14 +187,12 @@ This readme file.
 1. salt '*' saltutil.sync_modules
 1. salt '*' grains.items
 1. salt '*' pillar.data
+1. salt-key -L
+1. salt-key -D
 1. salt-run manage.status
-1. 
 1. salt-cloud -m /etc/salt/cloud.map -P
 1. salt-cloud -m /etc/salt/cloud.map -d
 
-
- 
- 
 
 # Common Issues
 1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
@@ -208,7 +205,6 @@ try to increase the check interval (time.sleep) in
 */usr/lib/python2.7/dist-packages/salt/utils/cloud.py* line308.
 Because windows might be up but not yet be ready to install winexesvc, so it'll 
 return an error, and salt-cloud would think there is an authentication error.
-
 
 
 # Credits
