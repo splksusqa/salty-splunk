@@ -1,8 +1,9 @@
 # http://salt-cloud.readthedocs.org/en/latest/topics/profiles.html
+
 win2012:
   provider: aws_ec2
   image: ami-e4a9618c # win2012_ami_20140724
-  size: t2.small
+  size: t2.medium
   minion:
     master: salt-master.qa
   win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
@@ -12,9 +13,25 @@ win2012:
 win2008:
   provider: aws_ec2
   image: ami-eca86084 # win2008_ami_20140724
-  size: t2.small
+  size: t2.medium
   minion:
     master: salt-master.qa
   win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
+
+ubuntu:
+  provider: aws_ec2
+  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) by Amazon
+  size: t2.small
+  minion:
+    master: salt-master.qa
+  script: Ubuntu
+
+redhat:
+  provider: aws_ec2
+  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) by Amazon
+  size: t2.small
+  minion:
+    master: salt-master.qa
+  script: RHEL6

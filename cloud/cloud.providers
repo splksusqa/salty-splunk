@@ -1,4 +1,5 @@
 # http://salt-cloud.readthedocs.org/en/latest/topics/aws.html
+
 aws_ec2:
   owner: self
   id:

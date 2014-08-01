@@ -13,10 +13,18 @@ Splunk deployments.
 - Python 2.7.x
 - salt-master (requires: http://docs.saltstack.com/en/latest/topics/installation/)
 - salt-cloud (requires: python-libcloud, smbclient, winexe)
+- Installation in Ubuntu:
+    1. sudo add-apt-repository ppa:saltstack/salt
+    1. sudo apt-get install salt-master
+    1. sudo apt-get install python-libcloud
+    1. sudo apt-get install salt-cloud
+    1. sudo apt-get install smbclient
+    1. sudo dpkg -i data/winexe_1.00-1_amd64.deb (Note this .deb is in repo)
 
 # Quickstart
-1. Launch an EC2 linux instance (will be running salt-master and salt-cloud)
-1. Install salt-master and salt-cloud and their dependencies.
+1. Launch an EC2 ubuntu instance (will be running salt-master and salt-cloud)
+1. Install salt-master and salt-cloud and their dependencies
+1. Edit 
 1. Enable peer communications:
 
         peer:
@@ -46,7 +54,8 @@ Splunk deployments.
 1. Make sure the instances are running and connected to your salt master:
     - `salt  '*' test.ping`
     - Note: Windows need some time to start salt-minion service, but sometimes they're not started, 
-      you can run `winexe -U Administrator%<passwd> //<ip> "sc start salt-minion"` to start them.
+      you can run the following command to start them:
+        - `winexe -U Administrator%<passwd> //<ip> "sc start salt-minion"` 
 1. Once all nodes are up and connected, run the command to setup the splunk cluster:
     - `salt '*' state.highstate`
 
@@ -104,12 +113,13 @@ There are several ways of targeting minions:
 ## Modules
 Salt execution modules (http://docs.saltstack.com/en/latest/ref/modules/), 
 are used to perform certain **actions**, modules are also python scripts, 
-but they cannot be called from state (sls) files. E.g.:
+but they cannot be called from state (sls) files, they're called from `salt` 
+command, e.g.:
 
 `salt '*' test.ping`
 
-is calling function **ping** in **test** module, such action is executed for 
-us to see if minions are connected, they're also executed at minions.
+is calling function **ping** in **test** module, such action is used to see if 
+minions are connected, they're also executed at minions.
 But such actions are ad-hoc, non-stateful, and one-time command. 
 Most common functions are **start**, **stop**, **restart/reload**, **status** 
 
@@ -136,20 +146,32 @@ define a default version, and other versions, then use them as variable in sls f
 
 ## _states
 
-salt states modules (http://docs.saltstack.com/en/latest/ref/states/writing.html)
+salt states modules
+(http://docs.saltstack.com/en/latest/ref/states/writing.html)
 
 ## _modules
 
 salt execution modules (http://docs.saltstack.com/en/latest/ref/modules/)
 
 ## pillar
-salt pillar data ()
+salt pillar data.
 
 ## data
+data that can be made available to minions, note that large datasets should be 
+put at another data server instead of here.
 
 ## cloud
+salt-cloud configurations, e.g., cloud.proviles and cloud.providers.
 
 ## splunk
+Splunk states (sls) files.
+
+## top.sls
+The top state file for salt 
+(http://docs.saltstack.com/en/latest/ref/states/top.html)
+
+## README.md
+This readme file.
 
 # Resources
 - https://github.com/saltstack/salt
@@ -157,7 +179,37 @@ salt pillar data ()
 - http://www.slideshare.net/SaltStack/an-overvisaltstack-presentation-clean
 - https://blog.talpor.com/2014/07/saltstack-beginners-tutorial/
 
-# Issues
-## salt-cloud provisioning using 
+# Common commands
+1. salt '*' test.ping
+1. salt '*' network.ping 
+1. salt '*' state.highstate
+1. salt '*' sys.reload_modules
+1. salt '*' saltutil.sync_all
+1. salt '*' saltutil.sync_modules
+1. salt '*' grains.items
+1. salt '*' pillar.data
+1. salt-run manage.status
+1. 
+1. salt-cloud -m /etc/salt/cloud.map -P
+1. salt-cloud -m /etc/salt/cloud.map -d
+
+
+ 
+ 
+
+# Common Issues
+1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
+1. if you manually deleted the nodes (instead of using salt-cloud -d), 
+you will need to delete the keys as well:
+`salt-key -d <node1> <node2> <node3> ...`
+1. if you keep getting `SaltCloudSystemExit: Failed to authenticate against 
+remote windows host`, 
+try to increase the check interval (time.sleep) in 
+*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py* line308.
+Because windows might be up but not yet be ready to install winexesvc, so it'll 
+return an error, and salt-cloud would think there is an authentication error.
+
+
 
 # Credits
+

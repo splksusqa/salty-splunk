@@ -1,0 +1,19 @@
+win2012:
+  - splunk-cluster-master:
+  - splunk-cluster-searchhead:
+      requires:
+        - splunk-cluster-master
+  - splunk-cluster-slave-01:
+      requires:
+        - splunk-cluster-master
+  - splunk-cluster-slave-02:
+      requires:
+        - splunk-cluster-master
+
+win2008:
+  - splunk-cluster-slave-03:
+      requires:
+        - splunk-cluster-master
+  - splunk-cluster-slave-04:
+      requires:
+        - splunk-cluster-master
