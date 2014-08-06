@@ -7,6 +7,8 @@ aws_ec2:
   keyname: cchung
   private_key: /home/ubuntu/cchung_new_qasus.pem
   ssh_interface: private_ips
+  location: us-east-1
+  availability_zone: us-east-1d
   del_root_vol_on_destroy: True
   del_all_vol_on_destroy: True
   flush_mine_on_destroy: True

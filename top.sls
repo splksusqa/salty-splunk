@@ -2,14 +2,40 @@
 
 base:
 
-  'id:*splunk-cluster-master*':
+  'role:splunk-.*':
+    - match: grain_pcre
+    - splunk.common
+
+  'role:splunk-cluster-master':
     - match: grain
     - splunk.cluster-master
 
-  'id:*splunk-cluster-searchhead*':
+  'role:splunk-cluster-searchhead':
     - match: grain
     - splunk.cluster-searchhead
 
-  'id:*splunk-cluster-slave*':
+  'role:splunk-cluster-slave':
     - match: grain
     - splunk.cluster-slave
+
+  'role:splunk-indexer':
+    - match: grain
+    - splunk.indexer
+
+  'role:splunk-searchhead':
+    - match: grain
+    - splunk.searchhead
+
+  'role:splunk-universal-forwarder':
+    - match: grain
+    - splunk.universal-forwarder
+
+  'role:splunk-heavy-forwarder':
+    - match: grain
+    - splunk.heavy-forwarder
+
+  'role:splunk-light-forwarder':
+    - match: grain
+    - splunk.light-forwarder
+
+

@@ -30,15 +30,14 @@ Splunk deployments.
           .*:
             - network.ip_addrs
 
-1. Set salt pillar_roots to /srv/salt/pillar (or copy pillar/ to your pillar_roots
+1. Clone this repo to your salt root (default is */srv/salt*):
+    - `git clone https://susqa@bitbucket.org/splunksusqa/salt.git`
+1. Copy pillar/* to your pillar_roots (or set salt pillar_roots to /srv/salt/pillar 
 , default to */srv/pillar*):
 
         pillar_roots:
           base:
             - /srv/salt/pillar
-
-1. Clone this repo to your salt root (default is */srv/salt*):
-    - `git clone https://susqa@bitbucket.org/splunksusqa/salt.git`
 1. Check the ip of the linux instance, set it in *cloud/cloud.profiles* (replace salt-master.qa)
 1. Put your **AWS id** and **key** (for calling AWS API), **keyname** (ssh key pairs, only the name), 
    and **private_key** (the real ssh-key file that matches with keyname) to *cloud/cloud.providers*
@@ -85,6 +84,7 @@ Then, salt will execute "**running**" function of 2nd module "**service**"
 (https://github.com/saltstack/salt/blob/develop/salt/states/service.py#L261)
 with **name=apache** as kwarg for it.
 
+
 ## Target nodes
 Targeting minions is specifying which minions should run a command or execute a state.
 e.g., when **top.sls** defined as 
@@ -125,7 +125,7 @@ Most common functions are **start**, **stop**, **restart/reload**, **status**
 
 ## Pillar
 Pillars (http://salt.readthedocs.org/en/latest/topics/pillar/) are purely **data**.
-They're available for minions that match the criteria, so we can store sensitive data
+They're only available for targeted minions , so we can store sensitive data
 in pillars. But pillar can be used as variables in states, e.g., if we have multiple 
 roles, and we want to apply the same package but with different versions, we can 
 define a default version, and other versions, then use them as variable in sls files.
@@ -173,18 +173,27 @@ The top state file for salt
 This readme file.
 
 # Resources
-- https://github.com/saltstack/salt
-- https://github.com/techhat/salt/
-- http://www.slideshare.net/SaltStack/an-overvisaltstack-presentation-clean
-- https://blog.talpor.com/2014/07/saltstack-beginners-tutorial/
+- Official github: https://github.com/saltstack/salt
+- An overview (slides): http://www.slideshare.net/SaltStack/an-overvisaltstack-presentation-clean
+- Beginners tutorial: https://blog.talpor.com/2014/07/saltstack-beginners-tutorial/
+- CLI: http://docs.saltstack.com/en/latest/ref/cli/salt.html
 
-# Common commands
+# Frequently used commands
 1. salt '*' test.ping
 1. salt '*' network.ping 
-1. salt '*' state.highstate
+1. salt '*' state.single pkg.installed name='vim'
+1. salt '*' state.low '{name: vim, state: pkg, fun: installed}'
+1. salt '*' state.show_lowstate
+1. salt '*' state.sls edit.vim
+1. salt '*' state.show_sls edit.vim
+1. salt '*' state.high '{"vim": {"pkg": ["installed"]}}'
+1. salt '*' state.show_highstate
+1. salt '*' state.highstate pillar="{foo: 'Foo!', bar: 'Bar!'}"
 1. salt '*' sys.reload_modules
+1. salt '*' sys.doc pkg
 1. salt '*' saltutil.sync_all
 1. salt '*' saltutil.sync_modules
+1. salt '*' saltutil.refresh_pillar
 1. salt '*' grains.items
 1. salt '*' pillar.data
 1. salt-key -L
@@ -194,7 +203,7 @@ This readme file.
 1. salt-cloud -m /etc/salt/cloud.map -d
 
 
-# Common Issues
+# Known Issues
 1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
 1. if you manually deleted the nodes (instead of using salt-cloud -d), 
 you will need to delete the keys as well:
@@ -205,7 +214,15 @@ try to increase the check interval (time.sleep) in
 */usr/lib/python2.7/dist-packages/salt/utils/cloud.py* line308.
 Because windows might be up but not yet be ready to install winexesvc, so it'll 
 return an error, and salt-cloud would think there is an authentication error.
+1. if you mange to use `cloud.map` to provision minions, you will encounter an
+error (see the issue [here](https://github.com/saltstack/salt/issues/14593))
+saying `The specified fingerprint in the master configuration file`. 
+You'll need to edit 
+[this line](https://github.com/saltstack/salt/blob/develop/salt/utils/__init__.py#L786)
+with
 
+    key = ''.join(fp_.readlines()[1:-1]).replace("\r\n", "\n")
+to make windows minions provisioned by `salt-cloud -m cloud.map` happy
 
 # Credits
 

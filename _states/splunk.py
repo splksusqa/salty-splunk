@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 def installed(name,
               source,
               splunk_home,
-              installer_flags={},
+              install_flags={},
               saltenv='base',
               **kwargs):
     '''
@@ -29,30 +29,25 @@ def installed(name,
     :param name: sent by salt
     :param source: pkg source, can be http, https, salt, ftp schema
     :param splunk_home: installdir
-    :param installer_flags: extra installation flags
+    :param install_flags: extra installation flags
     :param saltenv: saltenv, used by salt.
     :param kwargs: other kwargs.
     :return: results of changes.
     '''
     ret =  {'name': name, 'changes': {}, 'result': False, 'comment': ''}
 
-    if not splunk_home:
-        splunk_home = __salt__['splunk.get_splunk_home']()
-
     pkg = os.path.basename(source)
     if _is_pkg_installed(pkg):
         ret['changes'] = {}
         ret['result'] = True
         ret['comment'] = "pkg '{p}' is already installed".format(p=pkg)
-        return ret
-
-    pkg_type = _validate_pkg_for_platform(pkg)
-    cached_pkg = _cache_pkg(source, saltenv)
-
-    getattr(sys.modules[__name__], "_install_{t}".format(t=pkg_type))(
-        cached_pkg, splunk_home, installer_flags)
-    ret['changes'] = __salt__['splunk.info']()
-    ret['result'] = True
+    else:
+        pkg_type = _validate_pkg_for_platform(pkg)
+        cached_pkg = _cache_file(source, saltenv)
+        ret['comment'] = getattr(sys.modules[__name__], "_install_{t}".format(
+                             t=pkg_type))(cached_pkg, splunk_home, install_flags)
+        ret['changes'] = __salt__['splunk.info']()
+        ret['result'] = True
     return ret
 
 
@@ -95,7 +90,11 @@ def _validate_pkg_for_platform(pkg):
     return type[0]
 
 
-def _cache_pkg(source, saltenv):
+def app_installed():
+
+
+
+def _cache_file(source, saltenv):
     # get source file
     pkg_to_cache = ['salt:', 'http:', 'https:', 'ftp:']
     if any([True for i in pkg_to_cache if source.startswith(i)]):
@@ -110,44 +109,75 @@ def _cache_pkg(source, saltenv):
     return cached_pkg
 
 
-def _install_tgz():
-    raise NotImplementedError
+def _run_cmd(cmd):
+    '''
+    :param cmd:
+    :return:
+    '''
+    ret = __salt__['cmd.run_all'](cmd, output_loglevel='trace')
+    if ret['retcode'] == 0:
+        comments = "Successfully ran cmd: '{c}'".format(c=cmd)
+    else:
+        comments = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
+                    c=cmd, r=ret['retcode'], s=ret['stderr'])
+    return comments
 
 
-def _install_rpm():
+def _install_tgz(pkg, splunk_home, flags):
+    '''
+    Install tgz package, note the flags are not used.
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    '''
+    cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
+           s=splunk_home, p=pkg)
+    return _run_cmd(cmd)
+
+
+def _install_rpm(pkg, splunk_home, flags):
     raise NotImplementedError
 
 
 def _install_msi(pkg, splunk_home, flags):
-    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f}'.format(
-             c=pkg, h=splunk_home,
+    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
+             c=pkg, h=splunk_home, q='/quiet',
              f=' '.join('%s="%r"' %t for t in flags.iteritems()))
-    return __salt__['cmd.run'](cmd+' /quiet', output_loglevel='trace')
+    return _run_cmd(cmd)
 
 
-def _install_deb():
-    raise NotImplementedError
-
-
-def _install_Z():
-    raise NotImplementedError
-
-
-def _install_zip():
-    raise NotImplementedError
-
-
-def removed(name):
+def _install_deb(pkg, splunk_home, flags):
     '''
-
-    :param name:
+    Install deb package, note that according to (http://docs.splunk.com/
+    Documentation/Splunk/latest/Installation/InstallonLinux#Debian_DEB_install),
+    deb package can only be installed to /opt/splunk, so splunk_home will be
+    ignored.
+    :param pkg: pkg location
+    :param splunk_home: must be /opt/splunk for deb package
+    :param flags: other installation flags
     :return:
     '''
-    ret =  {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    comments = ''
+    if not splunk_home == '/opt/splunk':
+        comments += ("splunk_home ({s}) should be '/opt/splunk' for deb "
+                    "pkg!".format(s=splunk_home))
+    cmd = "sudo dpkg -i {p} {f}".format(p=pkg, f=flags)
+    # TODO: need to handle splunk_home is not /opt/splunk, but tries to install
+    # return _run_cmd(cmd) + comments
     raise NotImplementedError
 
 
-def set_role(mode, **kwargs):
+
+def _install_Z(pkg, splunk_home, flags):
+    raise NotImplementedError
+
+
+def _install_zip(pkg, splunk_home, flags):
+    raise NotImplementedError
+
+
+def set_role(method, **kwargs):
     '''
     set the role for the splunk instance
     :param mode: splunk instance mode, cluster-master, indexer, etc
@@ -156,45 +186,60 @@ def set_role(mode, **kwargs):
     '''
     ret =  {'name': 'set_role', 'changes': {}, 'result': False, 'comment': ''}
 
-    if mode == 'cluster-master':
-        stanza = {
-            'clustering': {
-                'mode': 'master'
-            }
-        }
-
-    elif mode == 'cluster-slave':
-        stanza = {
-            'clustering': {
-                'mode': 'slave',
-                'master_uri': 'https://' + kwargs.get('master')
-            },
-            "replication_port://{p}".format(p=kwargs.get('replication_port')): {
-            }
-        }
-
-    elif mode == 'cluster-searchhead':
-        stanza = {
-            'clustering': {
-                'mode': 'slave',
-                'master_uri': 'https://' + kwargs.get('master')
-            }
-        }
-
+    # TODO: do some validations
+    if method.lower() == 'conf':
+        settings = kwargs.get('stanza')
+        conf = kwargs.get('conf')
+        ret_set = __salt__['splunk.edit_stanza'](
+                      conf=conf, stanza=settings, restart_splunk=True)
+    elif method.lower() == 'rest':
+        ret_set = ''
+        raise NotImplementedError
+    elif method.lower() == 'cli':
+        ret_set = ''
+        raise NotImplementedError
     else:
         raise salt.execptions.CommandExecutionError(
-                  "Role '{r}' isn't supported".format(r=mode))
+                   "Set role method '{m}' is not supported".format(m=method))
 
-    edit_stanza = __salt__['splunk.edit_stanza'](
-                         conf='server.conf',
-                         stanza=stanza,
-                         restart_splunk=True)
-
-    if edit_stanza.startswith('Successfully'):
-        ret['changes'] = {'mode': mode}
+    ret['comment'] = ret_set
+    if ret['comment'].startswith('Successfully'):
+        ret['changes'] = settings
         ret['result'] = True
-        ret['comment'] = "Successfully set role {r} with stanza {s}".format(
-                             r=mode, s=stanza)
     return ret
+    # if mode == 'cluster-master':
+    #     stanza = {
+    #         'clustering': {
+    #             'mode': 'master'
+    #         }
+    #     }
+    #
+    # elif mode == 'cluster-slave':
+    #     stanza = {
+    #         'clustering': {
+    #             'mode': 'slave',
+    #             'master_uri': 'https://' + kwargs.get('master')
+    #         },
+    #         "replication_port://{p}".format(p=kwargs.get('replication_port')): {
+    #         }
+    #     }
+    #
+    # elif mode == 'cluster-searchhead':
+    #     stanza = {
+    #         'clustering': {
+    #             'mode': 'slave',
+    #             'master_uri': 'https://' + kwargs.get('master')
+    #         }
+    #     }
+    #
+    # else:
+    #     raise salt.execptions.CommandExecutionError(
+    #               "Role '{r}' isn't supported".format(r=mode))
+    #
+    # edit_stanza = __salt__['splunk.edit_stanza'](
+    #                      conf='server.conf',
+    #                      stanza=stanza,
+    #                      restart_splunk=True)
+
 
 
