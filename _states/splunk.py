@@ -17,6 +17,8 @@ import salt.exceptions
 
 logger = logging.getLogger(__name__)
 
+
+#### State functions ####
 def installed(name,
               source,
               splunk_home,
@@ -34,23 +36,106 @@ def installed(name,
     :param kwargs: other kwargs.
     :return: results of changes.
     '''
-    ret =  {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
 
     pkg = os.path.basename(source)
-    if _is_pkg_installed(pkg):
-        ret['changes'] = {}
-        ret['result'] = True
-        ret['comment'] = "pkg '{p}' is already installed".format(p=pkg)
-    else:
+    current_pkg_state = _get_current_pkg_state(pkg)
+    if current_pkg_state[0]: # install pkg
         pkg_type = _validate_pkg_for_platform(pkg)
-        cached_pkg = _cache_file(source, saltenv)
-        ret['comment'] = getattr(sys.modules[__name__], "_install_{t}".format(
-                             t=pkg_type))(cached_pkg, splunk_home, install_flags)
-        ret['changes'] = __salt__['splunk.info']()
+        cached_pkg = _cache_file(source=source, saltenv=saltenv)
+        __salt__['splunk.stop']()
+        install_ret = getattr(sys.modules[__name__], "_install_{t}".format(
+                          t=pkg_type))(cached_pkg,splunk_home,install_flags)
+        ret['comments'] = install_ret['comments']
+        if install_ret['retcode'] == 0:
+            ret['result'] = True
+            ret['changes'] = {'before': current_pkg_state[2],
+                              'after': __salt__['splunk.info']()}
+        else:
+            ret['result'] = False
+    else: # ret_code is 0, not going to install
+        ret['changes'] = {}
+        ret['result'] = False
+        ret['comment'] = current_pkg_state[1]
+    return ret
+
+
+def app_installed(name,
+                  source,
+                  dest='',
+                  method='cli',
+                  saltenv='base'):
+    '''
+
+    :return:
+    '''
+    ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
+    cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
+    ret['comment'] = __salt__['splunk.cmd']("install app {f}".format(
+                         f=cached_file))
+
+    return ret
+    #raise NotImplementedError
+
+
+
+def data_indexed(name,
+                 source,
+                 dest='',
+                 index='main',
+                 wait=False,
+                 event_count=0,
+                 saltenv='base'):
+    '''
+
+    :param source:
+    :param dest:
+    :param index:
+    :param wait:
+    :param saltenv:
+    :return:
+    '''
+    ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
+    cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
+    ret['comment'] = __salt__['splunk.cmd']("add monitor {f}".format(
+                         f=cached_file))
+    return ret
+
+
+def set_role(method,
+             **kwargs):
+    '''
+    set the role for the splunk instance
+    :param mode: splunk instance mode, cluster-master, indexer, etc
+    :param kwargs:
+    :return:
+    '''
+    ret =  {'name': 'set_role', 'changes': {}, 'result': False, 'comment': ''}
+
+    # TODO: do some validations
+    if method.lower() == 'conf':
+        setting = kwargs.get('setting')
+        conf = kwargs.get('conf')
+        ret_set = __salt__['splunk.edit_stanza'](
+                      conf=conf, stanza=setting, restart_splunk=True)
+    elif method.lower() == 'rest':
+        ret_set = ''
+        raise NotImplementedError
+    elif method.lower() == 'cli':
+        ret_set = ''
+        raise NotImplementedError
+    else:
+        raise salt.execptions.CommandExecutionError(
+                  "Set role method '{m}' is not supported".format(m=method))
+
+    ret['comment'] = ret_set
+    if ret['comment'].startswith('Successfully'):
+        ret['changes'] = setting
         ret['result'] = True
     return ret
 
 
+#### internal functions ####
 def _is_pkg_installed(pkg):
     '''
     check if splunk is installed at desired version/build
@@ -65,6 +150,30 @@ def _is_pkg_installed(pkg):
             return True
     else:
         return False
+
+def _get_current_pkg_state(pkg):
+    reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
+    (version, build) = (reg.group(2), reg.group(3))
+    info = __salt__['splunk.info']()
+    if info:
+        crnt = "Current pkg {v}-{b} ".format(v=info['VERSION'], b=info['BUILD'])
+        if version > info['VERSION']:
+            ret = (2, crnt+"has lower version than '{p}'".format(p=pkg), info)
+        elif version == info['VERSION']:
+            if build > info['BUILD']:
+                ret = (3, crnt+"has same version, but lower build "
+                          "than '{p}'".format(p=pkg), info)
+            elif build == info['BUILD']:
+                ret = (0, crnt+"has same version and build with "
+                          "'{p}'".format(p=pkg), info)
+            else:
+                ret = (0, crnt+"has same version, but higher build than "
+                          "'{p}'".format(p=pkg), info)
+        else:
+            ret = (0, crnt+"has high version than '{pkg}'".format(p=pkg), info)
+    else:
+        ret = (1, 'No Splunk is installed', info)
+    return ret
 
 
 def _validate_pkg_for_platform(pkg):
@@ -85,28 +194,38 @@ def _validate_pkg_for_platform(pkg):
     os_ = platform.system()
     type = [t for t in matrix if pkg.endswith(t) and os_ == matrix[t]]
     if not type:
-        raise salt.exceptions.SaltInvocationError(
+        raise salt.exceptions.CommandExecutionError(
                   "pkg {p} is not for platform {o}".format(p=pkg, o=os_))
     return type[0]
 
 
-def app_installed():
-
-
-
-def _cache_file(source, saltenv):
+def _cache_file(source, saltenv, dest=''):
     # get source file
-    pkg_to_cache = ['salt:', 'http:', 'https:', 'ftp:']
-    if any([True for i in pkg_to_cache if source.startswith(i)]):
-        cached_pkg = __salt__['cp.is_cached'](source, saltenv)
-        if not cached_pkg: # not cached
-            cached_pkg = __salt__['cp.cache_file'](source, saltenv)
-        if (__salt__['cp.hash_file'](source, saltenv) !=
-            __salt__['cp.hash_file'](cached_pkg)):
-            cached_pkg = __salt__['cp.cache_file'](source, saltenv)
+    cache_schema = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
+    if any([True for i in cache_schema if source.startswith(i)]):
+        cached = __salt__['cp.is_cached'](source, saltenv)
+        if source.startswith('s3:'):
+            if not dest:
+                raise salt.exceptions.CommandExecutionError(
+                          'Need a local dest to place the file from s3 bucket')
+
+            ret = __salt__['s3.get'](source.split('/', 3)[2],
+                                     source.split('/', 3)[3],
+                                     local_file=dest)
+            success_string = 'Saved to local file:'
+            if ret.startswith(success_string):
+                return ret.split(success_string)[1].strip()
+            else:
+                raise salt.exceptions.CommandExecutionError(ret)
+        else:
+            if not cached: # not cached
+                cached = __salt__['cp.cache_file'](source, saltenv)
+            if (__salt__['cp.hash_file'](source, saltenv) !=
+                __salt__['cp.hash_file'](cached)):
+                cached = __salt__['cp.cache_file'](source, saltenv)
     else: # locally stored?
-        cached_pkg = source
-    return cached_pkg
+        cached = source
+    return cached
 
 
 def _run_cmd(cmd):
@@ -116,11 +235,11 @@ def _run_cmd(cmd):
     '''
     ret = __salt__['cmd.run_all'](cmd, output_loglevel='trace')
     if ret['retcode'] == 0:
-        comments = "Successfully ran cmd: '{c}'".format(c=cmd)
+        ret['comments'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
-        comments = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
-                    c=cmd, r=ret['retcode'], s=ret['stderr'])
-    return comments
+        ret['comments'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
+                              c=cmd, r=ret['retcode'], s=ret['stderr'])
+    return ret
 
 
 def _install_tgz(pkg, splunk_home, flags):
@@ -168,7 +287,6 @@ def _install_deb(pkg, splunk_home, flags):
     raise NotImplementedError
 
 
-
 def _install_Z(pkg, splunk_home, flags):
     raise NotImplementedError
 
@@ -176,70 +294,6 @@ def _install_Z(pkg, splunk_home, flags):
 def _install_zip(pkg, splunk_home, flags):
     raise NotImplementedError
 
-
-def set_role(method, **kwargs):
-    '''
-    set the role for the splunk instance
-    :param mode: splunk instance mode, cluster-master, indexer, etc
-    :param kwargs:
-    :return:
-    '''
-    ret =  {'name': 'set_role', 'changes': {}, 'result': False, 'comment': ''}
-
-    # TODO: do some validations
-    if method.lower() == 'conf':
-        settings = kwargs.get('stanza')
-        conf = kwargs.get('conf')
-        ret_set = __salt__['splunk.edit_stanza'](
-                      conf=conf, stanza=settings, restart_splunk=True)
-    elif method.lower() == 'rest':
-        ret_set = ''
-        raise NotImplementedError
-    elif method.lower() == 'cli':
-        ret_set = ''
-        raise NotImplementedError
-    else:
-        raise salt.execptions.CommandExecutionError(
-                   "Set role method '{m}' is not supported".format(m=method))
-
-    ret['comment'] = ret_set
-    if ret['comment'].startswith('Successfully'):
-        ret['changes'] = settings
-        ret['result'] = True
-    return ret
-    # if mode == 'cluster-master':
-    #     stanza = {
-    #         'clustering': {
-    #             'mode': 'master'
-    #         }
-    #     }
-    #
-    # elif mode == 'cluster-slave':
-    #     stanza = {
-    #         'clustering': {
-    #             'mode': 'slave',
-    #             'master_uri': 'https://' + kwargs.get('master')
-    #         },
-    #         "replication_port://{p}".format(p=kwargs.get('replication_port')): {
-    #         }
-    #     }
-    #
-    # elif mode == 'cluster-searchhead':
-    #     stanza = {
-    #         'clustering': {
-    #             'mode': 'slave',
-    #             'master_uri': 'https://' + kwargs.get('master')
-    #         }
-    #     }
-    #
-    # else:
-    #     raise salt.execptions.CommandExecutionError(
-    #               "Role '{r}' isn't supported".format(r=mode))
-    #
-    # edit_stanza = __salt__['splunk.edit_stanza'](
-    #                      conf='server.conf',
-    #                      stanza=stanza,
-    #                      restart_splunk=True)
 
 
 

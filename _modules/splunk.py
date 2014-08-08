@@ -7,11 +7,12 @@ Module for splunk instances
 __author__ = 'cchung'
 import os
 import subprocess
-import platform
+import time
 import ConfigParser
 
 # salt utils
 import salt.utils
+import salt.exceptions
 
 __salt__ = {}
 __pillar__ = {}
@@ -77,8 +78,14 @@ def stop():    return cmd('stop')
 def status():  return cmd('status')
 def version(): return cmd('version')
 
-def splunkd_port():
-    return cmd('show splunkd-port').split(':')[1].strip()
+def get_splunkd_port():
+    return cmd('show splunkd-port')['stdout'].split(':')[1].strip()
+
+def get_splunkweb_port():
+    return cmd('show web-port')['stdout'].split(':')[1].strip()
+
+def get_web_port():
+    return get_splunkweb_port()
 
 def set_splunkweb_port(port='', method='rest'):
     raise NotImplementedError
@@ -97,15 +104,31 @@ def info():
     return dict([l.strip().split('=') for l in f.readlines()])
 
 
-def cli(command, auth='admin:changeme'):
-    ''' an alias to cmd '''
+def cli(command, auth=''):
+    '''
+    an alias to cmd
+    :param command:
+    :param auth:
+    :return:
+    '''
+    if not is_splunk_installed():
+        return 'Splunk is not installed'
     return cmd(command, auth)
 
 
-def cmd(command, auth='admin:changeme'):
-    ''' splunk command '''
+def cmd(command, auth='', timeout=60, wait=True):
+    '''
+    splunk command
+    :param command:
+    :param auth:
+    :return:
+    '''
+    ret = {}
     if not is_splunk_installed():
         return 'Splunk is not installed'
+    if not auth:
+        auth = __salt__['pillar.get']('splunk:auth')
+
     cmd_ = command.split(' ')
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version']
     if cmd_[0] in no_auth_cmds:
@@ -113,18 +136,63 @@ def cmd(command, auth='admin:changeme'):
             cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
     else:
         cmd_ += ['-auth', auth]
-    return subprocess.check_output([splunk_path('bin_splunk')]+ cmd_,
-                                   stderr=subprocess.STDOUT)
+    p = subprocess.Popen([splunk_path('bin_splunk')]+ cmd_,
+                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    start_time = time.time()
+    time.sleep(0.5)
+    if wait:
+        # raise and terminate the process while timeout
+        while True:
+            if p.poll() == None:
+                if time.time() - start_time > timeout:
+                    p.kill()
+                    raise salt.exceptions.CommandExecutionError((
+                              "cmd not finished in {s}s".format(s=timeout)))
+            else:
+                break
+            time.sleep(2)
+        ret['stdout'], ret['stderr'] = p.communicate()
+        ret['retcode'] = p.returncode
+    else:
+        ret['stdout'] = ''
+        ret['stderr'] = 'Not waiting for command to complete'
+        ret['retcode'] = p.returncode
+
+    return ret
+
+
+
+def add_monitor(source, index='main', wait=False, event_count=0):
+    '''
+
+    :param source:
+    :param index:
+    :param wait:
+    :param event_count:
+    :return:
+    '''
+    if os.path.exists(source):
+        cmd("add monitor {s} index={i}".format(s=source, i=index))
+    raise NotImplementedError
 
 
 def massive_cmd(command, func='cmd', flags={}, parallel=False):
     '''
+
+    :param command:
+    :param func:
+    :param flags:
+    :param parallel:
+    :return:
     '''
     raise NotImplementedError
 
 
 def _read_config(conf_file):
     '''
+
+    :param conf_file:
+    :return:
     '''
     cp = ConfigParser.SafeConfigParser()
     cp.readfp(_FakeSecHead(open(conf_file, 'w+'), no_section))
@@ -133,6 +201,10 @@ def _read_config(conf_file):
 
 def _write_config(conf_file, cp):
     '''
+
+    :param conf_file:
+    :param cp:
+    :return:
     '''
     # TODO: need to handle dummy section
     with open(conf_file, 'w+') as f:
@@ -140,7 +212,12 @@ def _write_config(conf_file, cp):
 
 
 def locate_conf_file(scope, conf):
-    ''' locate the conf file in specified scope.'''
+    '''
+    locate the conf file in specified scope.
+    :param scope:
+    :param conf:
+    :return:
+    '''
     return os.path.join(*[splunk_path('etc')] + scope.split(':') + [conf])
 
 
@@ -211,6 +288,11 @@ def edit_stanza(conf,
 
 
 def splunk_path(path_):
+    '''
+
+    :param path_:
+    :return:
+    '''
     HOME = get_splunk_home()
     p = {
         'bin':         os.path.join(HOME, 'bin'),

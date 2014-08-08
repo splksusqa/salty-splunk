@@ -3,6 +3,6 @@ set-cluster:
     - set_role
     - method: conf
     - conf: server.conf
-    - stanza:
+    - setting:
         clustering:
           mode: master

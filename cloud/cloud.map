@@ -24,8 +24,21 @@
 #  - cchung-splunk-cluster-slave-04:
 #      requires:
 #        - cchung-splunk-cluster-master
-Ubuntu-cluster-master:
-  - cchung-splunk-cluster-master-ubuntu
+win2008-splunk-cluster-master:
+  - cchung-splunk-cluster-master
 
-Ubuntu-cluster-searchhead:
-  - cchung-splunk-cluster-searchhead-ubuntu
+ubuntu-splunk-cluster-searchhead:
+  - cchung-splunk-cluster-searchhead
+
+win2012-splunk-cluster-slave:
+  - cchung-splunk-cluster-slave-01:
+      requires:
+        - cchung-splunk-cluster-master
+  - cchung-splunk-cluster-slave-02:
+      requires:
+        - cchung-splunk-cluster-master
+
+ubuntu-splunk-cluster-slave:
+  - cchung-splunk-cluster-slave-03:
+      requires:
+        - cchung-splunk-cluster-master
