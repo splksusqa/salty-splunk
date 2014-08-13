@@ -17,12 +17,12 @@ layer libraries involved in the python modules, modules are executed remotely.
 # Steps
 ## Quickstart script to install & setup a salt-master
 1. Save the following texts into a script (e.g. setup-salt-master.sh),
-     - if you need to launch salt-minions with salt-cloud on ec2, replace **<access key id>** and **<secret access key>** in the script   
-       with your AWS access key id and secret access key.
-     - If you're using EC2 as your master, you can paste the following
-       texts into **user data** section in the page after selecting desired ami
-     - **NOTE**: this is script is only tested in Ubuntu and Centos6, and you'll
-       hit an issue (see *Known issues* section) on Redhat 7 of EC2.
+   - if you need to launch salt-minions with salt-cloud on ec2, replace **<access key id>** and **<secret access key>** in the script   
+     with your AWS access key id and secret access key.
+   - If you're using EC2 as your master, you can paste the following
+     texts into **user data** section in the page after selecting desired ami
+   - **NOTE**: this is script is only tested in Ubuntu and Centos6, and you'll
+     hit an issue (see *Known issues* section) on Redhat 7 of EC2.
    
          #! /bin/bash
          # you can check /var/log/cloud-init-output.log for the outputs
