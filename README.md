@@ -199,10 +199,10 @@ There are several ways of targeting minions:
 | Targets   | Usage in cli commands                                             | Used in sls files                                                 |
 |-----------|-------------------------------------------------------------------|-------------------------------------------------------------------|
 | ID        | `salt '*' test.ping`                                              | `'*'`                                                             |
-|           | `salt -E '(prod\|devel)' test.ping`                               | `'^(prod\|devel)*$'` (match: pcre)                                |
+|           | `salt -E 'prod-.*' test.ping`                                     | `'prod-.*'` (match: pcre)                                         |
 |           | `salt -L 'web1,web2' test.ping`                                   | `'web1, web2'` (match: list)                                      |
 | Grains    | `salt -G 'os:Windows' test.ping`                                  | `'os:Windows'` (match: grain)                                     |
-|           | `salt --grain-pcre 'os:(Windows\|Ubuntu)' test.ping`              | `'os:(Windows\|Ubuntu)'` (match: grain_pcre)                      |
+|           | `salt --grain-pcre 'role:web-.*' test.ping`                       | `'role:web-.*'` (match: grain_pcre)                               |
 | Pillar    | `salt -I 'master:ssh_user:root' test.ping`                        | `'master:ssh_user:root'` (match: pillar)                          |
 | IP/Subnet | `salt -S '172.18.90.221' test.ping`                               | `'172.18.90.221'` (match: ipcidr)                                 |
 | Compound  | `salt -C 'webserv* and G@os:Debian or E@web-dc1-srv.*' test.ping` | `'webserv* and G@os:Debian or E@web-dc1-srv.*'` (match: compound) |
@@ -261,16 +261,13 @@ variable in sls files.
 # Source structures & definitions
 
 ## _states
-
-salt states modules
-(http://docs.saltstack.com/en/latest/ref/states/writing.html)
+splunk states modules
 
 ## _modules
-
-salt execution modules (http://docs.saltstack.com/en/latest/ref/modules/)
+splunk execution modules
 
 ## pillar
-salt pillar data.
+ pillar data.
 
 ## data
 data that can be made available to minions, note that large datasets should be 
@@ -304,6 +301,7 @@ This readme file.
                Installed: python-2.7.5-16.el7.x86_64 (@anaconda/7.0)
                    python(abi) = 2.7
                    python(abi) = 2.7
+
 1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
     - might be compatible with win2012R2 with winexe_1.00.1-1_amd64.deb, but not
       fully tested yet.
