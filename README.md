@@ -170,43 +170,41 @@ with **name=apache** as kwarg for it.
 
 
 ## Target nodes
-Targeting minions is specifying which minions should run a command or execute a state.
-e.g., when **top.sls** defined as 
+Targeting minions is specifying which minions should run a command or execute a 
+state. e.g., when **top.sls** defined as 
 
     base:
       '*':
         - common
       'web1':
         - webserver
+      'role:db':
+        - match: grains
+        - dbserver
 
 When state.highstate is called, all minions ('*') will execute the common.sls 
-(or common/init.sls), and only minions' **id** match "web1" will execute webserver.sls
-(webserver/init.sls)
+(or common/init.sls), and only minions' **id** match "web1" will execute 
+webserver.sls (webserver/init.sls). The 3rd one, **role:db** uses **grains** to
+match minions (specified by **- match: grains**), so only the minions that have 
+**role=db** key-value in their **grains** will execute dbserver.sls.
 
 There are several ways of targeting minions: 
 (http://docs.saltstack.com/en/latest/topics/targeting/index.html#targeting)
 
+| Targets   | Usage in cli commands                                             | Used in sls files                                                 |
+|-----------|-------------------------------------------------------------------|-------------------------------------------------------------------|
+| ID        | `salt '*' test.ping`                                              | '*'                                                               |
+|           | `salt -E '(prod|devel)' test.ping`                                | `'^(prod|devel)*$'` (match: pcre)                                 |
+|           | `salt -L 'web1,web2' test.ping`                                   | `'web1, web2'` (match: list)                                      |
+| Grains    | `salt -G 'os:Windows' test.ping`                                  | `'os:Windows'` (match: grain)                                     |
+|           | `salt --grain-pcre 'os:(Windows|Ubuntu)' test.ping`               | `'os:(Windows|Ubuntu)'` (match: grain_pcre)                       |
+| Pillar    | `salt -I 'master:ssh_user:root' test.ping`                        | `'master:ssh_user:root'` (match: pillar)                          |
+| IP/Subnet | `salt -S '172.18.90.221' test.ping`                               | `'172.18.90.221'` (match: ipcidr)                                 |
+| Compound  | `salt -C 'webserv* and G@os:Debian or E@web-dc1-srv.*' test.ping` | `'webserv* and G@os:Debian or E@web-dc1-srv.*'` (match: compound) |
+| Nodegroup | `salt -N 'group1' test.ping`                                      | nodegroups: (defined in /etc/salt/master)                         |
+|           |                                                                   |     group1: 'L@foo.domain.com,bar.domain.com'                     |
+|           |                                                                   |     group2: 'G@os:Debian and foo.domain.com'                      |
 
-| Targets   | Usage in cli commands                                           | Used in sls files                              |
-|-----------|-----------------------------------------------------------------|------------------------------------------------|
-| ID        | salt '*' test.ping                                              | '*'                                            |
-|           | salt -E ' (prod|devel)' test.ping                               | '^(prod|devel)*$':                             |
-|           |                                                                 |     - match: pcre                              |
-|           | salt -L 'web1,web2' test.ping                                   | 'web1, web2':                                  |
-|           |                                                                 |     - match: list                              |
-| Grains    | salt -G 'os:Windows' test.ping                                  | 'os:Windows':                                  |
-|           |                                                                 |     - match: grain                             |
-|           | salt --grain-pcre 'os:(Windows|Ubuntu)' test.ping               | 'os:(Windows|Ubuntu)':                         |
-|           |                                                                 |     - match: grain_pcre                        |
-| Pillar    | salt -I 'master:ssh_user:root' test.ping                        | 'master:ssh_user:root':                        |
-|           |                                                                 |     - match: pillar                            |
-| IP/Subnet | salt -S '172.18.90.221' test.ping                               | '172.18.90.221':                               |
-|           |                                                                 |     - match: ipcidr                            |
-| Compound  | salt -C 'webserv* and G@os:Debian or E@web-dc1-srv.*' test.ping | 'webserv* and G@os:Debian or E@web-dc1-srv.*': |
-|           |                                                                 |     - match: compound                          |
-| Nodegroup | salt -N 'group1' test.ping                                      | nodegroups: (defined in /etc/salt/master)      |
-|           |                                                                 |     group1: 'L@foo.domain.com,bar.domain.com'  |
-|           |                                                                 |     group2: 'G@os:Debian and foo.domain.com'   |
 
 ## Modules
 There are two types of modules: **State modules** 
