@@ -1,14 +1,17 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Module for splunk instances
 ==========================
-'''
+"""
 
 __author__ = 'cchung'
 import os
 import subprocess
 import time
 import ConfigParser
+import urllib2
+import urllib
+import ssl
 
 # salt utils
 import salt.utils
@@ -20,7 +23,8 @@ no_section = 'no_section'
 
 
 class _FakeSecHead(object):
-    '''
+    """
+
     Handle conf file for key-value without section.
     This piece of codes is mainly from Alex's answer here:
     http://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
@@ -39,7 +43,7 @@ class _FakeSecHead(object):
         crawl.conf
         commands.conf
         alert_actions.conf
-    '''
+    """
     def __init__(self, fp, sechead):
         self.fp = fp
         self.sechead = "[{s}]\n".format(s=sechead)
@@ -55,7 +59,7 @@ class _FakeSecHead(object):
 
 
 def __virtual__():
-    ''' salt virtual '''
+    """ salt virtual """
     if os.path.exists(get_splunk_home()):
         return True
     else:
@@ -63,10 +67,11 @@ def __virtual__():
 
 
 def get_splunk_home():
-    '''
+    """
     get splunk_home location
+
     :return: str: splunk_home
-    '''
+    """
     return __salt__['pillar.get']('splunk:home')
 
 
@@ -79,6 +84,10 @@ def status():  return cmd('status')
 def version(): return cmd('version')
 
 def get_splunkd_port():
+    """
+    
+    :return:
+    """
     return cmd('show splunkd-port')['stdout'].split(':')[1].strip()
 
 def get_splunkweb_port():
@@ -90,14 +99,12 @@ def get_web_port():
 def set_splunkweb_port(port='', method='rest'):
     raise NotImplementedError
 
-def rest_call(endpoint, ):
-    raise NotImplementedError
-
 def info():
-    '''
+    """
     splunk product information, contains version, build, product, and platform
+
     :return: dict of product information
-    '''
+    """
     if not is_splunk_installed():
         return {}
     f = open(os.path.join(splunk_path('etc'), 'splunk.version'), 'r')
@@ -105,24 +112,26 @@ def info():
 
 
 def cli(command, auth=''):
-    '''
+    """
     an alias to cmd
+
     :param command:
     :param auth:
     :return:
-    '''
+    """
     if not is_splunk_installed():
         return 'Splunk is not installed'
     return cmd(command, auth)
 
 
 def cmd(command, auth='', timeout=60, wait=True):
-    '''
+    """
     splunk command
+
     :param command:
     :param auth:
     :return:
-    '''
+    """
     ret = {}
     if not is_splunk_installed():
         return 'Splunk is not installed'
@@ -157,67 +166,121 @@ def cmd(command, auth='', timeout=60, wait=True):
         ret['stdout'] = ''
         ret['stderr'] = 'Not waiting for command to complete'
         ret['retcode'] = p.returncode
-
     return ret
 
+def rest_call(uri, method='get', body='', params='', auth='',
+              uri_base='https://localhost', port=0, timeout=60):
+    """
+    Make a HTTP request to an endpoint
 
+    :param method: HTTP valid methods: PUT, GET, POST, DELETE
+    :type method: string
+    :param uri: URI of the REST endpoint
+    :type uri: string
+    :param body: the request body
+    :type body: dictionary
+    :param urlparam: URL parameters
+    :type urlparam: dictionary
+    :param url:
+    :param port:
+    :param timeout:
+    :return:
+    """
+    ret = {'retcode': 127, 'comment': ''}
+    #header = {'content-type':'text/xml; charset=utf-8'}
+    valid_methods = ['get', 'post', 'put', 'delete']
+    if not method.lower() in valid_methods:
+        ret['comment'] = "Invalid method {m}".format(m=method)
+        return ret
+    if not isinstance(body, dict):
+        ret['comment'] = "'body' is {t}, should be dict".format(t=type(body))
+        return ret
+    if not isinstance(params, dict):
+        ret['comment'] = "'param' is {t}, should be dict".format(t=type(params))
+        return ret
+    if not port:
+        port = get_splunkd_port()
+    if not auth:
+        auth = __salt__['pillar.get']('splunk:auth')
+    (username, password) = auth.split(':')
+    url = "{b}:{p}/{u}".format(b=uri_base, p=port, u=uri)
+
+    try:
+        passwd_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
+        passwd_mgr.add_password(None, url, username, password)
+        auth_hdlr = urllib2.HTTPBasicAuthHandler(passwd_mgr)
+        opener = urllib2.build_opener(auth_hdlr)
+        urllib2.install_opener(opener)
+        request = urllib2.Request(url, urllib.urlencode(params))
+        response = urllib2.urlopen(request, urllib.urlencode(body))
+        ret['comment'] = response.msg
+        #ret['response'] = response
+        if str(response.code).startswith('2'):
+            ret['retcode'] = 0
+        else:
+            ret['retcode'] = 1
+    except Exception as e:
+        raise salt.exceptions.CommandExecutionError((
+                  "REST call excepts: {e}".format(e=e)))
+    return ret
 
 def add_monitor(source, index='main', wait=False, event_count=0):
-    '''
+    """
 
     :param source:
     :param index:
     :param wait:
     :param event_count:
     :return:
-    '''
+    """
     if os.path.exists(source):
         cmd("add monitor {s} index={i}".format(s=source, i=index))
     raise NotImplementedError
 
 
 def massive_cmd(command, func='cmd', flags={}, parallel=False):
-    '''
+    """
 
     :param command:
     :param func:
     :param flags:
     :param parallel:
     :return:
-    '''
+    """
     raise NotImplementedError
 
 
 def _read_config(conf_file):
-    '''
+    """
 
     :param conf_file:
     :return:
-    '''
+    """
     cp = ConfigParser.SafeConfigParser()
     cp.readfp(_FakeSecHead(open(conf_file, 'w+'), no_section))
     return cp
 
 
 def _write_config(conf_file, cp):
-    '''
+    """
 
     :param conf_file:
     :param cp:
     :return:
-    '''
+    """
     # TODO: need to handle dummy section
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
 
 def locate_conf_file(scope, conf):
-    '''
+    """
     locate the conf file in specified scope.
+
     :param scope:
     :param conf:
     :return:
-    '''
+    """
     return os.path.join(*[splunk_path('etc')] + scope.split(':') + [conf])
 
 
@@ -226,7 +289,7 @@ def edit_stanza(conf,
                 scope='system:local',
                 restart_splunk=False,
                 action='edit'):
-    '''
+    """
     edit a stanza from a conf, will add the stanza if it doenst exist
 
     :param conf: conf file, e.g.: server.conf
@@ -235,7 +298,7 @@ def edit_stanza(conf,
     :param restart_splunk: if restart splunk after set stanza.
     :param action: perform action on conf (edit, remove)
     :returns: string indicating the results
-    '''
+    """
     if not is_splunk_installed():
         return 'Splunk is not installed'
     if not action.strip() in ['edit', 'add', 'remove', 'delete']:
@@ -288,11 +351,11 @@ def edit_stanza(conf,
 
 
 def splunk_path(path_):
-    '''
+    """
 
     :param path_:
     :return:
-    '''
+    """
     HOME = get_splunk_home()
     p = {
         'bin':         os.path.join(HOME, 'bin'),

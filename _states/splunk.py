@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
-'''
+"""
 Management of splunk instances
 ==========================
-'''
+"""
 __author__ = 'cchung'
 
 import os
@@ -10,6 +10,7 @@ import sys
 import re
 import logging
 import platform
+import itertools
 
 # salt
 import salt.utils
@@ -25,7 +26,7 @@ def installed(name,
               install_flags={},
               saltenv='base',
               **kwargs):
-    '''
+    """
     Install splunk if it's not installed as specified pkg
 
     :param name: sent by salt
@@ -35,28 +36,28 @@ def installed(name,
     :param saltenv: saltenv, used by salt.
     :param kwargs: other kwargs.
     :return: results of changes.
-    '''
+    """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
 
     pkg = os.path.basename(source)
-    current_pkg_state = _get_current_pkg_state(pkg)
-    if current_pkg_state[0]: # install pkg
+    pkg_state = _get_current_pkg_state(pkg)
+    if pkg_state['retcode']: # install pkg
         pkg_type = _validate_pkg_for_platform(pkg)
         cached_pkg = _cache_file(source=source, saltenv=saltenv)
         __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__], "_install_{t}".format(
-                          t=pkg_type))(cached_pkg,splunk_home,install_flags)
-        ret['comments'] = install_ret['comments']
+                          t=pkg_type))(cached_pkg, splunk_home, install_flags)
+        ret['comment'] = install_ret['comment']
         if install_ret['retcode'] == 0:
             ret['result'] = True
-            ret['changes'] = {'before': current_pkg_state[2],
+            ret['changes'] = {'before': pkg_state['current_state'],
                               'after': __salt__['splunk.info']()}
         else:
             ret['result'] = False
-    else: # ret_code is 0, not going to install
+    else: # retcode is 0, not going to install
         ret['changes'] = {}
         ret['result'] = False
-        ret['comment'] = current_pkg_state[1]
+        ret['comment'] = pkg_state['comment']
     return ret
 
 
@@ -65,10 +66,15 @@ def app_installed(name,
                   dest='',
                   method='cli',
                   saltenv='base'):
-    '''
+    """
 
+    :param name:
+    :param source:
+    :param dest:
+    :param method:
+    :param saltenv:
     :return:
-    '''
+    """
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
     cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
     ret['comment'] = __salt__['splunk.cmd']("install app {f}".format(
@@ -78,15 +84,13 @@ def app_installed(name,
     #raise NotImplementedError
 
 
-
-def data_indexed(name,
-                 source,
-                 dest='',
-                 index='main',
-                 wait=False,
-                 event_count=0,
-                 saltenv='base'):
-    '''
+def data_monitored(name,
+                   source,
+                   dest='',
+                   index='main',
+                   event_count=0,
+                   saltenv='base'):
+    """
 
     :param source:
     :param dest:
@@ -94,23 +98,36 @@ def data_indexed(name,
     :param wait:
     :param saltenv:
     :return:
-    '''
+    """
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
     cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
-    ret['comment'] = __salt__['splunk.cmd']("add monitor {f}".format(
-                         f=cached_file))
+    ret['comment'] = __salt__['splunk.add_monitor'](source=cached_file, 
+                                                    index=index, 
+                                                    event_count=event_count)
     return ret
 
 
-def set_role(method,
-             **kwargs):
-    '''
+def conf_as(conf, setting):
+    """
+
+    :param conf:
+    :param setting:
+    :return:
+    """
+    ret = {'name': 'conf_as', 'changes': {}, 'result': False, 'comment': ''}
+    raise NotImplementedError
+
+
+def role_as(method,
+            **kwargs):
+    """
     set the role for the splunk instance
+
     :param mode: splunk instance mode, cluster-master, indexer, etc
     :param kwargs:
     :return:
-    '''
-    ret =  {'name': 'set_role', 'changes': {}, 'result': False, 'comment': ''}
+    """
+    ret = {'name': 'role_as', 'changes': {}, 'result': False, 'comment': ''}
 
     # TODO: do some validations
     if method.lower() == 'conf':
@@ -137,11 +154,12 @@ def set_role(method,
 
 #### internal functions ####
 def _is_pkg_installed(pkg):
-    '''
+    """
     check if splunk is installed at desired version/build
+
     :param pkg:
     :return:
-    '''
+    """
     reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
     (version, build) = (reg.group(2), reg.group(3))
     info = __salt__['splunk.info']()
@@ -152,37 +170,68 @@ def _is_pkg_installed(pkg):
         return False
 
 def _get_current_pkg_state(pkg):
+    """
+
+    :param pkg:
+    :return:
+    """
+    ret = {'retcode': 0, 'comment': '', 'current_state': ''}
     reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
     (version, build) = (reg.group(2), reg.group(3))
-    info = __salt__['splunk.info']()
-    if info:
-        crnt = "Current pkg {v}-{b} ".format(v=info['VERSION'], b=info['BUILD'])
-        if version > info['VERSION']:
-            ret = (2, crnt+"has lower version than '{p}'".format(p=pkg), info)
-        elif version == info['VERSION']:
-            if build > info['BUILD']:
-                ret = (3, crnt+"has same version, but lower build "
-                          "than '{p}'".format(p=pkg), info)
-            elif build == info['BUILD']:
-                ret = (0, crnt+"has same version and build with "
-                          "'{p}'".format(p=pkg), info)
+
+    if ('splunk.is_splunk_installed' in __salt__ and
+        __salt__['splunk.is_splunk_installed']()):
+        current_pkg = __salt__['splunk.info']()
+        ret['current_state'] = current_pkg
+        ret['comment'] = "Current pkg {v}-{b} ".format(
+            v=current_pkg['VERSION'], b=current_pkg['BUILD'])
+        if _compare_version(current_pkg['VERSION'], version) == 'Higher':
+            ret['comment'] += "has high version than '{pkg}'".format(p=pkg)
+        elif _compare_version(current_pkg['VERSION'], version) == 'Same':
+            if current_pkg['BUILD'] > build:
+                ret['comment'] += ("has same version, but higher build than "
+                                   "'{p}'".format(p=pkg))
+            elif current_pkg['BUILD'] == build:
+                ret['comment'] += ("has same version and build with "
+                                   "'{p}'".format(p=pkg), current_pkg)
             else:
-                ret = (0, crnt+"has same version, but higher build than "
-                          "'{p}'".format(p=pkg), info)
+                ret['retcode'] = 3
+                ret['comment'] += ("has same version, but lower build than "
+                                   "'{p}'".format(p=pkg))
         else:
-            ret = (0, crnt+"has high version than '{pkg}'".format(p=pkg), info)
+            ret['retcode'] = 2
+            ret['comment'] += "has lower version than '{p}'".format(p=pkg)
     else:
-        ret = (1, 'No Splunk is installed', info)
+        ret['retcode'] = 1
+        ret['comment'] = 'No Splunk is installed'
     return ret
 
 
+def _compare_version(v1, v2):
+    """
+
+    :param v1:
+    :param v2:
+    :return:
+    """
+    if v1.strip() == v2.strip():
+        return 'Same'
+    for n in itertools.izip_longest(v1.strip().split('.'),
+                                    v2.strip().split('.'),
+                                    fillvalue='0'):
+        if n[0] > n[1]:
+            return 'Higher'
+    return 'Lower'
+
+
 def _validate_pkg_for_platform(pkg):
-    '''
+    """
     validate the pkg is correct for current platform, and returns the pkg type
+
     :param pkg: name of the package, e.g. splunk-6.1.3-217765-Linux-x86_64.tgz,
                 it has to match with defined extensions (tgz, zip, msi, etc)
     :return: type of the pkg, e.g. tgz, rpm, deb.
-    '''
+    """
     matrix = {
         'msi': 'Windows',
         'zip': 'Windows',
@@ -200,6 +249,13 @@ def _validate_pkg_for_platform(pkg):
 
 
 def _cache_file(source, saltenv, dest=''):
+    """
+
+    :param source:
+    :param saltenv:
+    :param dest:
+    :return:
+    """
     # get source file
     cache_schema = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
     if any([True for i in cache_schema if source.startswith(i)]):
@@ -229,27 +285,29 @@ def _cache_file(source, saltenv, dest=''):
 
 
 def _run_cmd(cmd):
-    '''
+    """
+
     :param cmd:
     :return:
-    '''
+    """
     ret = __salt__['cmd.run_all'](cmd, output_loglevel='trace')
     if ret['retcode'] == 0:
-        ret['comments'] = "Successfully ran cmd: '{c}'".format(c=cmd)
+        ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
-        ret['comments'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
+        ret['comment'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
                               c=cmd, r=ret['retcode'], s=ret['stderr'])
     return ret
 
 
 def _install_tgz(pkg, splunk_home, flags):
-    '''
+    """
     Install tgz package, note the flags are not used.
+
     :param pkg:
     :param splunk_home:
     :param flags:
     :return:
-    '''
+    """
     cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
            s=splunk_home, p=pkg)
     return _run_cmd(cmd)
@@ -267,31 +325,46 @@ def _install_msi(pkg, splunk_home, flags):
 
 
 def _install_deb(pkg, splunk_home, flags):
-    '''
+    """
     Install deb package, note that according to (http://docs.splunk.com/
     Documentation/Splunk/latest/Installation/InstallonLinux#Debian_DEB_install),
     deb package can only be installed to /opt/splunk, so splunk_home will be
     ignored.
+
     :param pkg: pkg location
     :param splunk_home: must be /opt/splunk for deb package
     :param flags: other installation flags
     :return:
-    '''
-    comments = ''
+    """
+    comment = ''
     if not splunk_home == '/opt/splunk':
-        comments += ("splunk_home ({s}) should be '/opt/splunk' for deb "
+        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb "
                     "pkg!".format(s=splunk_home))
     cmd = "sudo dpkg -i {p} {f}".format(p=pkg, f=flags)
     # TODO: need to handle splunk_home is not /opt/splunk, but tries to install
-    # return _run_cmd(cmd) + comments
+    # return _run_cmd(cmd) + comment
     raise NotImplementedError
 
 
 def _install_Z(pkg, splunk_home, flags):
+    """
+
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    """
     raise NotImplementedError
 
 
 def _install_zip(pkg, splunk_home, flags):
+    """
+
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    """
     raise NotImplementedError
 
 

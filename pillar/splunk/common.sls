@@ -5,30 +5,24 @@ splunk:
   build: 217765
   splunkd_port: 9000
   splunkweb_port: 9089
-  auth: admin:changeme
+  username: admin
+  password: changeme
   dataset_source: 's3://qasus_data/new_test_data/FoursquareData.txt'
   app_source: 's3://qasus_data/apps/sideview-utils-lgpl_135.tgz'
 
 
-  {% if grains['os'] == 'RedHat'%}
+  {% if grains['kernel'] == 'Linux'%}
+
   home: /opt/splunk
   pkg: http://172.31.25.233/6.1.3/linux/splunk-6.1.3-220630-Linux-x86_64.tgz
   dataset_dest: /tmp/FoursquareData.txt
   app_dest: /tmp/sideview-utils-lgpl_135.tgz
 
-  {% elif grains['os'] == 'Ubuntu' %}
-  home: /opt/splunk
-  pkg: http://172.31.25.233/6.1.3/linux/splunk-6.1.3-220630-Linux-x86_64.tgz
-  dataset_dest: /tmp/FoursquareData.txt
-  app_dest: /tmp/sideview-utils-lgpl_135.tgz
-
-
-  {% elif grains['os'] == 'Windows' %}
+  {% elif grains['kernel'] == 'Windows' %}
   home: C:\Program Files\Splunk
   pkg: http://172.31.25.233/6.1.3/windows/splunk-6.1.3-217765-x64-release.msi
   dataset_dest: 'C:\Temp\FoursquareData.txt'
   app_dest: 'C:\Temp\sideview-utils-lgpl_135.tgz'
-
   {% endif %}
 
 

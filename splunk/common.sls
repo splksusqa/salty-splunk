@@ -8,11 +8,19 @@ install-splunk:
 
 set-splunkd-port:
   splunk:
-    - set_splunkd_port
-    - splunkd_port:   {{ pillar['splunk']['splunkd_port'] }}
+    - splunkd_port
+    - port:   {{ pillar['splunk']['splunkd_port'] }}
 
 
 set-splunkweb-port:
   splunk:
-    - set_splunkweb_port
-    - splunkweb_port: {{ pillar['splunk']['splunkweb_port'] }}
+    - splunkweb_port
+    - port: {{ pillar['splunk']['splunkweb_port'] }}
+
+
+enable_remote_access:
+  splunk:
+    - remote_access_enabled
+    - method: rest
+    - endpoint: services/properties/server/general
+    - setting:
