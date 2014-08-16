@@ -20,7 +20,12 @@ set-splunkweb-port:
 
 enable_remote_access:
   splunk:
-    - remote_access_enabled
-    - method: rest
-    - endpoint: services/properties/server/general
-    - setting:
+    - rest_configured
+    - method: post
+    - uri: services/properties/server/general
+    - body:
+        allowRemoteLogin: always
+
+set_license_server:
+  splunk:
+    - rest_congfigured

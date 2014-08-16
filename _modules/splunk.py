@@ -5,13 +5,18 @@ Module for splunk instances
 """
 
 __author__ = 'cchung'
+
+import sys
 import os
+import platform
 import subprocess
 import time
 import ConfigParser
-import urllib2
-import urllib
-import ssl
+import json
+import logging
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'lib'))
+import requests
+
 
 # salt utils
 import salt.utils
@@ -19,30 +24,15 @@ import salt.exceptions
 
 __salt__ = {}
 __pillar__ = {}
-no_section = 'no_section'
+default_stanza = 'default'
+logger = logging.getLogger('module.splunk')
 
 
 class _FakeSecHead(object):
     """
-
     Handle conf file for key-value without section.
     This piece of codes is mainly from Alex's answer here:
     http://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
-
-    the following confs might not have section (stanza):
-
-        ui-prefs.conf
-        transforms.conf
-        source-classifier.conf
-        segmenters.conf
-        searchbnf.conf
-        savedsearches.conf
-        indexes.conf
-        fields.conf
-        eventdiscoverer.conf
-        crawl.conf
-        commands.conf
-        alert_actions.conf
     """
     def __init__(self, fp, sechead):
         self.fp = fp
@@ -59,51 +49,154 @@ class _FakeSecHead(object):
 
 
 def __virtual__():
-    """ salt virtual """
-    if os.path.exists(get_splunk_home()):
-        return True
-    else:
-        return False
+    """
+    Salt virtual function:
+    (http://docs.saltstack.com/en/latest/ref/modules/#virtual-modules)
+
+    :return: is_splunk_installed()
+    :rtype: bool
+    """
+    return is_splunk_installed()
 
 
 def get_splunk_home():
     """
-    get splunk_home location
+    Get splunk_home location from pillar['splunk']['home'].
 
-    :return: str: splunk_home
+    :return: splunk_home (pillar['splunk']['home'])
+    :rtype: str
     """
-    return __salt__['pillar.get']('splunk:home')
+    home = __salt__['pillar.get']('splunk:home')
+    logger.info("Getting splunk_home '{h}' from pillar".format(h=home))
+    return home
 
 
 def is_splunk_installed():
-    return __virtual__()
-def start():   return cmd('start')
-def restart(): return cmd('restart')
-def stop():    return cmd('stop')
-def status():  return cmd('status')
-def version(): return cmd('version')
+    """
+    Check if splunk is installed at splunk_home.
+
+    :return: True if splunk_home path exists, otherwise False.
+    :rtype: bool
+    """
+    home = get_splunk_home()
+    if os.path.exists(home):
+        logger.info("Splunk is installed at '{h}'".format(h=home))
+        return True
+    else:
+        logger.info("Splunk is Not installed at '{h}'".format(h=home))
+        return False
+
+
+def start():
+    """
+    Start splunk, wrapped to cmd.
+
+    :return: results of calling cmd
+    """
+    return cmd('start')
+
+
+def restart():
+    """
+    Restart splunk, wrapped to cmd.
+
+    :return: results of calling cmd
+    """
+    return cmd('restart')
+
+
+def stop():
+    """
+    Stop splunk, wrapped to cmd.
+
+    :return: results of calling cmd
+    """
+    return cmd('stop')
+
+
+def status():
+    """
+    Get splunk status, wrapped to cmd.
+
+    :return: results of calling cmd
+    """
+    return cmd('status')
+
+
+def version():
+    """
+    Get splunk version information, wrapped to cmd.
+
+    :return: results of calling cmd
+    """
+    return cmd('version')
+
+
+def set_splunkweb_port(port=''):
+    """
+    Set splunkweb port.
+
+    :param int port:
+    :return: results of calling cmd
+    """
+    return cmd("set web-port {p}".format(p=port))
+
+
+def set_splunkd_port(port=''):
+    """
+    Set splunkd port.
+
+    :param int port:
+    :return: results of calling cmd
+    """
+    return cmd("set splunkd-port {p}".format(p=port))
+
 
 def get_splunkd_port():
     """
-    
-    :return:
+    Get splunkd port.
+
+    :return: splunkd port
+    :rtype: str
     """
     return cmd('show splunkd-port')['stdout'].split(':')[1].strip()
 
+
 def get_splunkweb_port():
+    """
+    Get splunkweb port.
+
+    :return: splunkweb port
+    :rtype: str
+    """
     return cmd('show web-port')['stdout'].split(':')[1].strip()
 
-def get_web_port():
-    return get_splunkweb_port()
 
-def set_splunkweb_port(port='', method='rest'):
-    raise NotImplementedError
+def listen_port(port, type='splunktcp', options=None):
+    """
+
+    :param port:
+    :param type:
+    :return:
+    """
+    ret = {'retcode': 127, 'comment': ''}
+    if options is None: options = {}
+    if type == 'splunktcp':
+        cmd_ = "enable listen {p}".format(p=port)
+    elif type in ['udp', 'tcp']:
+        cmd_ = "add {t} {p}".format(t=type, p=port)
+    else:
+        ret['comment'] = "Not supported listen type '{t}'".format(t=type)
+        return ret
+    return cmd(cmd_, options=options)
+
 
 def info():
     """
     splunk product information, contains version, build, product, and platform
-
-    :return: dict of product information
+da
+    :return: splunk.version contents
+    :rtype: dict
     """
     if not is_splunk_installed():
         return {}
@@ -111,120 +204,140 @@ def info():
     return dict([l.strip().split('=') for l in f.readlines()])
 
 
-def cli(command, auth=''):
+def cmd(command, auth='', user='', wait=True, timeout=60, options=None):
     """
-    an alias to cmd
+    Splunk cli command.
 
-    :param command:
-    :param auth:
-    :return:
+    :param str command: command to issue
+    :param str auth: authenticate string, if not specified,
+    pillar['splunk']['auth'] will be used.
+    :param bool wait: wait for the command to finish, default=True
+    :param int timeout: timeout in seconds, default=60, only applicable when
+    wait is True
+    :param dict options: other cli options, key for params and value for args.
+    Will automatically add dash (-) in front of each parameter.
+    :return: retcode, stdout, stderr, and cmd.
+    :rtype: dict
     """
+
+    ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': ''}
+    options = options or {}
     if not is_splunk_installed():
-        return 'Splunk is not installed'
-    return cmd(command, auth)
-
-
-def cmd(command, auth='', timeout=60, wait=True):
-    """
-    splunk command
-
-    :param command:
-    :param auth:
-    :return:
-    """
-    ret = {}
-    if not is_splunk_installed():
-        return 'Splunk is not installed'
-    if not auth:
-        auth = __salt__['pillar.get']('splunk:auth')
-
-    cmd_ = command.split(' ')
+        ret['stderr'] = 'Splunk is not installed'
+        return ret
+    auth = auth or __salt__['pillar.get']('splunk:auth')
+    user = user or __salt__['pillar.get']('system:user')
+    #command = 'splunk ' + command
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version']
-    if cmd_[0] in no_auth_cmds:
-        if cmd_[0] == 'start':
-            cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
+    for k,v in options.iteritems():
+        command += " -{k} {v}".format(k=k,v=v)
+    if command.split(' ')[0] in no_auth_cmds:
+        if command.split(' ')[0] == 'start':
+            command += ' --accept-license --no-prompt --answer-yes'
     else:
-        cmd_ += ['-auth', auth]
-    p = subprocess.Popen([splunk_path('bin_splunk')]+ cmd_,
-                         stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    start_time = time.time()
-    time.sleep(0.5)
-    if wait:
-        # raise and terminate the process while timeout
-        while True:
-            if p.poll() == None:
-                if time.time() - start_time > timeout:
-                    p.kill()
-                    raise salt.exceptions.CommandExecutionError((
-                              "cmd not finished in {s}s".format(s=timeout)))
-            else:
-                break
-            time.sleep(2)
-        ret['stdout'], ret['stderr'] = p.communicate()
-        ret['retcode'] = p.returncode
+        command += " -auth {a}".format(a=auth)
+
+    if salt.utils.is_windows():
+        cwd = splunk_path('bin')
+        cmd_ = "splunk " + command
     else:
-        ret['stdout'] = ''
-        ret['stderr'] = 'Not waiting for command to complete'
-        ret['retcode'] = p.returncode
+        cwd = None
+        cmd_ = splunk_path('bin_splunk') + " " + command
+
+    logger.info("Running splunk cmd '{c}'".format(c=cmd_))
+    ret['comment'] = __salt__['cmd.run_all'](cmd_, cwd=cwd, timeout=timeout)
+
+    # ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': ''}
+    # options = options or {}
+    # if not is_splunk_installed():
+    #     ret['stderr'] = 'Splunk is not installed'
+    #     return ret
+    # auth = auth or __salt__['pillar.get']('splunk:auth')
+    # cmd_ = [splunk_path('bin_splunk')] + command.split(' ')
+    # no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version']
+    # for k,v in options.iteritems():
+    #     cmd_ += ['-'+str(k), str(v)]
+    # if cmd_[1] in no_auth_cmds:
+    #     if cmd_[1] == 'start':
+    #         cmd_ += ['--accept-license', '--no-prompt', '--answer-yes']
+    # else:
+    #     cmd_ += ['-auth', auth]
+    #
+    # ret['cmd'] = " ".join(cmd_)
+    # logger.info("Running splunk cmd '{c}'".format(c=cmd_))
+    # p = subprocess.Popen(cmd_, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    # start_time = time.time()
+    # time.sleep(0.5)
+    # if wait:
+    #     while True:
+    #         if p.poll() == None:
+    #             # raise and terminate the process while timeout
+    #             if time.time() - start_time > timeout:
+    #                 p.kill()
+    #                 ret['stderr'] = "cmd not finished in {s}s".format(s=timeout)
+    #                 logger.warn(ret['stderr'])
+    #         else:
+    #             break
+    #         time.sleep(2)
+    #     (stdout, stderr) = p.communicate()
+    #     ret['stdout'] = stdout.replace('\n\n', '\n')
+    #     ret['stderr'] = stderr.replace('\n\n', '\n')
+    #     ret['retcode'] = p.returncode
+    # else:
+    #     ret['stdout'] = ''
+    #     ret['stderr'] = 'Not waiting for command to complete'
+    #     logger.warn(ret['stderr'])
+    #     if p.returncode == 0:
+    #         ret['retcode'] = 0
+    # logger.debug("splunk cmd return: {r}".format(r=ret))
     return ret
 
-def rest_call(uri, method='get', body='', params='', auth='',
-              uri_base='https://localhost', port=0, timeout=60):
+
+def rest_call(uri, method='get', body=None, params=None, auth=None,
+              base_uri='https://localhost', port=None, timeout=60,
+              show_content=False, output_mode='json'):
     """
     Make a HTTP request to an endpoint
 
-    :param method: HTTP valid methods: PUT, GET, POST, DELETE
-    :type method: string
-    :param uri: URI of the REST endpoint
-    :type uri: string
-    :param body: the request body
-    :type body: dictionary
-    :param urlparam: URL parameters
-    :type urlparam: dictionary
-    :param url:
-    :param port:
-    :param timeout:
-    :return:
+    :param str method: HTTP methods, valid: PUT, GET, POST, DELETE
+    :param str uri: URI of the REST endpoint
+    :param dict body: the request body
+    :param dict urlparam: URL parameters
+    :param str url:
+    :param int port:
+    :param int timeout:
+    :return: retcode and comment
+    :rtype: dict
+    :raises CommandExecutionError:
     """
-    ret = {'retcode': 127, 'comment': ''}
-    #header = {'content-type':'text/xml; charset=utf-8'}
+    ret = {'retcode': 127, 'comment': '', 'url': '', 'status_code': 0}
+    body = body or {}
+    params = params or {}
+    auth = auth or __salt__['pillar.get']('splunk:auth')
+    port = port or get_splunkd_port()
     valid_methods = ['get', 'post', 'put', 'delete']
     if not method.lower() in valid_methods:
         ret['comment'] = "Invalid method {m}".format(m=method)
         return ret
-    if not isinstance(body, dict):
-        ret['comment'] = "'body' is {t}, should be dict".format(t=type(body))
-        return ret
-    if not isinstance(params, dict):
-        ret['comment'] = "'param' is {t}, should be dict".format(t=type(params))
-        return ret
-    if not port:
-        port = get_splunkd_port()
-    if not auth:
-        auth = __salt__['pillar.get']('splunk:auth')
-    (username, password) = auth.split(':')
-    url = "{b}:{p}/{u}".format(b=uri_base, p=port, u=uri)
-
-    try:
-        passwd_mgr = urllib2.HTTPPasswordMgrWithDefaultRealm()
-        passwd_mgr.add_password(None, url, username, password)
-        auth_hdlr = urllib2.HTTPBasicAuthHandler(passwd_mgr)
-        opener = urllib2.build_opener(auth_hdlr)
-        urllib2.install_opener(opener)
-        request = urllib2.Request(url, urllib.urlencode(params))
-        response = urllib2.urlopen(request, urllib.urlencode(body))
-        ret['comment'] = response.msg
-        #ret['response'] = response
-        if str(response.code).startswith('2'):
-            ret['retcode'] = 0
+    if not 'output_mode' in params:
+        params.update({'output_mode': output_mode})
+    url = "{b}:{p}/{u}".format(b=base_uri, p=port, u=uri)
+    req = getattr(requests, method)(url, params=params, data=body,
+                                    timeout=timeout, verify=False,
+                                    auth=tuple(auth.split(':', 1)))
+    ret['status_code'] = req.status_code
+    ret['url'] = req.url
+    if str(req.status_code).startswith('2'):
+        ret['retcode'] = 0
+    if show_content:
+        if output_mode == 'json':
+            ret['content'] = json.loads(str(req.content))
         else:
-            ret['retcode'] = 1
-    except Exception as e:
-        raise salt.exceptions.CommandExecutionError((
-                  "REST call excepts: {e}".format(e=e)))
+            ret['content'] = req.content
     return ret
 
-def add_monitor(source, index='main', wait=False, event_count=0):
+
+def add_monitor(source, index='main', wait=False, event_count=0, options=None):
     """
 
     :param source:
@@ -233,12 +346,27 @@ def add_monitor(source, index='main', wait=False, event_count=0):
     :param event_count:
     :return:
     """
-    if os.path.exists(source):
-        cmd("add monitor {s} index={i}".format(s=source, i=index))
+    ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
+    if options is None: options = {}
+    if not index == 'main':
+        options.update({'index': index})
+
+    ret.update(cmd("add monitor {s}".format(s=source), options=options))
+    if wait:
+        ret['comment'] = _wait_until_indexing_stable(index=index,
+                                                     event_count=event_count,
+                                                     source=source)
+        return ret
+    else:
+        ret['comment'] = "Not waiting for indexing to become stable."
+        return ret
+
+
+def _wait_until_indexing_stable(index, event_count=0, source='', sourcetype=''):
     raise NotImplementedError
 
 
-def massive_cmd(command, func='cmd', flags={}, parallel=False):
+def massive_cmd(command, func='cmd', flags='', parallel=False):
     """
 
     :param command:
@@ -252,23 +380,25 @@ def massive_cmd(command, func='cmd', flags={}, parallel=False):
 
 def _read_config(conf_file):
     """
+    read the conf from file, the key-value pairs without stanza will be applied
+    as default_stanza (now is [default]).
 
-    :param conf_file:
-    :return:
+    :param str conf_file: string of the conf file path.
+    :return: ConfigParser.SafeConfigParser()
+    :rtype: object
     """
     cp = ConfigParser.SafeConfigParser()
-    cp.readfp(_FakeSecHead(open(conf_file, 'w+'), no_section))
+    cp.readfp(_FakeSecHead(open(conf_file, 'w+'), default_stanza))
     return cp
 
 
 def _write_config(conf_file, cp):
     """
 
-    :param conf_file:
-    :param cp:
+    :param str conf_file: string of the conf file path.
+    :param obj cp: ConfigParser.SafeConfigParser()
     :return:
     """
-    # TODO: need to handle dummy section
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
@@ -297,7 +427,8 @@ def edit_stanza(conf,
     :param scope: splunk's conf scope, delimited by colon
     :param restart_splunk: if restart splunk after set stanza.
     :param action: perform action on conf (edit, remove)
-    :returns: string indicating the results
+    :returns: results
+    :rtype: str
     """
     if not is_splunk_installed():
         return 'Splunk is not installed'
@@ -372,6 +503,9 @@ def splunk_path(path_):
     }
     return p[path_]
 
+cli = cmd
+get_web_port = get_splunkweb_port
+set_web_port = set_splunkweb_port
 
 RESTURIS = {
     'APP': '/servicesNS/{u}/{a}/apps',

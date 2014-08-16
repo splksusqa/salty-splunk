@@ -16,33 +16,34 @@ import itertools
 import salt.utils
 import salt.exceptions
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('state.splunk')
 
 
 #### State functions ####
 def installed(name,
               source,
               splunk_home,
-              install_flags={},
-              saltenv='base',
-              **kwargs):
+              dest='',
+              install_flags='',
+              saltenv='base'):
     """
     Install splunk if it's not installed as specified pkg
 
-    :param name: sent by salt
+    :param name: name of the state, sent by salt
     :param source: pkg source, can be http, https, salt, ftp schema
     :param splunk_home: installdir
+    :param dest: location for storing the pkg, only used when source is in s3
     :param install_flags: extra installation flags
     :param saltenv: saltenv, used by salt.
-    :param kwargs: other kwargs.
-    :return: results of changes.
+    :return: results of name, changes, results, and comment.
+    :rtype: dict
     """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
 
     pkg = os.path.basename(source)
+    pkg_type = _validate_pkg_for_platform(pkg)
     pkg_state = _get_current_pkg_state(pkg)
-    if pkg_state['retcode']: # install pkg
-        pkg_type = _validate_pkg_for_platform(pkg)
+    if pkg_state['retcode']: # retcode is not 0, install the pkg
         cached_pkg = _cache_file(source=source, saltenv=saltenv)
         __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__], "_install_{t}".format(
@@ -67,18 +68,20 @@ def app_installed(name,
                   method='cli',
                   saltenv='base'):
     """
+    Install an app.
 
-    :param name:
-    :param source:
-    :param dest:
+    :param name: name of the state, sent by salt
+    :param source: app source, can be http,
+    :param dest: location for storing the pkg, only used when source is in s3
     :param method:
-    :param saltenv:
-    :return:
+    :param saltenv: saltenv, used by salt.
+    :return: results of name, changes, results, and comment.
+    :rtype: dict
     """
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
     cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
     ret['comment'] = __salt__['splunk.cmd']("install app {f}".format(
-                         f=cached_file))
+                                            f=cached_file))
 
     return ret
     #raise NotImplementedError
@@ -88,10 +91,11 @@ def data_monitored(name,
                    source,
                    dest='',
                    index='main',
-                   event_count=0,
-                   saltenv='base'):
+                   saltenv='base',
+                   **kwargs):
     """
 
+    :param name: name of the state, sent by salt
     :param source:
     :param dest:
     :param index:
@@ -101,40 +105,110 @@ def data_monitored(name,
     """
     ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
     cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
-    ret['comment'] = __salt__['splunk.add_monitor'](source=cached_file, 
-                                                    index=index, 
-                                                    event_count=event_count)
+    ret['comment'] = __salt__['splunk.add_monitor'](
+                         source=cached_file, index=index, wait=wait,
+                         event_count=event_count, options=kwargs)
     return ret
 
 
-def conf_as(conf, setting):
-    """
+def port_listened(name,
+                  port,
+                  type='splunktcp',
+                  **kwargs):
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    result = __salt__['splunk.listen_port'](port=port, type=type,
+                                            options=kwargs)
+    raise NotImplementedError
 
+
+def splunkd_port(name,
+                 port):
+    """
+    Make sure splunkd port is set as specified
+
+    :param name: name of the state, sent by salt
+    :param port: port to set.
+    :return: results of running splunk.cmd
+    """
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    result = __salt__['splunk.set_splunkd_port'](port=port)
+    ret['comment'] = result
+    if result['retcode'] == 0:
+        ret['result'] = True
+    return ret
+
+
+def splunkweb_port(name,
+                   port):
+    """
+    Make sure splunkd port is set as specified
+
+    :param name: name of the state, sent by salt
+    :param port: port to set.
+    :return: results of running splunk.cmd
+    """
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    result = __salt__['splunk.set_splunkweb_port'](port=port)
+    ret['comment'] = result
+    if result['retcode'] == 0:
+        ret['result'] = True
+    return ret
+
+
+def conf_configured(name,
+                    conf,
+                    stanza,
+                    restart_splunk=True):
+    """
+    Make sure conf as specified.
+
+    :param name: name of the state, sent by salt
     :param conf:
     :param setting:
     :return:
     """
-    ret = {'name': 'conf_as', 'changes': {}, 'result': False, 'comment': ''}
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    __salt__['splunk.edit_stanza'](
+        conf=conf, stanza=stanza, restart_splunk=restart_splunk)
     raise NotImplementedError
 
 
-def role_as(method,
-            **kwargs):
+def rest_configured(name,
+                    **kwargs):
+    """
+
+    :param name:
+    :param kwargs:
+    :return:
+    """
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    result = __salt__['splunk.rest_call'](**kwargs)
+    #ret['comment'] = result
+#     if result['retcode'] == 0:
+#         ret['result'] = T
+    ret['comment'] = result
+
+    return ret
+
+
+def role_configured(name,
+                    method,
+                    **kwargs):
     """
     set the role for the splunk instance
 
+    :param name: name of the state, sent by salt
     :param mode: splunk instance mode, cluster-master, indexer, etc
     :param kwargs:
     :return:
     """
-    ret = {'name': 'role_as', 'changes': {}, 'result': False, 'comment': ''}
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    setting = kwargs.get('setting')
 
     # TODO: do some validations
     if method.lower() == 'conf':
-        setting = kwargs.get('setting')
         conf = kwargs.get('conf')
-        ret_set = __salt__['splunk.edit_stanza'](
-                      conf=conf, stanza=setting, restart_splunk=True)
+        ret.update(conf_configured(name=name, conf=conf, stanza=setting))
     elif method.lower() == 'rest':
         ret_set = ''
         raise NotImplementedError
@@ -186,14 +260,14 @@ def _get_current_pkg_state(pkg):
         ret['comment'] = "Current pkg {v}-{b} ".format(
             v=current_pkg['VERSION'], b=current_pkg['BUILD'])
         if _compare_version(current_pkg['VERSION'], version) == 'Higher':
-            ret['comment'] += "has high version than '{pkg}'".format(p=pkg)
+            ret['comment'] += "has high version than '{p}'".format(p=pkg)
         elif _compare_version(current_pkg['VERSION'], version) == 'Same':
             if current_pkg['BUILD'] > build:
                 ret['comment'] += ("has same version, but higher build than "
                                    "'{p}'".format(p=pkg))
             elif current_pkg['BUILD'] == build:
                 ret['comment'] += ("has same version and build with "
-                                   "'{p}'".format(p=pkg), current_pkg)
+                                   "'{p}'".format(p=pkg))
             else:
                 ret['retcode'] = 3
                 ret['comment'] += ("has same version, but lower build than "
@@ -318,6 +392,7 @@ def _install_rpm(pkg, splunk_home, flags):
 
 
 def _install_msi(pkg, splunk_home, flags):
+    if not flags: flags = {}
     cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
              c=pkg, h=splunk_home, q='/quiet',
              f=' '.join('%s="%r"' %t for t in flags.iteritems()))

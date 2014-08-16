@@ -5,7 +5,11 @@ Module for debugging purposes
 '''
 __author__ = 'cchung'
 
-
+import sys
+import os
+import logging
+sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'lib'))
+import requests
 import salt.utils
 import salt.exceptions
 
@@ -27,8 +31,8 @@ def get_opts(value=''):
     """
     if not value:
         return __opts__
-    else:
-        return __opts__[value]
+    return __opts__[value]
+
 
 def get_salt(func, **kwargs):
     """
@@ -39,6 +43,7 @@ def get_salt(func, **kwargs):
     """
     return __salt__[func](**kwargs)
 
+
 def get_grains(value=''):
     """
 
@@ -47,8 +52,8 @@ def get_grains(value=''):
     """
     if not value:
         return __grains__
-    else:
-        return __grains__[value]
+    return __grains__[value]
+
 
 def get_context(value=''):
     """
@@ -58,8 +63,25 @@ def get_context(value=''):
     """
     if not value:
         return __context__
-    else:
-        return __context__[value]
+    return __context__[value]
+
+
+def get_pillar(pillar=''):
+    if not pillar:
+        return __pillar__
+    return __pillar__[pillar]
+
+
+def get_pillar_from_salt(pillar=''):
+    if not pillar:
+        return __salt__['pillar.data']()
+    return __salt__['pillar.get'](pillar)
+
+
+def log(msg='test', logger='', level='info'):
+    lgr = logging.getLogger(logger)
+    return getattr(lgr, level)(msg)
+
 
 def check_lib(lib):
     """
@@ -72,3 +94,18 @@ def check_lib(lib):
         return "successfully import lib {l}".format(l=lib)
     except Exception as e:
         return "failed to import lib {l}, except: {e}".format(l=lib, e=e)
+
+
+def request(url='http://httpbin.org/', method='post', data=None, headers=None):
+    """
+
+    :param url:
+    :param method:
+    :param data:
+    :param headers:
+    :return:
+    """
+    if data is None: data = {}
+    if headers is None: headers = {'Content-type': 'application/json'}
+    response = getattr(requests, method)(url+method, data=data, headers=headers)
+    return response.json()

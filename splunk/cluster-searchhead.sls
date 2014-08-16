@@ -1,6 +1,6 @@
 set-cluster:
   splunk:
-    - role_as
+    - role_configured
     - method: conf
     - conf: server.conf
     - setting:

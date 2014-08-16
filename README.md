@@ -17,8 +17,11 @@ layer libraries involved in the python modules, modules are executed remotely.
 # Steps
 ## Quickstart script to install & setup a salt-master
 1. Save the following texts into a script (e.g. setup-salt-master.sh),
-   - if you need to launch salt-minions with salt-cloud on ec2, replace **<access key id>** and **<secret access key>** in the script   
-     with your AWS access key id and secret access key.
+   - if you need to launch salt-minions with salt-cloud on ec2, replace 
+     **<access key id>**, **<secret access key>**, **<key pair name>**, and
+     **<private key location>** in the script with your AWS access key id,
+     secret access key, key pair name, and the private key that matches with 
+     the key pair. (You'll need to send the private key to the location)
    - If you're using EC2 as your master, you can paste the following
      texts into **user data** section in the page after selecting desired ami
    - **NOTE**: this is script is only tested in Ubuntu and Centos6, and you'll
@@ -29,6 +32,8 @@ layer libraries involved in the python modules, modules are executed remotely.
         # usually the whole shell script takes around 70s
         ACCESS_KEY_ID="<access key id>"
         SECRET_ACCESS_KEY="<secret access key>"
+        KEYNAME="<key pair name>"
+        PRIVATE_KEY="<private key location>"
         is_ubuntu=`grep 'Ubuntu' /proc/version`
         is_redhat=`grep 'Red Hat' /proc/version` #also for centos 6
         if [ "$is_ubuntu" ]; then
@@ -51,7 +56,7 @@ layer libraries involved in the python modules, modules are executed remotely.
             sudo rpm -Uvh winexe-1.00.1-10.2.x86_64.rpm 
             sudo chkconfig salt-master on
         fi
-        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.splunkd_port\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.get_splunkd_port\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
         echo """-----BEGIN RSA PRIVATE KEY-----
@@ -87,6 +92,8 @@ layer libraries involved in the python modules, modules are executed remotely.
         sudo sed -i "s/salt-master.qa/`hostname -I`/" /srv/salt/cloud/cloud.profiles 
         sudo sed -i "/^  id/ s/:.*/: $ACCESS_KEY_ID/" /srv/salt/cloud/cloud.providers
         sudo sed -i "/^  key:/ s/:.*/: $SECRET_ACCESS_KEY/" /srv/salt/cloud/cloud.providers 
+        sudo sed -i "/^  keyname:/ s/:.*/: KEYNAME/" /srv/salt/cloud/cloud.providers 
+        sudo sed -i "/^  private_key:/ s/:.*/: PRIVATE_KEY/" /srv/salt/cloud/cloud.providers 
         sudo cp /srv/salt/cloud/* /etc/salt/
         sudo service salt-master restart
 
@@ -103,7 +110,7 @@ layer libraries involved in the python modules, modules are executed remotely.
         peer:
           .*:
             - network.ip_addrs
-            - splunk.splunkd_port
+            - splunk.get_splunkd_port
 
 1. Copy pillar/* to your pillar_roots (default is */srv/pillar*) or set salt 
    pillar_roots to */srv/salt/pillar* (edit **/etc/salt/master**), i.e.:
@@ -118,7 +125,7 @@ layer libraries involved in the python modules, modules are executed remotely.
 1. Check the IP of the salt-master, set it in *cloud/cloud.profiles* 
    (replace **salt-master.qa** with the real IP)
 1. Put the followings to *cloud/cloud.providers*
-    - **AWS id** (Access key ID)
+    - **id** (Access key ID)
     - **key** (Secret access key)
     - **keyname** (ssh key pairs, only the name)
     - **private_key** (the real ssh-key file that matches with keyname)
@@ -221,8 +228,8 @@ Salt state modules are the real actual enforcement and management of the states
 that defined in the **.sls** files. These modules are written in python, used to 
 realize the defined states (in .sls files) that we want. State modules should 
 check the current states within a node and make necessary changes if the state
-is not met the defined states. Take the apache example in *State* section,
-the pkg is state module, and the **installed** function will be executed with  
+is not met the defined states. Take the apache example in *State* section, the
+**pkg** is state module, and the **installed** function will be executed with  
 **\*\*{name=apache, version=2.2.15}** as kwargs to check if apache 2.2.15 is
 installed. If it's installed with 2.2.15, then function will do nothing,
 if it's not installed, the function will try to install apache 2.1.5 on the 
@@ -231,11 +238,12 @@ is running.
 
 The full list of builtin state modules is at:
 http://docs.saltstack.com/en/latest/ref/states/all/ and source:
-https://github.com/saltstack/salt/tree/2014.1/salt/modules
+https://github.com/saltstack/salt/tree/2014.1/salt/states
+
 
 ### Execution modules
-Salt execution modules are used to perform certain **actions**, modules are 
-also written in python, but they cannot be called from state (sls) files, 
+Salt execution modules are used to perform certain **actions**, execution 
+modules are also written in python, but they're not used  be called from state (sls) files, 
 they're called from `salt` cli command, e.g.:
 
 `salt '*' test.ping`
@@ -247,7 +255,7 @@ Most common functions are **start**, **stop**, **restart/reload**, **status**
 
 The full list of builtin execution modules is at:
 http://docs.saltstack.com/en/latest/ref/modules/all/, and source:
-https://github.com/saltstack/salt/tree/2014.1/salt/states
+https://github.com/saltstack/salt/tree/2014.1/salt/modules
 
 ## Pillar
 Pillars (http://salt.readthedocs.org/en/latest/topics/pillar/) are purely 
