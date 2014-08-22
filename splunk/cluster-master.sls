@@ -1,13 +1,4 @@
-set-cluster:
-  splunk:
-    - role_configured
-    - method: conf
-    - conf: server.conf
-    - setting:
-        clustering:
-          mode: master
-
-set_role:
+set-master:
   splunk:
     - rest_configured
     - method: post

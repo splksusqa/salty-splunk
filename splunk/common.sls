@@ -1,21 +1,57 @@
+
+{% if not grains['kernel'] == 'Windows'%}
+install-psutil:
+  pkg:
+    - installed
+    - name: python-psutil
+{% endif %}
+
+
 install-splunk:
   splunk:
     - installed
-    - source:         {{ pillar['splunk']['pkg'] }}
-    - install_flags:  {{ pillar['splunk']['install_flags'] }}
-    - splunk_home:    {{ pillar['splunk']['home'] }}
+    - source:              {{ pillar['splunk']['pkg'] }}
+    - install_flags:       {{ pillar['splunk']['install_flags'] }}
+    - splunk_home:         {{ pillar['splunk']['home'] }}
+    - start_after_install: {{ pillar['splunk']['start_after_install'] }}
 
 
 set-splunkd-port:
   splunk:
     - splunkd_port
     - port:   {{ pillar['splunk']['splunkd_port'] }}
+    - requite:
+      install-splunk:
 
 
 set-splunkweb-port:
   splunk:
     - splunkweb_port
     - port: {{ pillar['splunk']['splunkweb_port'] }}
+
+
+
+app:
+  splunk:
+    - app_installed
+    - source: {{ pillar['splunk']['app'] }}
+
+
+ run-python:
+   cmd.run:
+     - pthon.py
+
+
+
+ upgrade-splunk:
+  splunk:
+    - installed
+    - source:              {{ pillar['splunk']['pkg_2'] }}
+    - install_flags:       {{ pillar['splunk']['install_flags'] }}
+    - splunk_home:         {{ pillar['splunk']['home'] }}
+    - start_after_install: {{ pillar['splunk']['start_after_install'] }}
+
+
 
 
 enable_remote_access:
@@ -26,6 +62,3 @@ enable_remote_access:
     - body:
         allowRemoteLogin: always
 
-set_license_server:
-  splunk:
-    - rest_congfigured

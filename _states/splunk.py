@@ -25,48 +25,51 @@ def installed(name,
               splunk_home,
               dest='',
               install_flags='',
-              saltenv='base'):
+              start_after_install=True,
+              user=''):
     """
     Install splunk if it's not installed as specified pkg
 
-    :param name: name of the state, sent by salt
-    :param source: pkg source, can be http, https, salt, ftp schema
-    :param splunk_home: installdir
-    :param dest: location for storing the pkg, only used when source is in s3
-    :param install_flags: extra installation flags
-    :param saltenv: saltenv, used by salt.
+    :param str name: name of the state, sent by salt
+    :param str source: pkg source, can be http, https, salt, ftp schema
+    :param str splunk_home: installdir
+    :param str dest: location for storing the pkg
+    :param dict install_flags: extra installation flags
+    :param str saltenv: saltenv, used by salt.
     :return: results of name, changes, results, and comment.
     :rtype: dict
     """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-
+    user = user or __salt__['pillar.get']('system:user')
     pkg = os.path.basename(source)
     pkg_type = _validate_pkg_for_platform(pkg)
     pkg_state = _get_current_pkg_state(pkg)
-    if pkg_state['retcode']: # retcode is not 0, install the pkg
-        cached_pkg = _cache_file(source=source, saltenv=saltenv)
+    if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
+        cached_pkg = __salt__['utils.cache_file'](source=source, dest=dest)
         __salt__['splunk.stop']()
-        install_ret = getattr(sys.modules[__name__], "_install_{t}".format(
-                          t=pkg_type))(cached_pkg, splunk_home, install_flags)
+        install_ret = getattr(sys.modules[__name__],
+                              "_install_{t}".format(t=pkg_type))(
+                          pkg=cached_pkg, splunk_home=splunk_home,
+                          user=user, flags=install_flags)
         ret['comment'] = install_ret['comment']
         if install_ret['retcode'] == 0:
+            if start_after_install:
+                __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
                               'after': __salt__['splunk.info']()}
-        else:
-            ret['result'] = False
+
+    elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
+        ret['comment'] = pkg_state['comment']
+        ret['result'] = True
     else: # retcode is 0, not going to install
-        ret['changes'] = {}
-        ret['result'] = False
         ret['comment'] = pkg_state['comment']
     return ret
 
 
 def app_installed(name,
                   source,
-                  dest='',
-                  method='cli',
-                  saltenv='base'):
+                  **kwargs):
     """
     Install an app.
 
@@ -78,47 +81,40 @@ def app_installed(name,
     :return: results of name, changes, results, and comment.
     :rtype: dict
     """
-    ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
-    cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
-    ret['comment'] = __salt__['splunk.cmd']("install app {f}".format(
-                                            f=cached_file))
-
-    return ret
-    #raise NotImplementedError
+    return cli_configured(name=name, func='install_app', source=source,
+                          **kwargs)
 
 
 def data_monitored(name,
                    source,
-                   dest='',
-                   index='main',
-                   saltenv='base',
                    **kwargs):
     """
 
     :param name: name of the state, sent by salt
     :param source:
     :param dest:
-    :param index:
-    :param wait:
     :param saltenv:
+    :param kwargs:
     :return:
     """
-    ret = {'name': name, 'changes': {}, 'result': True, 'comment': ''}
-    cached_file = _cache_file(source=source, saltenv=saltenv, dest=dest)
-    ret['comment'] = __salt__['splunk.add_monitor'](
-                         source=cached_file, index=index, wait=wait,
-                         event_count=event_count, options=kwargs)
-    return ret
+    return cli_configured(name=name, func='add_monitor', source=source,
+                          **kwargs)
 
 
 def port_listened(name,
                   port,
                   type='splunktcp',
                   **kwargs):
-    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    result = __salt__['splunk.listen_port'](port=port, type=type,
-                                            options=kwargs)
-    raise NotImplementedError
+    """
+
+    :param name:
+    :param port:
+    :param type:
+    :param kwargs:
+    :return:
+    """
+    return cli_configured(name=name, func='listen_port', port=port, type=type,
+                          **kwargs)
 
 
 def splunkd_port(name,
@@ -131,11 +127,13 @@ def splunkd_port(name,
     :return: results of running splunk.cmd
     """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    result = __salt__['splunk.set_splunkd_port'](port=port)
-    ret['comment'] = result
-    if result['retcode'] == 0:
+
+    if __salt__['splunk.get_splunkd_port']() == str(port):
         ret['result'] = True
-    return ret
+        ret['comment'] = "splunkd is already running at port {p}".format(p=port)
+        return ret
+    else:
+        return cli_configured(name=name, func='set_splunkd_port', port=port)
 
 
 def splunkweb_port(name,
@@ -148,17 +146,18 @@ def splunkweb_port(name,
     :return: results of running splunk.cmd
     """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    result = __salt__['splunk.set_splunkweb_port'](port=port)
-    ret['comment'] = result
-    if result['retcode'] == 0:
+
+    if __salt__['splunk.get_splunkweb_port']() == str(port):
         ret['result'] = True
-    return ret
+        ret['comment'] = "splunkweb is already running at port {p}".format(
+                         p=port)
+        return ret
+    else:
+        return cli_configured(name=name, func='set_splunkweb_port', port=port)
 
 
 def conf_configured(name,
-                    conf,
-                    stanza,
-                    restart_splunk=True):
+                    **kwargs):
     """
     Make sure conf as specified.
 
@@ -167,10 +166,7 @@ def conf_configured(name,
     :param setting:
     :return:
     """
-    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    __salt__['splunk.edit_stanza'](
-        conf=conf, stanza=stanza, restart_splunk=restart_splunk)
-    raise NotImplementedError
+    return configured(name=name, interface='conf', **kwargs)
 
 
 def rest_configured(name,
@@ -181,47 +177,49 @@ def rest_configured(name,
     :param kwargs:
     :return:
     """
-    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    result = __salt__['splunk.rest_call'](**kwargs)
-    #ret['comment'] = result
-#     if result['retcode'] == 0:
-#         ret['result'] = T
-    ret['comment'] = result
-
-    return ret
+    return configured(name=name, interface='rest', **kwargs)
 
 
-def role_configured(name,
-                    method,
-                    **kwargs):
+def cli_configured(name,
+                   func='cmd',
+                   **kwargs):
     """
-    set the role for the splunk instance
+    Run cli command while state.highstate is called.
+    Note this is not really check a configuration or a state, but just run cli.
 
-    :param name: name of the state, sent by salt
-    :param mode: splunk instance mode, cluster-master, indexer, etc
+    :param name:
     :param kwargs:
     :return:
     """
+    return configured(name=name, interface='cli', func=func, **kwargs)
+
+
+def configured(name,
+               interface='rest',
+               func='cmd',
+               **kwargs):
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    setting = kwargs.get('setting')
-
-    # TODO: do some validations
-    if method.lower() == 'conf':
-        conf = kwargs.get('conf')
-        ret.update(conf_configured(name=name, conf=conf, stanza=setting))
-    elif method.lower() == 'rest':
-        ret_set = ''
-        raise NotImplementedError
-    elif method.lower() == 'cli':
-        ret_set = ''
-        raise NotImplementedError
+    if interface == 'rest':
+        resp = __salt__['splunk.rest_call'](**kwargs)
+        ret['comment'] = (
+            "Rest call returned:\n\tStatus: {status_code}\n\t"
+            "Requested url: {url}\n\tContents: {content}".format(**resp))
+    elif interface == 'cli':
+        resp = __salt__['splunk.'+func](**kwargs)
+        ret['comment'] = (
+            "CLI returned:\n\tRet_code: {retcode}\n\tcmd: {cmd}\n\t"
+            "stdout: {stdout}\n\tstderr: {stderr}".format(**resp))
+    elif interface == 'conf':
+        resp = __salt__['splunk.edit_stanza'](**kwargs)
+        ret['comment'] = (
+            "Editing conf returned:\n\tRet_code: {retcode}\n\t"
+            "Changes: {changes}\n\tcomment: {comment}".format(**resp))
     else:
+        valid = ['rest', 'cli', 'conf']
         raise salt.execptions.CommandExecutionError(
-                  "Set role method '{m}' is not supported".format(m=method))
-
-    ret['comment'] = ret_set
-    if ret['comment'].startswith('Successfully'):
-        ret['changes'] = setting
+            "Invalid config interface '{i}', valid are {v}".format(i=interface,
+                                                                   v=valid))
+    if resp['retcode'] == 0:
         ret['result'] = True
     return ret
 
@@ -249,7 +247,7 @@ def _get_current_pkg_state(pkg):
     :param pkg:
     :return:
     """
-    ret = {'retcode': 0, 'comment': '', 'current_state': ''}
+    ret = {'retcode': 127, 'comment': '', 'current_state': ''}
     reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
     (version, build) = (reg.group(2), reg.group(3))
 
@@ -260,20 +258,23 @@ def _get_current_pkg_state(pkg):
         ret['comment'] = "Current pkg {v}-{b} ".format(
             v=current_pkg['VERSION'], b=current_pkg['BUILD'])
         if _compare_version(current_pkg['VERSION'], version) == 'Higher':
-            ret['comment'] += "has high version than '{p}'".format(p=pkg)
+            ret['retcode'] = 0
+            ret['comment'] += "has higher version than '{p}'".format(p=pkg)
         elif _compare_version(current_pkg['VERSION'], version) == 'Same':
             if current_pkg['BUILD'] > build:
+                ret['retcode'] = 0
                 ret['comment'] += ("has same version, but higher build than "
                                    "'{p}'".format(p=pkg))
             elif current_pkg['BUILD'] == build:
+                ret['retcode'] = 2
                 ret['comment'] += ("has same version and build with "
                                    "'{p}'".format(p=pkg))
             else:
-                ret['retcode'] = 3
+                ret['retcode'] = 1
                 ret['comment'] += ("has same version, but lower build than "
                                    "'{p}'".format(p=pkg))
         else:
-            ret['retcode'] = 2
+            ret['retcode'] = 1
             ret['comment'] += "has lower version than '{p}'".format(p=pkg)
     else:
         ret['retcode'] = 1
@@ -288,14 +289,14 @@ def _compare_version(v1, v2):
     :param v2:
     :return:
     """
-    if v1.strip() == v2.strip():
-        return 'Same'
     for n in itertools.izip_longest(v1.strip().split('.'),
                                     v2.strip().split('.'),
                                     fillvalue='0'):
         if n[0] > n[1]:
             return 'Higher'
-    return 'Lower'
+        elif n[0] < n[1]:
+            return 'Lower'
+    return 'Same'
 
 
 def _validate_pkg_for_platform(pkg):
@@ -322,49 +323,15 @@ def _validate_pkg_for_platform(pkg):
     return type[0]
 
 
-def _cache_file(source, saltenv, dest=''):
-    """
-
-    :param source:
-    :param saltenv:
-    :param dest:
-    :return:
-    """
-    # get source file
-    cache_schema = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
-    if any([True for i in cache_schema if source.startswith(i)]):
-        cached = __salt__['cp.is_cached'](source, saltenv)
-        if source.startswith('s3:'):
-            if not dest:
-                raise salt.exceptions.CommandExecutionError(
-                          'Need a local dest to place the file from s3 bucket')
-
-            ret = __salt__['s3.get'](source.split('/', 3)[2],
-                                     source.split('/', 3)[3],
-                                     local_file=dest)
-            success_string = 'Saved to local file:'
-            if ret.startswith(success_string):
-                return ret.split(success_string)[1].strip()
-            else:
-                raise salt.exceptions.CommandExecutionError(ret)
-        else:
-            if not cached: # not cached
-                cached = __salt__['cp.cache_file'](source, saltenv)
-            if (__salt__['cp.hash_file'](source, saltenv) !=
-                __salt__['cp.hash_file'](cached)):
-                cached = __salt__['cp.cache_file'](source, saltenv)
-    else: # locally stored?
-        cached = source
-    return cached
-
-
-def _run_cmd(cmd):
+def _run_install_cmd(cmd, user):
     """
 
     :param cmd:
     :return:
     """
-    ret = __salt__['cmd.run_all'](cmd, output_loglevel='trace')
+    if salt.utils.is_windows():
+        user = None
+    ret = __salt__['cmd.run_all'](cmd, runas=user)
     if ret['retcode'] == 0:
         ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
@@ -373,7 +340,7 @@ def _run_cmd(cmd):
     return ret
 
 
-def _install_tgz(pkg, splunk_home, flags):
+def _install_tgz(pkg, splunk_home, flags, user):
     """
     Install tgz package, note the flags are not used.
 
@@ -384,22 +351,22 @@ def _install_tgz(pkg, splunk_home, flags):
     """
     cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
            s=splunk_home, p=pkg)
-    return _run_cmd(cmd)
+    return _run_install_cmd(cmd, user)
 
 
-def _install_rpm(pkg, splunk_home, flags):
+def _install_rpm(pkg, splunk_home, flags, user):
     raise NotImplementedError
 
 
-def _install_msi(pkg, splunk_home, flags):
+def _install_msi(pkg, splunk_home, flags, user):
     if not flags: flags = {}
-    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
+    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" {f} {q}'.format(
              c=pkg, h=splunk_home, q='/quiet',
              f=' '.join('%s="%r"' %t for t in flags.iteritems()))
-    return _run_cmd(cmd)
+    return _run_install_cmd(cmd, user)
 
 
-def _install_deb(pkg, splunk_home, flags):
+def _install_deb(pkg, splunk_home, flags, user):
     """
     Install deb package, note that according to (http://docs.splunk.com/
     Documentation/Splunk/latest/Installation/InstallonLinux#Debian_DEB_install),
@@ -413,15 +380,15 @@ def _install_deb(pkg, splunk_home, flags):
     """
     comment = ''
     if not splunk_home == '/opt/splunk':
-        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb "
-                    "pkg!".format(s=splunk_home))
+        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb pkg!, "
+                    "it will have no effects".format(s=splunk_home))
     cmd = "sudo dpkg -i {p} {f}".format(p=pkg, f=flags)
     # TODO: need to handle splunk_home is not /opt/splunk, but tries to install
-    # return _run_cmd(cmd) + comment
+    # return _run_install_cmd(cmd, user) + comment
     raise NotImplementedError
 
 
-def _install_Z(pkg, splunk_home, flags):
+def _install_Z(pkg, splunk_home, flags, user):
     """
 
     :param pkg:
@@ -432,7 +399,7 @@ def _install_Z(pkg, splunk_home, flags):
     raise NotImplementedError
 
 
-def _install_zip(pkg, splunk_home, flags):
+def _install_zip(pkg, splunk_home, flags, user):
     """
 
     :param pkg:

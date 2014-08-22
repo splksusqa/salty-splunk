@@ -1,44 +1,18 @@
 # Because of the issue: https://github.com/saltstack/salt/issues/14593
 # cloud.map isnt ready for provisioning windows minions yet
-#
-#win2012-splunk-cluster-master:
-#  - cchung-splunk-cluster-master:
-#
-#win2012-splunk-cluster-searchhead:
-#  - cchung-splunk-cluster-searchhead:
-#      requires:
-#        - cchung-splunk-cluster-master
-#
-#win2012-splunk-cluster-slave:
-#  - cchung-splunk-cluster-slave-01:
-#      requires:
-#        - cchung-splunk-cluster-master
-#  - cchung-splunk-cluster-slave-02:
-#      requires:
-#        - cchung-splunk-cluster-master
-#
-#win2008-splunk-cluster-slave:
-#  - cchung-splunk-cluster-slave-03:
-#      requires:
-#        - cchung-splunk-cluster-master
-#  - cchung-splunk-cluster-slave-04:
-#      requires:
-#        - cchung-splunk-cluster-master
-win2008-splunk-cluster-master:
+ubuntu-splunk-cluster-master:
   - cchung-splunk-cluster-master
 
 ubuntu-splunk-cluster-searchhead:
   - cchung-splunk-cluster-searchhead
 
-win2012-splunk-cluster-slave:
+ubuntu-splunk-cluster-slave:
   - cchung-splunk-cluster-slave-01:
       requires:
         - cchung-splunk-cluster-master
   - cchung-splunk-cluster-slave-02:
       requires:
         - cchung-splunk-cluster-master
-
-ubuntu-splunk-cluster-slave:
   - cchung-splunk-cluster-slave-03:
       requires:
         - cchung-splunk-cluster-master
