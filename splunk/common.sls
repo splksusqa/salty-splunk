@@ -20,39 +20,16 @@ set-splunkd-port:
   splunk:
     - splunkd_port
     - port:   {{ pillar['splunk']['splunkd_port'] }}
-    - requite:
-      install-splunk:
+    - require:
+      - splunk: install-splunk
 
 
 set-splunkweb-port:
   splunk:
     - splunkweb_port
     - port: {{ pillar['splunk']['splunkweb_port'] }}
-
-
-
-app:
-  splunk:
-    - app_installed
-    - source: {{ pillar['splunk']['app'] }}
-
-
- run-python:
-   cmd.run:
-     - pthon.py
-
-
-
- upgrade-splunk:
-  splunk:
-    - installed
-    - source:              {{ pillar['splunk']['pkg_2'] }}
-    - install_flags:       {{ pillar['splunk']['install_flags'] }}
-    - splunk_home:         {{ pillar['splunk']['home'] }}
-    - start_after_install: {{ pillar['splunk']['start_after_install'] }}
-
-
-
+    - require:
+      - splunk: install-splunk
 
 enable_remote_access:
   splunk:
@@ -61,4 +38,5 @@ enable_remote_access:
     - uri: services/properties/server/general
     - body:
         allowRemoteLogin: always
-
+    - require:
+      - splunk: install-splunk

@@ -3,15 +3,15 @@
 system:
   {% if grains['os'] == 'Ubuntu'%}
   user: root
-  fs_root: /tmp/
+  files_dir: /tmp/salt_files/
   {% elif grains['os'] == 'RedHat'%}
   user: root
-  fs_root: /tmp/
+  files_dir: /tmp/salt_files/
   {% elif grains['os'] == 'Windows'%}
   # Windows does not support runas functionality in cmd.run,
   # so we cant run splunk commands as another user.
   user: Aministrator
-  fs_root: 'C:\'
+  files_dir: 'C:\temp\salt_files\'
   {% endif %}
 
 

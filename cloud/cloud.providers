@@ -8,7 +8,7 @@ aws_ec2:
   private_key: /home/ubuntu/cchung_new_qasus.pem
   ssh_interface: private_ips
   location: us-east-1
-  availability_zone: us-east-1d
+  availability_zone: us-east-1b
   del_root_vol_on_destroy: True
   del_all_vol_on_destroy: True
   flush_mine_on_destroy: True
@@ -16,3 +16,5 @@ aws_ec2:
   sync_after_install: all
   securitygroup: salt
   provider: ec2
+#  spot_config:
+#    spot_price: 0.10

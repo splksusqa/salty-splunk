@@ -16,7 +16,7 @@ import itertools
 import salt.utils
 import salt.exceptions
 
-logger = logging.getLogger('state.splunk')
+logger = logging.getLogger(__name__)
 
 
 #### State functions ####
@@ -35,23 +35,28 @@ def installed(name,
     :param str splunk_home: installdir
     :param str dest: location for storing the pkg
     :param dict install_flags: extra installation flags
-    :param str saltenv: saltenv, used by salt.
+    :param bool start_after_install: start splunk after installation
     :return: results of name, changes, results, and comment.
     :rtype: dict
     """
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
     user = user or __salt__['pillar.get']('system:user')
+    install_flags = install_flags or {}
     pkg = os.path.basename(source)
     pkg_type = _validate_pkg_for_platform(pkg)
     pkg_state = _get_current_pkg_state(pkg)
     if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
         cached_pkg = __salt__['utils.cache_file'](source=source, dest=dest)
+        logger.info("Installing pkg from '{s}', stored at '{c}'".format(
+                    s=source, c=cached_pkg))
         __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__],
                               "_install_{t}".format(t=pkg_type))(
                           pkg=cached_pkg, splunk_home=splunk_home,
                           user=user, flags=install_flags)
         ret['comment'] = install_ret['comment']
+        logger.info("Install runner returned code: {r}, comment: {c}".format(
+                    r=install_ret['retcode'], c=install_ret['comment']))
         if install_ret['retcode'] == 0:
             if start_after_install:
                 __salt__['splunk.start']()
@@ -195,7 +200,7 @@ def cli_configured(name,
 
 
 def configured(name,
-               interface='rest',
+               interface,
                func='cmd',
                **kwargs):
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
@@ -323,7 +328,7 @@ def _validate_pkg_for_platform(pkg):
     return type[0]
 
 
-def _run_install_cmd(cmd, user):
+def _run_install_cmd(cmd, user, comment=''):
     """
 
     :param cmd:
@@ -337,6 +342,7 @@ def _run_install_cmd(cmd, user):
     else:
         ret['comment'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
                               c=cmd, r=ret['retcode'], s=ret['stderr'])
+    ret['comment'] += comment
     return ret
 
 
@@ -380,8 +386,8 @@ def _install_deb(pkg, splunk_home, flags, user):
     """
     comment = ''
     if not splunk_home == '/opt/splunk':
-        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb pkg!, "
-                    "it will have no effects".format(s=splunk_home))
+        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb pkg! "
+                    "It will have no effects".format(s=splunk_home))
     cmd = "sudo dpkg -i {p} {f}".format(p=pkg, f=flags)
     # TODO: need to handle splunk_home is not /opt/splunk, but tries to install
     # return _run_install_cmd(cmd, user) + comment

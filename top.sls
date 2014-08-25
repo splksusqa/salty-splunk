@@ -2,9 +2,9 @@
 
 base:
 
-  'role:splunk-.*':
-    - match: grain_pcre
-    - splunk.common
+#  'role:splunk*':
+#    - match: grain
+#    - splunk.common
 
   'role:splunk-cluster-master':
     - match: grain

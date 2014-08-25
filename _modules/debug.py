@@ -8,10 +8,15 @@ __author__ = 'cchung'
 import sys
 import os
 import logging
-sys.path.append(os.path.join(os.path.dirname(os.path.realpath(__file__)),'lib'))
+lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+if not lib_path in sys.path:
+    sys.path.append(lib_path)
 import requests
 import salt.utils
 import salt.exceptions
+
+
+logger = logging.getLogger(__name__)
 
 
 def arg_type(arg):

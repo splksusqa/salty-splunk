@@ -8,12 +8,10 @@ __author__ = 'cchung'
 
 import sys
 import os
-import platform
-import subprocess
-import time
 import ConfigParser
 import json
 import logging
+import inspect
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
@@ -31,7 +29,7 @@ import salt.exceptions
 __salt__ = {}
 __pillar__ = {}
 default_stanza = 'default'
-logger = logging.getLogger('module.splunk')
+logger = logging.getLogger(__name__)
 
 
 def __virtual__():
@@ -45,16 +43,16 @@ def __virtual__():
     return is_splunk_installed()
 
 
-def get_splunk_home():
+def home():
     """
     Get splunk_home location from pillar['splunk']['home'].
 
     :return: splunk_home (pillar['splunk']['home'])
     :rtype: str
     """
-    home = __salt__['pillar.get']('splunk:home')
-    logger.info("Getting splunk_home '{h}' from pillar".format(h=home))
-    return home
+    splunk_home = __salt__['pillar.get']('splunk:home')
+    logger.info("Getting splunk_home '{h}' from pillar".format(h=splunk_home))
+    return splunk_home
 
 
 def is_splunk_installed():
@@ -64,12 +62,12 @@ def is_splunk_installed():
     :return: True if splunk_home path exists, otherwise False.
     :rtype: bool
     """
-    home = get_splunk_home()
-    if os.path.exists(home):
-        logger.info("Splunk is installed at '{h}'".format(h=home))
+    splunk_home = home()
+    if os.path.exists(_path('bin:splunk', splunk_home=splunk_home)):
+        logger.info("Splunk is installed at '{h}'".format(h=splunk_home))
         return True
     else:
-        logger.info("Splunk is not installed at '{h}'".format(h=home))
+        logger.info("Splunk is not installed at '{h}'".format(h=splunk_home))
         return False
 
 
@@ -125,17 +123,21 @@ def set_splunkweb_port(port=''):
     :param int port:
     :return: results of calling cmd
     """
-    return cmd("set web-port {p}".format(p=port))
+    stanza = {'settings': {'httpport': str(port)}}
+    return edit_stanza(conf='web.conf', stanza=stanza)
+    #return cmd("set web-port {p}".format(p=port))
 
 
 def set_splunkd_port(port=''):
     """
-    Set splunkd port.
+    Set splunkd port, set remote splunkd is not supported.
 
     :param int port:
     :return: results of calling cmd
     """
-    return cmd("set splunkd-port {p}".format(p=port))
+    stanza = {'settings': {'mgmtHostPort': "127.0.0.1:{p}".format(p=port)}}
+    return edit_stanza(conf='web.conf', stanza=stanza)
+    #return cmd("set splunkd-port {p}".format(p=port))
 
 
 def get_splunkd_port():
@@ -165,6 +167,9 @@ def listen_port(port, type='splunktcp', params=None):
     :param type:
     :return:
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     ret = {'retcode': 127, 'comment': ''}
     params = params or {}
     if type == 'splunktcp':
@@ -184,9 +189,12 @@ def info():
     :return: splunk.version contents
     :rtype: dict
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     if not is_splunk_installed():
         return {}
-    f = open(os.path.join(splunk_path('etc'), 'splunk.version'), 'r')
+    f = open(os.path.join(_path('etc'), 'splunk.version'), 'r')
     return dict([l.strip().split('=') for l in f.readlines()])
 
 
@@ -198,14 +206,15 @@ def install_app(source, dest='', method='cli', **kwargs):
     :param kwargs:
     :return:
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
 
     if method == 'cli':
-        if not os.path.exists(source):
-            source = __salt__['utils.cache_file'](source=source, dest=dest)
+        source = __salt__['utils.cache_file'](source=source, dest=dest)
         cmd_ = "install app {s}".format(s=source)
         return cmd(cmd_, **kwargs)
     elif method == 'rest':
-        if not os.path.exists(source) and not source.startswith('http'):
+        if not source.startswith('http'):
             source = __salt__['utils.cache_file'](source=source, dest=dest)
         appinstall_uri = '/services/apps/appinstall'
         return rest_call(uri=appinstall_uri, method='post',
@@ -224,10 +233,12 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
     :param event_count:
     :return:
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
     params = params or {}
-    if not os.path.exists(source):
-        source = __salt__['utils.cache_file'](source=source, dest=dest)
+    source = __salt__['utils.cache_file'](source=source, dest=dest)
     if index: # Update params even if index=main, in case someone wants it.
         params.update({'index': index})
 
@@ -243,6 +254,9 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
 
 
 def _wait_until_indexing_stable(index, event_count=0, source='', sourcetype=''):
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     raise NotImplementedError
 
 
@@ -255,6 +269,9 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
     :param parallel:
     :return:
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     raise NotImplementedError
 
 
@@ -275,39 +292,40 @@ def cmd(command, auth='', user='', splunk_home='', timeout=60, params=None):
     :param str command: command to issue
     :param str auth: authenticate string, default: pillar['splunk']['auth']
     :param str user: user to run the command, default: pillar['system']['user']
-    :param str splunk_home: splunk home to run the command, deafult:
-    get_splunk_home()
+    :param str splunk_home: splunk home to run the command, deafult: home()
     :param int timeout: timeout in seconds, default: 60
     :param dict params: other cli params, key for parameter and value for arg.
     Will automatically add dash (-) in front of each parameter.
     :return: retcode, stdout, stderr, and cmd.
     :rtype: dict
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     ret = {'retcode': 127, 'comment': '', 'changes': '', 'cmd': '', 'cwd': '',
            'stdout': '', 'stderr': '', 'pid': ''}
     if not is_splunk_installed():
-        ret['stderr'] = 'Splunk is not installed'
+        ret['comment'] = 'Splunk is not installed'
         return ret
     params = params or {}
     auth = auth or __salt__['pillar.get']('splunk:auth')
-    splunk_home = splunk_home or get_splunk_home()
+    splunk_home = splunk_home or home()
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help']
     for k,v in params.iteritems():
         command += " -{k} {v}".format(k=k,v=v)
-    if command.split(' ')[0] in no_auth_cmds:
-        if command.split(' ')[0] == 'start':
-            command += ' --accept-license --no-prompt --answer-yes'
-    else:
+    if os.path.exists(_path('ftr')) or os.path.exists(_path('.ftr')):
+        command += ' --accept-license --no-prompt --answer-yes'
+    if not command.split(' ')[0] in no_auth_cmds:
         command += " -auth {a}".format(a=auth)
 
     if salt.utils.is_windows():
         user = None
-        cwd = splunk_path('bin', splunk_home=splunk_home)
+        cwd = _path('bin', splunk_home=splunk_home)
         cmd_ = "splunk " + command
     else:
         user = user or __salt__['pillar.get']('system:user')
         cwd = ''
-        cmd_ = splunk_path('bin_splunk', splunk_home=splunk_home) +" "+ command
+        cmd_ = _path('bin:splunk', splunk_home=splunk_home) +" "+ command
     resp = __salt__['cmd.run_all'](cmd_, cwd=cwd, runas=user, timeout=timeout)
     resp.update({
         'stdout': os.linesep.join(
@@ -336,20 +354,26 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     :param dict body: the request body (i.e. -d key=value)
     :param dict params: URL parameters
     :param str auth: authentication for making request
-    :param str base_uri: the base uri, contains schema://host
+    :param str base_uri: the base uri, contains scheme://host
     :param int port: the port of the uri to request
     :param int timeout: timeout in seconds.
-    :param bool show_content:
-    :param str output_mode:
+    :param bool show_content: if showing the response contents of the request.
+    :param str output_mode: output to json or
     :return: retcode, comment, changes, url, status_code, and content.
     :rtype: dict
     """
-    ret = {'retcode': 127, 'comment': '', 'changes': '', 'url': '',
-           'status_code': 0, 'content': 'Not showing content by default.'}
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
+    ret = {'retcode': 127, 'comment': '', 'changes': '', 'status_code': 0,
+           'url': '', 'content': 'Not showing response contents by default.'}
+    if not is_splunk_installed():
+        ret['comment'] = 'Splunk is not installed'
+        return ret
     body = body or {}
-    params = params or {}
     auth = auth or __salt__['pillar.get']('splunk:auth')
     port = port or get_splunkd_port()
+    params = params or {}
     headers = headers or {}
     valid_methods = ['get', 'post', 'put', 'delete']
     if not method.lower() in valid_methods:
@@ -399,10 +423,14 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
     :returns: retcode, comment, and changes
     :rtype: dict
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     ret = {'retcode': 127, 'comment': '', 'changes': ''}
 
     if not is_splunk_installed():
-        return 'Splunk is not installed'
+        ret['comment'] = 'Splunk is not installed'
+        return ret
     if not action.strip() in ['edit', 'add', 'remove', 'delete']:
         return "Unknown action '{a}' for editing stanza".format(a=action)
     if not stanza: return "Stanza is empty!"
@@ -502,6 +530,9 @@ def _read_config(conf_file):
     :return: ConfigParser.SafeConfigParser()
     :rtype: object
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
     cp.readfp(_FakeSecHead(open(conf_file, 'r+'), default_stanza))
@@ -517,6 +548,9 @@ def _write_config(conf_file, cp):
     :return: ConfigParser
     :rtype: object
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
@@ -530,14 +564,27 @@ def locate_conf_file(scope, conf):
     :return: path of the conf file
     :rtype: str
     """
-    return os.path.join(*[splunk_path('etc')] + scope.split(':') + [conf])
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
+    return os.path.join(*[_path('etc')] + scope.split(':') + [conf])
 
 
 def get_file():
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     raise NotImplementedError
 
 
 def push_file():
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
+    raise NotImplementedError
+
+
+def check_crash():
     raise NotImplementedError
 
 
@@ -549,11 +596,14 @@ def get_pids(output='list'):
     :return: pid list or dict ({file: [pid list]})
     :rtype: list/dict
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
+
     if output == 'list':
         pids = []
     else:
         pids = {}
-    pid_dir = splunk_path('var_run_splunk')
+    pid_dir = _path('var:run:splunk')
     for f in os.listdir(pid_dir):
         if f.endswith(".pid"):
             f_path = os.path.join(pid_dir, f)
@@ -566,59 +616,90 @@ def get_pids(output='list'):
     return pids
 
 
-def perf(metrics=''):
+def perf(verbose=False):
     """
     Get the performance metrics of splunk.
 
-    :param list metrics: list of metrics you want to gather.
-    :return: perormance metrics.
+    :param bool verbose: gather more detailed data.
+    :return: performance metrics.
     :rtype: dict
     """
+    logger.info("Running function '{f}' with vars: {v}".format(
+                f=inspect.stack()[0][3], v=locals()))
 
-    if not HAS_PSUTIL: return "psutil not installed."
+    if not HAS_PSUTIL:
+        return "psutil not installed."
 
     perf_metrics = []
     for pid in get_pids():
         p = psutil.Process(pid=int(pid))
-        # TODO: drop the first time ot cpu_percent
-        if salt.utils.is_windows():
+        p.get_cpu_percent()  # drop the first time ot cpu_percent
+
+        if not salt.utils.is_windows():
+            metrics_map = {
+                'num_handles':      'get_num_fds',
+                #'children':         'get_children',
+                'connections':      'get_connections',
+                'cpu_affinity':     'get_cpu_affinity',
+                'cpu_percent':      'get_cpu_percent',
+                'cpu_times':        'get_cpu_times',
+                'memory_info_ex':   'get_ext_memory_info',
+                'io_counters':      'get_io_counters',
+                'memory_info':      'get_memory_info',
+                'memory_maps':      'get_memory_maps',
+                #'memory_percent':   'get_memory_percent',
+                'num_ctx_switches': 'get_num_ctx_switches',
+                'num_threads':      'get_num_threads',
+                'open_files':       'get_open_files',
+                #'rlimit':           'get_rlimit',
+                'threads':          'get_threads',
+                #'cwd':              'getcwd',
+            }
+            for m in metrics_map:  # set attr for compatibility.
+                setattr(p, m, getattr(p, metrics_map[m]))
+        else:  # set func as attr on windows
+            p.name = p.name()
+            p.username = p.username()
+            p.cmdline = p.cmdline()
+
+        # gather the metrics
+        perf_metrics += [{
+            'pid': p.pid,
+            'name': p.name,
+            'user': p.username,
+            'cmd': " ".join(p.cmdline),
+            'io_read_bytes': p.io_counters()[2],
+            'io_write_bytes': p.io_counters()[3],
+            'fds': p.num_handles(),
+            'threads': p.num_threads(),
+            'cpu_times_user': p.cpu_times()[0],
+            'cpu_times_system': p.cpu_times()[1],
+            'cpu_percent': p.cpu_percent(),
+            'memory_rss': p.memory_info()[0],
+            'memory_vms': p.memory_info()[1],
+        }]
+        if verbose:  # the followings are the metrics we can get without issues.
             perf_metrics += [{
-                'pid': p.pid,
-                'name': p.name(),
-                'user': p.username(),
-                'cmd': " ".join(p.cmdline()),
-                'io_read_bytes': p.io_counters()[2],
-                'io_write_bytes': p.io_counters()[3],
-                'handles': p.num_handles(),
-                'threads': p.num_threads(),
-                # 'threads': [dict(zip(i._fields, i)) for i in p.threads()],
-                'cpu_times_user': p.cpu_times()[0],
-                'cpu_times_system': p.cpu_times()[1],
-                'cpu_percent': p.cpu_percent(),
-                'memory_rss': p.memory_info()[0],
-                'memory_vms': p.memory_info()[1],
-            }]
-        else:
-            perf_metrics += [{
-                'pid': p.pid,
-                'name': p.name,
-                'user': p.username,
-                'cmd': " ".join(p.cmdline),
-                'io_read_bytes': p.get_io_counters()[2],
-                'io_write_bytes': p.get_io_counters()[3],
-                'fds': p.get_num_fds(),
-                'threads': p.get_num_threads(),
-                # 'threads': [dict(zip(i._fields, i)) for i in p.get_threads()],
-                'cpu_times_user': p.get_cpu_times()[0],
-                'cpu_times_system': p.get_cpu_times()[1],
-                'cpu_percent': p.get_cpu_percent(),
-                'memory_rss': p.get_memory_info()[0],
-                'memory_vms': p.get_memory_info()[1],
+                'ctx_switches_voluntary':   p.num_ctx_switches()[0],
+                'ctx_switches_involuntary': p.num_ctx_switches()[1],
+                'memory_shared': p.memory_info_ex()[2],
+                'memory_text':   p.memory_info_ex()[3],
+                'memory_lib':    p.memory_info_ex()[4],
+                'memory_data':   p.memory_info_ex()[5],
+                'memory_dirty':  p.memory_info_ex()[6],
+                'memory_maps': _named_tuple_list_to_dict_list(p.memory_maps()),
+                'thread_info': _named_tuple_list_to_dict_list(p.get_threads()),
+                'open_files':  _named_tuple_list_to_dict_list(p.open_files()),
+                'connections': _named_tuple_list_to_dict_list(p.connections())
             }]
     return perf_metrics
 
 
-def splunk_path(path_, splunk_home=''):
+def _named_tuple_list_to_dict_list(tuple_list):
+    return [dict(zip(i._fields, i)) for i in tuple_list]
+
+
+def _path(path, splunk_home=''):
     """
     Get the path in splunk dir.
 
@@ -626,23 +707,9 @@ def splunk_path(path_, splunk_home=''):
     :return: path in splunk dir.
     :rtype: str
     """
-    HOME = splunk_home or get_splunk_home()
-    p = {
-        'bin':            os.path.join(HOME, 'bin'),
-        'bin_splunk':     os.path.join(HOME, 'bin', 'splunk'),
-        'etc':            os.path.join(HOME, 'etc'),
-        'system':         os.path.join(HOME, 'etc', 'system'),
-        'apps_search':    os.path.join(HOME, 'etc', 'apps', 'search'),
-        'var':            os.path.join(HOME, 'var'),
-        'var_log':        os.path.join(HOME, 'var', 'log'),
-        'var_lib':        os.path.join(HOME, 'var', 'lib'),
-        'var_run':        os.path.join(HOME, 'var', 'run'),
-        'var_run_splunk': os.path.join(HOME, 'var', 'run', 'splunk'),
-        'db':          os.path.join(HOME, 'var', 'lib', 'splunk'),
-        'db_main':     os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
-        'db_default':  os.path.join(HOME, 'var', 'lib', 'splunk', 'defaultdb'),
-    }
-    return p[path_]
+    splunk_home = splunk_home or home()
+    return os.path.join(splunk_home, *path.split(':'))
+
 
 cli = cmd
 get_web_port = get_splunkweb_port

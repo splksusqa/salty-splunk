@@ -1,10 +1,13 @@
 __author__ = 'cchung'
 
 import os
+import errno
 import requests
+import logging
 
 # salt
 import salt.exceptions
+logger = logging.getLogger(__name__)
 
 
 def __virtual__():
@@ -15,52 +18,70 @@ def __virtual__():
     :return: True
     :rtype: bool
     """
-    return True # always available for now.
+    return True  # always available for now.
 
 
-def cache_file(source, dest=''):
+def cache_file(source, dest='', user=''):
     """
 
     :param source:
-    :param saltenv:
     :param dest:
     :return:
     """
     # get source file
-    dest = dest or __salt__['pillar.get']['system:fs_root']
-    schema = ['salt:', 'http:', 'https:', 'ftp:']
-    if any([True for i in schema if source.startswith(i)]):
+    dest = dest or __salt__['pillar.get']('system:files_dir')
+    user = user or __salt__['pillar.get']('system:user')
+    schemes = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
+    logger.info("Caching file from '{source}' to '{dest}', user={user}".format(
+                **locals()))
+    if any([True for scheme in schemes if source.startswith(scheme)]):
         filename = os.path.basename(source)
-        if os.path.isdir(dest):
+        if dest.endswith(os.sep) or os.path.isdir(dest):
+            mkdirs(dest)
             local_path = os.path.join(dest, filename)
         else:
+            mkdirs(os.path.dirname(dest))
             local_path = dest
-        if (os.path.exists(local_path) and
-            __salt__['cp.hash_file'](source) == __salt__['cp.hash_file'](dest)):
-            cached = dest
+
+        if source.startswith('s3:'):
+            # not check hash from s3, so download it anyway.
+            s3_bucket = source.split('/', 3)[2]
+            s3_path = source.split('/', 3)[3]
+            logger.info("Getting file from s3 to '{dest}'".format(**locals()))
+            ret = __salt__['s3.get'](s3_bucket, s3_path, local_file=local_path)
+            success_string = 'Saved to local file:'
+            if ret and ret.startswith(success_string):
+                cached = local_path
+            else:
+                raise salt.exceptions.CommandExecutionError(
+                    "Failed to get s3 file, ret={r}".format(r=ret))
+        elif os.path.exists(local_path) and (
+                 __salt__['cp.hash_file'](source) ==
+                 __salt__['cp.hash_file'](local_path)):
+            logger.info("Local file {local_path} has same hash, "
+                        "not fetching again.".format(**locals()))
+            cached = local_path
         else:
+            logger.info("Fetching file from url".format(locals()))
             cached = __salt__['cp.get_url'](source, local_path)
-    elif source.startswith('s3:'):
-        s3_bucket = source.split('/', 3)[2]
-        s3_path = source.split('/', 3)[3]
-        s3_filename = os.path.basename(s3_path)
-        if os.path.isdir(dest):
-            local_path = os.path.join(dest, s3_filename)
-        else:
-            local_path = dest
-        ret = __salt__['s3.get'](s3_bucket, s3_path, local_file=local_path)
-        success_string = 'Saved to local file:'
-        if ret and ret.startswith(success_string):
-            cached = ret.split(success_string)[1].strip()
-        else:
-            raise salt.exceptions.CommandExecutionError(ret)
-    elif os.path.exists(source): # locally stored?
+    elif os.path.exists(source):  # locally path?
         cached = source
     else:
-        msg = ("pkg is not available, please check the schema or local dir of"
+        msg = ("pkg is unavailable, please check the schema or local dir of "
                "your source '{s}' is correct".format(s=source))
         raise salt.exceptions.CommandExecutionError(msg)
+    __salt__['file.chown'](cached, user, user)
     return cached
+
+
+def mkdirs(path):
+    try:
+        os.makedirs(path)
+    except OSError as e:
+        if e.errno == errno.EEXIST and os.path.isdir(path):
+            pass
+        else:
+            raise
 
 
 def instance_data(data='', url='http://instance-data/latest/meta-data/'):

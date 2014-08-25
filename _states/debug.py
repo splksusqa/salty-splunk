@@ -4,6 +4,10 @@ State for debugging purposes
 ==========================
 '''
 __author__ = 'cchung'
+import logging
+
+logger = logging.getLogger(__name__)
+
 
 def func_test(name, arg1='', arg2=''):
     """

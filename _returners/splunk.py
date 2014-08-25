@@ -1,6 +1,9 @@
 __author__ = 'cchung'
 import socket
 import json
+import logging
+logger = logging.getLogger(__name__)
+
 
 def returner(ret):
     """
@@ -13,6 +16,8 @@ def returner(ret):
     port = __pillar__['monitoring']['listen_port']
     schema = __pillar__['monitoring']['listen_schema']
 
+    logger.info("Running returner with host={schema}://{ip}:{port}".format(
+                **locals()))
     if schema.lower() == 'tcp':
         sock = socket.SOCK_STREAM
     elif schema.lower() == 'udp':

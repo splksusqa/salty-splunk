@@ -6,7 +6,7 @@ ubuntu:
   size: t2.small
   minion:
     master: salt-master.qa
-  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) by Amazon
+  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) - Amazon official AMI
   script: Ubuntu
 
 #### redhat ####
@@ -15,7 +15,7 @@ redhat:
   size: t2.small
   minion:
     master: salt-master.qa
-  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) by Amazon
+  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) - Amazon official AMI
   script: RHEL6
 
 #### win2012 ####
