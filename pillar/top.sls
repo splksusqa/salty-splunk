@@ -4,24 +4,27 @@
 #
 # e.g.:
 # base:
-#   'id:*splunk-cluster-master*:
+
+#   'id:splunk-cluster-slave-01':
 #     - match: grain
-#     - splunk-cluster-master
-#   '* and not G@id:*splunk-cluster-master*':
+#     - splunk.cluster-slave-01
+#   'G@role:splunk-cluster-slave and not G@id:splunk-cluster-slave-01:
 #     - match: compound
-#     - splunk
+#     - splunk.cluster-slave
 #
-# then you can set custom configs in splunk-cluster-master.sls,
+# then you can set custom configs in splunk/cluster-slave-01.sls,
 # e.g.:
 # splunk:
 #   home: C:\Splunk
 #
-# then all nodes other than splunk-cluster-master will use default splunk_home
-# and the master will use the custom splunk_home in splunk-cluster-master.sls
+# then all slaves other than splunk-cluster-slave-01 will use default
+# splunk_home and slave-01 will use the custom splunk_home in
+# splunk.cluster-slave-01.sls
 
 
 base:
   '*':
+    - schedule
     - splunk.common
 
   'role:splunk-cluster-master':

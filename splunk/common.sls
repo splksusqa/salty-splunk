@@ -31,6 +31,7 @@ set-splunkweb-port:
     - require:
       - splunk: install-splunk
 
+
 enable_remote_access:
   splunk:
     - rest_configured

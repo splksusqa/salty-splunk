@@ -18,3 +18,6 @@ aws_ec2:
   provider: ec2
 #  spot_config:
 #    spot_price: 0.10
+#  block_device_mappings:
+#    - DeviceName: /dev/sda1
+#      Ebs.VolumeSize: 100

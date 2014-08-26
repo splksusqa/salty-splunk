@@ -48,7 +48,7 @@ monitoring:
   # be installed at master.
   splunk_ip:
   listen_port: 9997
-  listen_schema: tcp
+  listen_scheme: tcp
 
 ## used by s3fs (of salt) ##
 s3.keyid:
