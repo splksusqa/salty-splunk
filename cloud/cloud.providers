@@ -1,3 +1,5 @@
+# http://salt-cloud.readthedocs.org/en/latest/topics/aws.html
+
 aws_ec2:
   owner: self
   id:
@@ -5,9 +7,17 @@ aws_ec2:
   keyname: cchung
   private_key: /home/ubuntu/cchung_new_qasus.pem
   ssh_interface: private_ips
+  location: us-east-1
+  availability_zone: us-east-1b
   del_root_vol_on_destroy: True
   del_all_vol_on_destroy: True
   flush_mine_on_destroy: True
   rename_on_destroy: True
+  sync_after_install: all
   securitygroup: salt
   provider: ec2
+#  spot_config:
+#    spot_price: 0.10
+#  block_device_mappings:
+#    - DeviceName: /dev/sda1
+#      Ebs.VolumeSize: 100

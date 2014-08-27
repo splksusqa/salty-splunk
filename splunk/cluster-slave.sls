@@ -1,14 +1,29 @@
-install-splunk:
-  splunk:
-    - installed
-    - source: {{ pillar['splunk']['pkg'] }}
-    - installer_flags: {{ pillar['installer_flags'] }}
-    - splunk_home: {{ pillar['splunk']['home'] }}
+include:
+  - splunk.common
 
-
-set-cluster:
+set-slave:
   splunk:
-    - set_role
-    - mode: cluster-slave
-    - master: {{ salt['publish.publish']('*cluster-master*', 'network.ip_addrs').values()[0][0] }}:8089
-    - replication_port: 8888
+    - configured
+    - interface: conf
+    - conf: server.conf
+    - stanza:
+        clustering:
+          mode: slave
+          master_uri: https://{{ salt['publish.publish']('role:splunk-cluster-master', 'network.ip_addrs', '', 'grain').values()[0][0] }}:{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_splunkd_port', '', 'grain').values()[0] }}
+        replication_port://{{ pillar['cluster-slave']['replication_port'] }}: {}
+    - require:
+      - sls: splunk.common
+
+data:
+  splunk:
+    - data_monitored
+    - source: {{ pillar['splunk']['dataset'] }}
+    - require:
+      - sls: splunk.common
+
+app:
+  splunk:
+    - app_installed
+    - source: {{ pillar['splunk']['app'] }}
+    - require:
+      - sls: splunk.common

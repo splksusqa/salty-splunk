@@ -1,13 +1,15 @@
-install-splunk:
+include:
+  - splunk.common
+
+set-master:
   splunk:
-    - installed
-    - source: {{ pillar['splunk']['pkg'] }}
-    - installer_flags: {{ pillar['installer_flags'] }}
-    - splunk_home: {{ pillar['splunk']['home'] }}
-
-
-set-cluster:
-  splunk:
-    - set_role
-    - mode: cluster-master
-
+    - configured
+    - interface: conf
+    - conf: server.conf
+    - stanza:
+        clustering:
+          mode: master
+          replication_factor: '2'
+          search_factor: '1'
+    - require:
+      - sls: splunk.common

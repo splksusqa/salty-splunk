@@ -1,6 +1,27 @@
-win2012:
+# http://salt-cloud.readthedocs.org/en/latest/topics/profiles.html
+
+#### ubuntu ####
+ubuntu:
   provider: aws_ec2
+  size: t2.small
+  minion:
+    master: salt-master.qa
+  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) - Amazon official AMI
+  script: Ubuntu
+
+#### redhat ####
+redhat:
+  provider: aws_ec2
+  size: t2.small
+  minion:
+    master: salt-master.qa
+  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) - Amazon official AMI
+  script: RHEL6
+
+#### win2012 ####
+win2012:
   image: ami-e4a9618c # win2012_ami_20140724
+  provider: aws_ec2
   size: t2.small
   minion:
     master: salt-master.qa
@@ -8,12 +29,182 @@ win2012:
   win_username: Administrator
   win_password: sk8free
 
+#### win2008 ####
 win2008:
-  provider: aws_ec2
   image: ami-eca86084 # win2008_ami_20140724
+  provider: aws_ec2
   size: t2.small
   minion:
     master: salt-master.qa
   win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
+
+
+#### Specific roles and platforms ####
+## ubuntu ##
+ubuntu-splunk-cluster-master:
+  grains:
+    role: splunk-cluster-master
+  extends: ubuntu
+
+ubuntu-splunk-cluster-searchhead:
+  grains:
+    role: splunk-cluster-searchhead
+  extends: ubuntu
+
+ubuntu-splunk-cluster-slave:
+  grains:
+    role: splunk-cluster-slave
+  extends: ubuntu
+
+ubuntu-splunk-indexer:
+  grains:
+    role: splunk-indexer
+  extends: ubuntu
+
+ubuntu-splunk-searchhead:
+  grains:
+    role: splunk-searchhead
+  extends: ubuntu
+
+ubuntu-splunk-universal-forwarder:
+  grains:
+    role: splunk-universal-forwarder
+  extends: ubuntu
+
+ubuntu-splunk-heavy-forwarder:
+  grains:
+    role: splunk-heavy-forwarder
+  extends: ubuntu
+
+ubuntu-splunk-light-forwarder:
+  grains:
+    role: splunk-light-forwarder
+  extends: ubuntu
+
+## redhat ##
+redhat-splunk-cluster-master:
+  grains:
+    role: splunk-cluster-master
+  extends: redhat
+
+redhat-splunk-cluster-searchhead:
+  grains:
+    role: splunk-cluster-searchhead
+  extends: redhat
+
+redhat-splunk-cluster-slave:
+  grains:
+    role: splunk-cluster-slave
+  extends: redhat
+
+redhat-splunk-indexer:
+  grains:
+    role: splunk-indexer
+  extends: redhat
+
+redhat-splunk-searchhead:
+  grains:
+    role: splunk-searchhead
+  extends: redhat
+
+redhat-splunk-universal-forwarder:
+  grains:
+    role: splunk-universal-forwarder
+  extends: redhat
+
+redhat-splunk-heavy-forwarder:
+  grains:
+    role: splunk-heavy-forwarder
+  extends: redhat
+
+redhat-splunk-light-forwarder:
+  grains:
+    role: splunk-light-forwarder
+  extends: redhat
+
+
+## win2012 ##
+win2012-splunk-cluster-master:
+  grains:
+    role: splunk-cluster-master
+  extends: win2012
+
+win2012-splunk-cluster-searchhead:
+  grains:
+    role: splunk-cluster-searchhead
+  extends: win2012
+
+win2012-splunk-cluster-slave:
+  grains:
+    role: splunk-cluster-slave
+  extends: win2012
+
+win2012-splunk-indexer:
+  grains:
+    role: splunk-indexer
+  extends: win2012
+
+win2012-splunk-searchhead:
+  grains:
+    role: splunk-searchhead
+  extends: win2012
+
+win2012-splunk-universal-forwarder:
+  grains:
+    role: splunk-universal-forwarder
+  extends: win2012
+
+win2012-splunk-heavy-forwarder:
+  grains:
+    role: splunk-heavy-forwarder
+  extends: win2012
+
+win2012-splunk-light-forwarder:
+  grains:
+    role: splunk-light-forwarder
+  extends: win2012
+
+## win2008 ##
+win2008-splunk-cluster-master:
+  grains:
+    role: splunk-cluster-master
+  extends: win2008
+
+win2008-splunk-cluster-searchhead:
+  grains:
+    role: splunk-cluster-searchhead
+  extends: win2008
+
+win2008-splunk-cluster-slave:
+  grains:
+    role: splunk-cluster-slave
+  extends: win2008
+
+win2008-splunk-indexer:
+  grains:
+    role: splunk-indexer
+  extends: win2008
+
+win2008-splunk-searchhead:
+  grains:
+    role: splunk-searchhead
+  extends: win2008
+
+win2008-splunk-universal-forwarder:
+  grains:
+    role: splunk-universal-forwarder
+  extends: win2008
+
+win2008-splunk-heavy-forwarder:
+  grains:
+    role: splunk-heavy-forwarder
+  extends: win2008
+
+win2008-splunk-light-forwarder:
+  grains:
+    role: splunk-light-forwarder
+  extends: win2008
+
+
