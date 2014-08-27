@@ -1,3 +1,6 @@
+include:
+  - splunk.common
+
 set-role:
   splunk:
     - role_configured
@@ -5,4 +8,4 @@ set-role:
     - endpoint: services/search/distributed/peers
     - setting:
         distributedSearch:
-          servers: idx1, idx2, idx3
+          servers: 'idx1, idx2, idx3'

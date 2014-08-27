@@ -375,9 +375,10 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     url = "{b}:{p}/{u}".format(b=base_uri, p=port, u=uri)
     logger.info("Rest call to {url}, with params={params}, body={body}".format(
                 **locals()))
-    resp = getattr(requests, method)(url, params=params, data=body, verify=False,
-                                     timeout=timeout, headers=headers,
-                                     auth=tuple(auth.split(':', 1)))
+    resp = getattr(requests, method.lower())(url, params=params, data=body,
+                                             verify=False, timeout=timeout,
+                                             headers=headers,
+                                             auth=tuple(auth.split(':', 1)))
     ret['status_code'] = resp.status_code
     ret['url'] = resp.url
     logger.info("Rest call to {url}, got status_code={status_code}".format(
