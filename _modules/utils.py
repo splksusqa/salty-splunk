@@ -67,7 +67,7 @@ def cache_file(source, dest='', user=''):
     elif os.path.exists(source):  # locally path?
         cached = source
     else:
-        msg = ("pkg is unavailable, please check the schema or local dir of "
+        msg = ("file is unavailable, please check the scheme or local path of "
                "your source '{s}' is correct".format(s=source))
         raise salt.exceptions.CommandExecutionError(msg)
     __salt__['file.chown'](cached, user, user)
@@ -75,6 +75,11 @@ def cache_file(source, dest='', user=''):
 
 
 def mkdirs(path):
+    """
+
+    :param path:
+    :return:
+    """
     try:
         os.makedirs(path)
     except OSError as e:

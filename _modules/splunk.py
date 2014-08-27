@@ -12,6 +12,7 @@ import ConfigParser
 import json
 import logging
 import inspect
+import errno
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
@@ -63,7 +64,7 @@ def is_splunk_installed():
     :rtype: bool
     """
     splunk_home = home()
-    if os.path.exists(_path('bin:splunk', splunk_home=splunk_home)):
+    if os.path.exists(_path('bin')):
         logger.info("Splunk is installed at '{h}'".format(h=splunk_home))
         return True
     else:
@@ -125,7 +126,6 @@ def set_splunkweb_port(port=''):
     """
     stanza = {'settings': {'httpport': str(port)}}
     return edit_stanza(conf='web.conf', stanza=stanza)
-    #return cmd("set web-port {p}".format(p=port))
 
 
 def set_splunkd_port(port=''):
@@ -137,7 +137,6 @@ def set_splunkd_port(port=''):
     """
     stanza = {'settings': {'mgmtHostPort': "127.0.0.1:{p}".format(p=port)}}
     return edit_stanza(conf='web.conf', stanza=stanza)
-    #return cmd("set splunkd-port {p}".format(p=port))
 
 
 def get_splunkd_port():
@@ -169,7 +168,6 @@ def listen_port(port, type='splunktcp', params=None):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     ret = {'retcode': 127, 'comment': ''}
     params = params or {}
     if type == 'splunktcp':
@@ -191,7 +189,6 @@ def info():
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     if not is_splunk_installed():
         return {}
     f = open(os.path.join(_path('etc'), 'splunk.version'), 'r')
@@ -208,7 +205,6 @@ def install_app(source, dest='', method='cli', **kwargs):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     if method == 'cli':
         source = __salt__['utils.cache_file'](source=source, dest=dest)
         cmd_ = "install app {s}".format(s=source)
@@ -220,7 +216,7 @@ def install_app(source, dest='', method='cli', **kwargs):
         return rest_call(uri=appinstall_uri, method='post',
                          body={'name': source}, **kwargs)
     else:
-        return "Install app method {m} is not yet supported".format(m=method)
+        return "Install app method {m} is not supported".format(m=method)
 
 
 def add_monitor(source, dest='', index='', wait=False, event_count=0,
@@ -235,7 +231,6 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
     params = params or {}
     source = __salt__['utils.cache_file'](source=source, dest=dest)
@@ -256,7 +251,6 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
 def _wait_until_indexing_stable(index, event_count=0, source='', sourcetype=''):
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     raise NotImplementedError
 
 
@@ -271,7 +265,6 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     raise NotImplementedError
 
 
@@ -285,14 +278,13 @@ def multi_instances(func):
 
 
 # @multi_instances
-def cmd(command, auth='', user='', splunk_home='', timeout=60, params=None):
+def cmd(command, auth='', user='', timeout=60, params=None):
     """
     Splunk cli command.
 
     :param str command: command to issue
     :param str auth: authenticate string, default: pillar['splunk']['auth']
     :param str user: user to run the command, default: pillar['system']['user']
-    :param str splunk_home: splunk home to run the command, deafult: home()
     :param int timeout: timeout in seconds, default: 60
     :param dict params: other cli params, key for parameter and value for arg.
     Will automatically add dash (-) in front of each parameter.
@@ -301,7 +293,6 @@ def cmd(command, auth='', user='', splunk_home='', timeout=60, params=None):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     ret = {'retcode': 127, 'comment': '', 'changes': '', 'cmd': '', 'cwd': '',
            'stdout': '', 'stderr': '', 'pid': ''}
     if not is_splunk_installed():
@@ -309,7 +300,6 @@ def cmd(command, auth='', user='', splunk_home='', timeout=60, params=None):
         return ret
     params = params or {}
     auth = auth or __salt__['pillar.get']('splunk:auth')
-    splunk_home = splunk_home or home()
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help']
     for k,v in params.iteritems():
         command += " -{k} {v}".format(k=k,v=v)
@@ -320,12 +310,12 @@ def cmd(command, auth='', user='', splunk_home='', timeout=60, params=None):
 
     if salt.utils.is_windows():
         user = None
-        cwd = _path('bin', splunk_home=splunk_home)
+        cwd = _path('bin')
         cmd_ = "splunk " + command
     else:
         user = user or __salt__['pillar.get']('system:user')
         cwd = ''
-        cmd_ = _path('bin:splunk', splunk_home=splunk_home) +" "+ command
+        cmd_ = _path('bin:splunk') +" "+ command
     resp = __salt__['cmd.run_all'](cmd_, cwd=cwd, runas=user, timeout=timeout)
     resp.update({
         'stdout': os.linesep.join(
@@ -364,7 +354,6 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     ret = {'retcode': 127, 'comment': '', 'changes': '', 'status_code': 0,
            'url': '', 'content': 'Not showing response contents by default.'}
     if not is_splunk_installed():
@@ -435,6 +424,10 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
         return "Unknown action '{a}' for editing stanza".format(a=action)
     if not stanza: return "Stanza is empty!"
     conf_file = locate_conf_file(scope, conf)
+    conf_dir = os.path.dirname(conf_file)
+    if not os.path.exists(conf_dir):
+        __salt__['utils.mkdirs'](conf_dir)
+        ret['comment'] += "Created dir {c}, ".format(c=conf_dir)
     cp = _read_config(conf_file)
 
     # edit the whole stanza if it's a string
@@ -532,10 +525,9 @@ def _read_config(conf_file):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
-    cp.readfp(_FakeSecHead(open(conf_file, 'r+'), default_stanza))
+    cp.readfp(_FakeSecHead(open(conf_file, 'a+'), default_stanza))
     return cp
 
 
@@ -550,7 +542,6 @@ def _write_config(conf_file, cp):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
@@ -566,22 +557,39 @@ def locate_conf_file(scope, conf):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
     return os.path.join(*[_path('etc')] + scope.split(':') + [conf])
 
 
-def get_file():
+def get_file(source, dest=''):
+    """
+    Get a file from source and save it to dest inside splunk dir.
+    Available source schemes are s3://, http://, https://, salt://
+    dest format is dir:sub_dir_1:sub_dir_2:filename,
+    you can also use dir:sub_dir_1:sub_dir_2 if sub_dir_2 already exists.
+
+    :param str source: file uri.
+    :param str dest: file path inside splunk home.
+    :return: file path on minion (or error messages.)
+    :rtype: str
+    """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
+    return __salt__['utils.cache_file'](source=source, dest=_path(dest))
 
-    raise NotImplementedError
 
+def push_file(source):
+    """
+    Push a file inside splunk up to salt-master, and save it to cachedir of
+    salt-master, source format is dir:sub_dir_1:sub_dir_2:filename,
+    cachedir default is /var/cache/salt/master/minions/minion-id/files/
 
-def push_file():
+    :param source: file path inside splunk home.
+    :return: if the file is successfully pushed to salt-master
+    :rtype: bool
+    """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-
-    raise NotImplementedError
+    return __salt__['cp.push'](_path(source))
 
 
 def check_crash():
@@ -699,7 +707,7 @@ def _named_tuple_list_to_dict_list(tuple_list):
     return [dict(zip(i._fields, i)) for i in tuple_list]
 
 
-def _path(path, splunk_home=''):
+def _path(path):
     """
     Get the path in splunk dir.
 
@@ -707,8 +715,7 @@ def _path(path, splunk_home=''):
     :return: path in splunk dir.
     :rtype: str
     """
-    splunk_home = splunk_home or home()
-    return os.path.join(splunk_home, *path.split(':'))
+    return os.path.join(home(), *path.split(':'))
 
 
 cli = cmd

@@ -60,6 +60,7 @@ are executed remotely.
         echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.get_splunkd_port\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "\ntimeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
         echo """-----BEGIN RSA PRIVATE KEY-----
         MIIEogIBAAKCAQEAqhjhYPZcF4WwWyPLTFssLnovuF84B0qfNONrXCOnTnS0YOO7
         NYPAcwYsnqfW849Hq28tkslbEELltWv3f1INkwyo0ZwE6WhNwfgcyNy49y5Cu6P6
