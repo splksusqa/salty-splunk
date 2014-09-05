@@ -53,7 +53,7 @@ are executed remotely.
             sudo yum -y install samba-client
             sudo yum -y install python-libcloud
             sudo yum -y install salt-cloud
-            curl -O curl -O http://ftp5.gwdg.de/pub/opensuse/repositories/home:/uibmz:/opsi:/opsi40-testing/CentOS_CentOS-6/x86_64/winexe-1.00.1-10.2.x86_64.rpm
+            curl -O http://ftp5.gwdg.de/pub/opensuse/repositories/home:/uibmz:/opsi:/opsi40-testing/CentOS_CentOS-6/x86_64/winexe-1.00.1-10.2.x86_64.rpm
             sudo rpm -Uvh winexe-1.00.1-10.2.x86_64.rpm 
             sudo chkconfig salt-master on
         fi
@@ -91,11 +91,11 @@ are executed remotely.
         echo -e "Host bitbucket.org\n\tHostName bitbucket.org\n\tUser git\n\tIdentityFile ~/.ssh/id_rsa_bitbucket\n\tStrictHostKeyChecking no\n" | sudo tee -a /root/.ssh/config > /dev/null
         sudo chmod 400 /root/.ssh/id_rsa_bitbucket
         sudo git clone git@bitbucket.org:splunksusqa/salt.git /srv/salt
-        sudo sed -i "s/salt-master.qa/`hostname -I`/" /srv/salt/cloud/cloud.profiles 
+        sudo sed -i "s/salt-master/`hostname -I`/" /srv/salt/cloud/cloud.profiles 
         sudo sed -i "/^  id/ s/:.*/: $ACCESS_KEY_ID/" /srv/salt/cloud/cloud.providers
         sudo sed -i "/^  key:/ s/:.*/: $SECRET_ACCESS_KEY/" /srv/salt/cloud/cloud.providers 
-        sudo sed -i "/^  keyname:/ s/:.*/: KEYNAME/" /srv/salt/cloud/cloud.providers 
-        sudo sed -i "/^  private_key:/ s/:.*/: PRIVATE_KEY/" /srv/salt/cloud/cloud.providers 
+        sudo sed -i "/^  keyname:/ s/:.*/: $KEYNAME/" /srv/salt/cloud/cloud.providers 
+        sudo sed -i "/^  private_key:/ s/:.*/: $PRIVATE_KEY/" /srv/salt/cloud/cloud.providers 
         sudo cp /srv/salt/cloud/* /etc/salt/
         sudo service salt-master restart
 

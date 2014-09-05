@@ -105,3 +105,12 @@ def public_ip():
     :return:
     """
     return instance_data(data='public-ipv4')
+
+
+def private_ip():
+    """
+
+    :return:
+    """
+    return instance_data(data='local-ipv4')
+

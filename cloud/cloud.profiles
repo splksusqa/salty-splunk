@@ -3,18 +3,18 @@
 #### ubuntu ####
 ubuntu:
   provider: aws_ec2
-  size: t2.small
+  size: m3.medium
   minion:
-    master: salt-master.qa
+    master: salt-master
   image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) - Amazon official AMI
   script: Ubuntu
 
 #### redhat ####
 redhat:
   provider: aws_ec2
-  size: t2.small
+  size: m3.medium
   minion:
-    master: salt-master.qa
+    master: salt-master
   image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) - Amazon official AMI
   script: RHEL6
 
@@ -22,10 +22,10 @@ redhat:
 win2012:
   image: ami-e4a9618c # win2012_ami_20140724
   provider: aws_ec2
-  size: t2.small
+  size: m3.medium
   minion:
-    master: salt-master.qa
-  win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
+    master: salt-master
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.10-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
 
@@ -33,10 +33,10 @@ win2012:
 win2008:
   image: ami-eca86084 # win2008_ami_20140724
   provider: aws_ec2
-  size: t2.small
+  size: m3.medium
   minion:
-    master: salt-master.qa
-  win_installer: /srv/salt/data/Salt-Minion-2014.1.7-AMD64-Setup.exe
+    master: salt-master
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.10-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
 

@@ -41,3 +41,30 @@ enable_remote_access:
         allowRemoteLogin: always
     - require:
       - splunk: install-splunk
+
+
+listen_splunktcp:
+  splunk:
+    - configured
+    - interface: rest
+    - uri: servicesNS/nobody/search/data/inputs/tcp/cooked
+    - body:
+        name: 9996
+
+
+listen_tcp:
+  splunk:
+    - configured
+    - interface: rest
+    - uri: servicesNS/nobody/search/data/inputs/tcp/raw
+    - body:
+        name: 9997
+
+
+listen_udp:
+  splunk:
+    - configured
+    - interface: rest
+    - uri: servicesNS/nobody/search/data/inputs/udp
+    - body:
+        name: 9998

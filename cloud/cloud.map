@@ -16,3 +16,20 @@ ubuntu-splunk-cluster-slave:
   - cchung-splunk-cluster-slave-03:
       requires:
         - cchung-splunk-cluster-master
+#
+#win2012-splunk-cluster-master:
+#  - cchung-splunk-cluster-master
+#
+#win2012-splunk-cluster-searchhead:
+#  - cchung-splunk-cluster-searchhead
+#
+#win2012-splunk-cluster-slave:
+#  - cchung-splunk-cluster-slave-01:
+#      requires:
+#        - cchung-splunk-cluster-master
+#  - cchung-splunk-cluster-slave-02:
+#      requires:
+#        - cchung-splunk-cluster-master
+#  - cchung-splunk-cluster-slave-03:
+#      requires:
+#        - cchung-splunk-cluster-master

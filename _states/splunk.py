@@ -366,9 +366,10 @@ def _install_rpm(pkg, splunk_home, flags, user):
 
 def _install_msi(pkg, splunk_home, flags, user):
     if not flags: flags = {}
-    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
-             c=pkg, h=splunk_home, q='/quiet',
-             f=' '.join('%s="%r"' %t for t in flags.iteritems()))
+    cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" {f} {q}'.format(
+              c=pkg, h=splunk_home, q='/quiet',
+              f=' '.join("{0}={1}".format(
+                  t[0], str(t[1]).strip("'" '"')) for t in flags.iteritems()))
     return _run_install_cmd(cmd, user)
 
 

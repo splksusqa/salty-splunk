@@ -12,6 +12,8 @@ import ConfigParser
 import json
 import logging
 import inspect
+import signal
+import shutil
 import errno
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
@@ -90,13 +92,15 @@ def restart():
     return cmd('restart')
 
 
-def stop():
+def stop(force=False):
     """
     Stop splunk, wrapped to cmd.
 
     :return: results of calling cmd
     """
-    return cmd('stop')
+    cmd_ = 'stop'
+    if force: cmd_ += ' -f'
+    return cmd(cmd_)
 
 
 def status():
@@ -278,7 +282,7 @@ def multi_instances(func):
 
 
 # @multi_instances
-def cmd(command, auth='', user='', timeout=60, params=None):
+def cmd(command, auth='', user='', timeout=60, params=None, **kwargs):
     """
     Splunk cli command.
 
@@ -335,7 +339,7 @@ def cmd(command, auth='', user='', timeout=60, params=None):
 # @multi_instances
 def rest_call(uri, method='get', body=None, params=None, auth=None,
               headers=None, base_uri='https://localhost', port=None,
-              timeout=60, show_content=False, output_mode='json'):
+              timeout=60, show_content=False, output_mode='json', **kwargs):
     """
     Make a HTTP request to an endpoint
 
@@ -394,7 +398,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
 
 
 def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
-                action='edit'):
+                action='edit', **kwargs):
     """
     Edit (add) or remove (delete) a key=value or whole stanza in a conf.
     If the stanza or key doenst exist, it will add one.
@@ -436,15 +440,15 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
         if action.strip() in ['edit', 'add']:
             if not stanza in cp.sections():
                 cp.add_section(stanza)
-                ret['changes'] = "Added section '{s}' in CP.\n".format(s=stanza)
+                ret['changes'] = "\nAdded section '{s}'.".format(s=stanza)
         else:
             if stanza in cp.sections():
                 cp.remove_section(stanza)
-                ret['changes'] = "Removed section '{s}' in CP.\n".format(
+                ret['changes'] = "\nRemoved section '{s}'.".format(
                                  s=stanza)
             else:
-                ret['comment'] += ("Section to remove '{s}' not exists, "
-                                   "skipping\n".format(s=stanza))
+                ret['comment'] += ("\nSection to remove '{s}' not exists, "
+                                   "skipping".format(s=stanza))
 
     # edit the key value if stanza is dict.
     elif isinstance(stanza, dict):
@@ -453,27 +457,27 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
             if action.strip() in ['edit', 'add']:
                 if not s in cp.sections():
                     cp.add_section(s)
-                    ret['changes'] += "Added section '{s}'\n".format(s=s)
+                    ret['changes'] += "\nAdded section '{s}'.".format(s=s)
             else:
                 if not s in cp.sections():
-                    ret['comment'] += ("Section '{s}' not exists for removing "
-                                       "kv '{k}', skipping\n".format(s=s, k=kv))
+                    ret['comment'] += ("\nSection '{s}' not exists for removing"
+                                       " kv '{k}', skipping".format(s=s, k=kv))
 
             # edit/add key=value in the stanza
             if isinstance(kv, dict) and action.strip() in ['edit', 'add']:
                 for k, v in kv.iteritems():
                     cp.set(s, k, v)
-                    ret['changes'] += ("Edited kv '{k}={v}' of section '{s}' "
-                                       "in CP.\n".format(k=k, v=v, s=s))
+                    ret['changes'] += ("\nEdited kv '{k}={v}' of section '{s}'"
+                                       ".".format(k=k, v=v, s=s))
             # remove key from the stanza
             elif isinstance(kv, str) and action.strip() in ['remove', 'delete']:
                 cp.remove_option(s, kv)
-                ret['changes'] += ("Removed key '{k}' from section '{s}' "
-                                   "in CP.\n".format(k=kv,s=s))
+                ret['changes'] += ("\nRemoved key '{k}' from section '{s}'"
+                                   ".".format(k=kv,s=s))
             else:
-                msg = ("To add/edit, kv should be dict, and to remove/delete, "
-                       "kv should be str, but you kv={t} for action={a}, in"
-                       "stanza={s}.\n".format(t=type(kv), a=action, s=s))
+                msg = ("\nTo add/edit, kv should be dict, and to remove/delete,"
+                       " kv should be str, but you kv={t} for action={a}, in"
+                       "stanza={s}.".format(t=type(kv), a=action, s=s))
                 ret['comment'] += msg
                 return ret
     else:
@@ -605,23 +609,22 @@ def get_pids(output='list'):
     :return: pid list or dict ({file: [pid list]})
     :rtype: list/dict
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
-
     if output == 'list':
         pids = []
     else:
         pids = {}
     pid_dir = _path('var:run:splunk')
-    for f in os.listdir(pid_dir):
-        if f.endswith(".pid"):
-            f_path = os.path.join(pid_dir, f)
-            with open(f_path, 'r') as fd:
-                pid_list = [l.strip() for l in fd.readlines()]
-                if output == 'list':
-                    pids += pid_list
-                else:
-                    pids.update({f: pid_list})
+
+    if os.path.exists(pid_dir):
+        for f in os.listdir(pid_dir):
+            if f.endswith(".pid"):
+                f_path = os.path.join(pid_dir, f)
+                with open(f_path, 'r') as fd:
+                    pid_list = [l.strip() for l in fd.readlines()]
+                    if output == 'list':
+                        pids += pid_list
+                    else:
+                        pids.update({f: pid_list})
     return pids
 
 
@@ -641,67 +644,77 @@ def perf(verbose=False):
 
     perf_metrics = []
     for pid in get_pids():
-        p = psutil.Process(pid=int(pid))
-        p.get_cpu_percent()  # drop the first time ot cpu_percent
+        try:
+            metrics = _get_perf_metrics(pid, verbose)
+            perf_metrics += [metrics]
+        except psutil.NoSuchProcess:
+            pass
 
-        if not salt.utils.is_windows():
-            metrics_map = {
-                'num_handles':      'get_num_fds',
-                #'children':         'get_children',
-                'connections':      'get_connections',
-                'cpu_affinity':     'get_cpu_affinity',
-                'cpu_percent':      'get_cpu_percent',
-                'cpu_times':        'get_cpu_times',
-                'memory_info_ex':   'get_ext_memory_info',
-                'io_counters':      'get_io_counters',
-                'memory_info':      'get_memory_info',
-                'memory_maps':      'get_memory_maps',
-                #'memory_percent':   'get_memory_percent',
-                'num_ctx_switches': 'get_num_ctx_switches',
-                'num_threads':      'get_num_threads',
-                'open_files':       'get_open_files',
-                #'rlimit':           'get_rlimit',
-                'threads':          'get_threads',
-                #'cwd':              'getcwd',
-            }
-            for m in metrics_map:  # set attr for compatibility.
-                setattr(p, m, getattr(p, metrics_map[m]))
-        else:  # set func as attr on windows
-            p.name = p.name()
-            p.username = p.username()
-            p.cmdline = p.cmdline()
-
-        # gather the metrics
-        perf_metrics += [{
-            'pid': p.pid,
-            'name': p.name,
-            'user': p.username,
-            'cmd': " ".join(p.cmdline),
-            'io_read_bytes': p.io_counters()[2],
-            'io_write_bytes': p.io_counters()[3],
-            'fds': p.num_handles(),
-            'threads': p.num_threads(),
-            'cpu_times_user': p.cpu_times()[0],
-            'cpu_times_system': p.cpu_times()[1],
-            'cpu_percent': p.cpu_percent(),
-            'memory_rss': p.memory_info()[0],
-            'memory_vms': p.memory_info()[1],
-        }]
-        if verbose:  # the followings are the metrics we can get without issues.
-            perf_metrics += [{
-                'ctx_switches_voluntary':   p.num_ctx_switches()[0],
-                'ctx_switches_involuntary': p.num_ctx_switches()[1],
-                'memory_shared': p.memory_info_ex()[2],
-                'memory_text':   p.memory_info_ex()[3],
-                'memory_lib':    p.memory_info_ex()[4],
-                'memory_data':   p.memory_info_ex()[5],
-                'memory_dirty':  p.memory_info_ex()[6],
-                'memory_maps': _named_tuple_list_to_dict_list(p.memory_maps()),
-                'thread_info': _named_tuple_list_to_dict_list(p.get_threads()),
-                'open_files':  _named_tuple_list_to_dict_list(p.open_files()),
-                'connections': _named_tuple_list_to_dict_list(p.connections())
-            }]
     return perf_metrics
+
+
+def _get_perf_metrics(pid, verbose):
+    p = psutil.Process(pid=int(pid))
+    p.get_cpu_percent()  # drop the first time ot cpu_percent
+
+    if not salt.utils.is_windows():
+        metrics_map = {
+            'num_handles':      'get_num_fds',
+            #'children':         'get_children',
+            'connections':      'get_connections',
+            'cpu_affinity':     'get_cpu_affinity',
+            'cpu_percent':      'get_cpu_percent',
+            'cpu_times':        'get_cpu_times',
+            'memory_info_ex':   'get_ext_memory_info',
+            'io_counters':      'get_io_counters',
+            'memory_info':      'get_memory_info',
+            'memory_maps':      'get_memory_maps',
+            #'memory_percent':   'get_memory_percent',
+            'num_ctx_switches': 'get_num_ctx_switches',
+            'num_threads':      'get_num_threads',
+            'open_files':       'get_open_files',
+            #'rlimit':           'get_rlimit',
+            'threads':          'get_threads',
+            #'cwd':              'getcwd',
+        }
+        for m in metrics_map:  # set attr for compatibility.
+            setattr(p, m, getattr(p, metrics_map[m]))
+    else:  # set func as attr on windows
+        p.name = p.name()
+        p.username = p.username()
+        p.cmdline = p.cmdline()
+
+    # gather the metrics
+    metrics = {
+        'pid': p.pid,
+        'name': p.name,
+        'user': p.username,
+        'cmd': " ".join(p.cmdline),
+        'io_read_bytes': p.io_counters()[2],
+        'io_write_bytes': p.io_counters()[3],
+        'fds': p.num_handles(),
+        'threads': p.num_threads(),
+        'cpu_times_user': p.cpu_times()[0],
+        'cpu_times_system': p.cpu_times()[1],
+        'cpu_percent': p.cpu_percent(),
+        'memory_rss': p.memory_info()[0],
+        'memory_vms': p.memory_info()[1],
+    }
+    if verbose:  # the followings are the metrics we can get without issues.
+        metrics.update({
+            'ctx_switches_voluntary':   p.num_ctx_switches()[0],
+            'ctx_switches_involuntary': p.num_ctx_switches()[1],
+            'memory_shared': p.memory_info_ex()[2],
+            'memory_text':   p.memory_info_ex()[3],
+            'memory_lib':    p.memory_info_ex()[4],
+            'memory_data':   p.memory_info_ex()[5],
+            'memory_dirty':  p.memory_info_ex()[6],
+            'memory_maps': _named_tuple_list_to_dict_list(p.memory_maps()),
+            'thread_info': _named_tuple_list_to_dict_list(p.get_threads()),
+            'open_files':  _named_tuple_list_to_dict_list(p.open_files()),
+            'connections': _named_tuple_list_to_dict_list(p.connections())
+        })
+    return metrics
 
 
 def _named_tuple_list_to_dict_list(tuple_list):
@@ -719,6 +732,42 @@ def _path(path):
     return os.path.join(home(), *path.split(':'))
 
 
+def uninstall():
+    """
+    Uninstall splunk, this
+    :return:
+    """
+
+    ret = {'comment': '', 'retcode': 127}
+    for pid in get_pids():
+        try:
+            os.kill(int(pid), 9)
+        except OSError:
+            pass
+    if salt.utils.is_windows():
+        sc_cmd = " & ".join(["sc {0} {1}".format(action, proc)
+                              for action in ['stop', 'delete', 'stop']
+                              for proc in ['splunkd', 'splunkweb']])
+        ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](sc_cmd))
+
+        proc_to_kill = ['msiexec.exe', 'notdpad.exe', 'cmd.exe',
+                        'iexplorer.exe', 'powershell.exe']
+        taskkill_cmd = " & ".join(["taskkill /im {0} /F".format(proc)
+                                    for proc in proc_to_kill])
+        ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](taskkill_cmd))
+
+        uninstall_cmd = ('wmic product where name="splunk" call uninstall '
+                         '/nointeractive')
+        ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](uninstall_cmd))
+    else:
+        shutil.rmtree(home())
+
+    # TODO: reload modules to make splunk module unavailable after purge.
+    return ret
+
+
 cli = cmd
 get_web_port = get_splunkweb_port
 set_web_port = set_splunkweb_port
+
+
