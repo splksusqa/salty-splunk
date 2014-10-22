@@ -47,7 +47,7 @@ def cache_file(source, dest='', user=''):
             # not check hash from s3, so download it anyway.
             s3_bucket = source.split('/', 3)[2]
             s3_path = source.split('/', 3)[3]
-            logger.info("Getting file from s3 to '{dest}'".format(**locals()))
+            logger.info("File is stored at s3, usning s3.get module")
             ret = __salt__['s3.get'](s3_bucket, s3_path, local_file=local_path)
             success_string = 'Saved to local file:'
             if ret and ret.startswith(success_string):
@@ -58,17 +58,18 @@ def cache_file(source, dest='', user=''):
         elif os.path.exists(local_path) and (
                  __salt__['cp.hash_file'](source) ==
                  __salt__['cp.hash_file'](local_path)):
-            logger.info("Local file {local_path} has same hash, "
+            logger.info("Local file {local_path} has same hash with {source}, "
                         "not fetching again.".format(**locals()))
             cached = local_path
         else:
-            logger.info("Fetching file from url".format(locals()))
+            logger.info("Fetching file using cp.get_url module")
             cached = __salt__['cp.get_url'](source, local_path)
     elif os.path.exists(source):  # locally path?
+        logger.info("File is locally stored.")
         cached = source
     else:
         msg = ("file is unavailable, please check the scheme or local path of "
-               "your source '{s}' is correct".format(s=source))
+               "your source '{source}' is correct".format(**locals()))
         raise salt.exceptions.CommandExecutionError(msg)
     __salt__['file.chown'](cached, user, user)
     return cached

@@ -40,7 +40,6 @@ splunk:
   # and INSTALLDIR is defined as pillar['splunk']['home']
     {% if grains['os'] == 'Windows' %}
     LAUNCHSPLUNK: 0
-    AGREETOLICENSE: 'Yes'
     {% endif %}
 
 monitoring:

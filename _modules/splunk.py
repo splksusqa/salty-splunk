@@ -238,7 +238,7 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
     ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
     params = params or {}
     source = __salt__['utils.cache_file'](source=source, dest=dest)
-    if index: # Update params even if index=main, in case someone wants it.
+    if index:
         params.update({'index': index})
 
     ret.update(cmd("add monitor {s}".format(s=source), params=params))
@@ -745,13 +745,13 @@ def uninstall():
         except OSError:
             pass
     if salt.utils.is_windows():
-        sc_cmd = " & ".join(["sc {0} {1}".format(action, proc)
+        sc_cmd = " & ".join(["sc {0} {1}".format(action, service)
                               for action in ['stop', 'delete', 'stop']
-                              for proc in ['splunkd', 'splunkweb']])
+                              for service in ['splunkd', 'splunkweb']])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](sc_cmd))
 
-        proc_to_kill = ['msiexec.exe', 'notdpad.exe', 'cmd.exe',
-                        'iexplorer.exe', 'powershell.exe']
+        proc_to_kill = ['msiexec.exe', 'notdpad.exe', 'cmd.exe', 'firefox.exe',
+                        'iexplorer.exe', 'chrome.exe', 'powershell.exe']
         taskkill_cmd = " & ".join(["taskkill /im {0} /F".format(proc)
                                     for proc in proc_to_kill])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](taskkill_cmd))

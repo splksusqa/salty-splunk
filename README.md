@@ -40,11 +40,12 @@ are executed remotely.
         if [ "$is_ubuntu" ]; then
             sudo add-apt-repository ppa:saltstack/salt -y
             sudo apt-get update -y 
+            sudo apt-get install git -y
             sudo apt-get install salt-master -y
             sudo apt-get install python-libcloud -y 
             sudo apt-get install salt-cloud -y
             sudo apt-get install smbclient -y
-            wget http://download.opensuse.org/repositories/home:/uibmz:/opsi:/opsi40-testing/xUbuntu_12.04/amd64/winexe_1.00.1-1_amd64.deb
+            wget -nc -q http://download.opensuse.org/repositories/home:/uibmz:/opsi:/opsi40-testing/xUbuntu_12.04/amd64/winexe_1.00.1-1_amd64.deb
             sudo dpkg -i winexe_1.00.1-1_amd64.deb
         elif [ "$is_redhat" ]; then
             # The steps are for redhat 6
