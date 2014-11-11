@@ -8,13 +8,13 @@ __author__ = 'cchung'
 
 import sys
 import os
+import re
 import ConfigParser
 import json
 import logging
 import inspect
-import signal
 import shutil
-import errno
+import socket
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
@@ -53,7 +53,7 @@ def home():
     :return: splunk_home (pillar['splunk']['home'])
     :rtype: str
     """
-    splunk_home = __salt__['pillar.get']('splunk:home')
+    splunk_home = __pillar__['splunk']['home']
     logger.info("Getting splunk_home '{h}' from pillar".format(h=splunk_home))
     return splunk_home
 
@@ -109,7 +109,7 @@ def status():
 
     :return: results of calling cmd
     """
-    return cmd('status')
+    return cmd('status')['stdout']
 
 
 def version():
@@ -139,7 +139,7 @@ def set_splunkd_port(port=''):
     :param int port:
     :return: results of calling cmd
     """
-    stanza = {'settings': {'mgmtHostPort': "127.0.0.1:{p}".format(p=port)}}
+    stanza = {'settings': {'mgmtHostPort': "127.0.0.1:{p}".format(p=str(port))}}
     return edit_stanza(conf='web.conf', stanza=stanza)
 
 
@@ -161,6 +161,15 @@ def get_splunkweb_port():
     :rtype: str
     """
     return cmd('show web-port')['stdout'].split(':')[1].strip()
+
+
+def get_mgmt_uri():
+    """
+    Get splunk mgmt uri
+    :return: splunk mgmt uri
+    :rtype: str
+    """
+    return 'https://' + socket.gethostname().strip() + ':' + get_splunkd_port()
 
 
 def listen_port(port, type='splunktcp', params=None):
@@ -274,7 +283,7 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
 
 def multi_instances(func):
     def multi(**kwargs):
-        instances = __salt__['pillar.get']('splunk:instances')
+        instances = __pillar__['splunk']['instances']
         for i in instances:
             kwargs.update()
             func(**kwargs)
@@ -297,14 +306,15 @@ def cmd(command, auth='', user='', timeout=60, params=None, **kwargs):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
-    ret = {'retcode': 127, 'comment': '', 'changes': '', 'cmd': '', 'cwd': '',
+    ret = {'retcode': 127, 'cmd': '', 'cwd': '',
            'stdout': '', 'stderr': '', 'pid': ''}
     if not is_splunk_installed():
         ret['comment'] = 'Splunk is not installed'
         return ret
     params = params or {}
-    auth = auth or __salt__['pillar.get']('splunk:auth')
-    no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help']
+    auth = auth or __pillar__['splunk']['auth']
+    no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help',
+                    'btool']
     for k,v in params.iteritems():
         command += " -{k} {v}".format(k=k,v=v)
     if os.path.exists(_path('ftr')) or os.path.exists(_path('.ftr')):
@@ -317,7 +327,7 @@ def cmd(command, auth='', user='', timeout=60, params=None, **kwargs):
         cwd = _path('bin')
         cmd_ = "splunk " + command
     else:
-        user = user or __salt__['pillar.get']('system:user')
+        user = user or __pillar__['system']['user']
         cwd = ''
         cmd_ = _path('bin:splunk') +" "+ command
     resp = __salt__['cmd.run_all'](cmd_, cwd=cwd, runas=user, timeout=timeout)
@@ -364,7 +374,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
         ret['comment'] = 'Splunk is not installed'
         return ret
     body = body or {}
-    auth = auth or __salt__['pillar.get']('splunk:auth')
+    auth = auth or __pillar__['splunk']['auth']
     port = port or get_splunkd_port()
     params = params or {}
     headers = headers or {}
@@ -387,7 +397,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     ret['url'] = resp.url
     logger.info("Rest call to {url}, got status_code={status_code}".format(
                 **ret))
-    if resp.status_code == requests.codes.ok:
+    if resp.status_code in [200, 201, 202, 203, 204]:
         ret['retcode'] = 0
     if show_content:
         if output_mode == 'json':
@@ -530,6 +540,12 @@ def _read_config(conf_file):
     """
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
+    # handle unicode endings, SQA-420
+    content = open(conf_file).read()
+    for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
+        content = re.sub(e, '', content)
+    open(conf_file, 'w').write(content)
+    # read as ConfigParser (cp)
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
     cp.readfp(_FakeSecHead(open(conf_file, 'a+'), default_stanza))
@@ -599,6 +615,27 @@ def push_file(source):
 
 def check_crash():
     raise NotImplementedError
+
+
+def check_errors(allowed=5):
+    raise NotImplementedError
+
+
+def event_count(host=None, source=None, sourcetype=None):
+    raise NotImplementedError
+
+
+def total_event_count(index='main', method='rest'):
+    if method == 'rest':
+        uri = "services/data/indexes/{idx}".format(idx=index)
+        count = rest_call(uri, show_content=True
+                    )['content']['entry'][0]['content']['totalEventCount']
+    elif method == 'file':
+        raise NotImplementedError
+    else:
+        raise NotImplementedError
+
+    return count
 
 
 def get_pids(output='list'):
@@ -770,4 +807,6 @@ cli = cmd
 get_web_port = get_splunkweb_port
 set_web_port = set_splunkweb_port
 
-
+rest_endpoints = {
+    'indexes': 'servicesNS/nobody/_cluster/data/indexes/'
+}

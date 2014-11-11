@@ -58,3 +58,11 @@ base:
   'role:splunk-light-forwarder':
     - match: grain
     - splunk.light-forwarder
+
+  'role:splunk-shc-captain':
+    - match: grain
+    - splunk.shc-captain
+
+  'role:splunk-shc-member':
+    - match: grain
+    - splunk.shc-member

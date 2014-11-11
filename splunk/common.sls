@@ -24,12 +24,14 @@ set-splunkd-port:
       - splunk: install-splunk
 
 
+{% if not (grains['role'] == 'heavy-forwarder' or grains['role'] == 'light-forwarder') %}
 set-splunkweb-port:
   splunk:
     - splunkweb_port
     - port: {{ pillar['splunk']['splunkweb_port'] }}
     - require:
       - splunk: install-splunk
+{% endif %}
 
 
 enable_remote_access:
@@ -47,24 +49,37 @@ listen_splunktcp:
   splunk:
     - configured
     - interface: rest
+    - method: post
     - uri: servicesNS/nobody/search/data/inputs/tcp/cooked
     - body:
         name: 9996
+    - require:
+      - splunk: install-splunk
 
 
 listen_tcp:
   splunk:
     - configured
     - interface: rest
+    - method: post
     - uri: servicesNS/nobody/search/data/inputs/tcp/raw
     - body:
         name: 9997
+    - require:
+      - splunk: install-splunk
 
 
 listen_udp:
   splunk:
     - configured
     - interface: rest
+    - method: post
     - uri: servicesNS/nobody/search/data/inputs/udp
     - body:
         name: 9998
+    - require:
+      - splunk: install-splunk
+
+
+
+

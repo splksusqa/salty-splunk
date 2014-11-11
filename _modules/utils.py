@@ -1,5 +1,8 @@
-__author__ = 'cchung'
-
+# -*- coding: utf-8 -*-
+"""
+Module for various utils
+==========================
+"""
 import os
 import errno
 import requests
@@ -115,3 +118,10 @@ def private_ip():
     """
     return instance_data(data='local-ipv4')
 
+def ips():
+    """
+
+    :return:
+    """
+    return {'public_ip': instance_data(data='public-ipv4'),
+            'private_ip':instance_data(data='local-ipv4')}

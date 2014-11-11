@@ -25,7 +25,7 @@ win2012:
   size: m3.medium
   minion:
     master: salt-master
-  win_installer: /srv/salt/data/Salt-Minion-2014.1.10-AMD64-Setup.exe
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.11-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
 
@@ -36,7 +36,7 @@ win2008:
   size: m3.medium
   minion:
     master: salt-master
-  win_installer: /srv/salt/data/Salt-Minion-2014.1.10-AMD64-Setup.exe
+  win_installer: /srv/salt/data/Salt-Minion-2014.1.11-AMD64-Setup.exe
   win_username: Administrator
   win_password: sk8free
 
@@ -83,6 +83,16 @@ ubuntu-splunk-light-forwarder:
     role: splunk-light-forwarder
   extends: ubuntu
 
+ubuntu-splunk-shc-captain:
+  grains:
+    role: splunk-shc-captain
+  extends: ubuntu
+
+ubuntu-splunk-shc-member:
+  grains:
+    role: splunk-shc-member
+  extends: ubuntu
+
 ## redhat ##
 redhat-splunk-cluster-master:
   grains:
@@ -122,6 +132,16 @@ redhat-splunk-heavy-forwarder:
 redhat-splunk-light-forwarder:
   grains:
     role: splunk-light-forwarder
+  extends: redhat
+
+redhat-splunk-shc-captain:
+  grains:
+    role: splunk-shc-captain
+  extends: redhat
+
+redhat-splunk-shc-member:
+  grains:
+    role: splunk-shc-member
   extends: redhat
 
 

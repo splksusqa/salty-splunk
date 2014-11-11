@@ -49,7 +49,8 @@ def installed(name,
         cached_pkg = __salt__['utils.cache_file'](source=source, dest=dest)
         logger.info("Installing pkg from '{s}', stored at '{c}'".format(
                     s=source, c=cached_pkg))
-        __salt__['splunk.stop']()
+        if 'splunk.stop' in __salt__:
+            __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__],
                               "_install_{t}".format(t=pkg_type))(
                           pkg=cached_pkg, splunk_home=splunk_home,
@@ -59,6 +60,7 @@ def installed(name,
                     r=install_ret['retcode'], c=install_ret['comment']))
         if install_ret['retcode'] == 0:
             if start_after_install:
+                __salt__['saltutil.refresh_modules']()
                 __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],

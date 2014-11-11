@@ -18,6 +18,14 @@ base:
     - match: grain
     - splunk.cluster-slave
 
+  'role:splunk-shc-captain':
+    - match: grain
+    - splunk.shc-captain
+
+  'role:splunk-shc-member':
+    - match: grain
+    - splunk.shc-member
+
   'role:splunk-indexer':
     - match: grain
     - splunk.indexer
