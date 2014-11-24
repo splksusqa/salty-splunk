@@ -613,11 +613,14 @@ def push_file(source):
     return __salt__['cp.push'](_path(source))
 
 
+def check_log(type='crash'):
+    raise NotImplementedError
+
 def check_crash():
     raise NotImplementedError
 
 
-def check_errors(allowed=5):
+def check_errors(logfile='', allowed=5):
     raise NotImplementedError
 
 

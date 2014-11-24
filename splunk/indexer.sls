@@ -12,4 +12,3 @@ set_retention:
         maxWarmDBCount: 15
         maxDataSize: 500
 
-

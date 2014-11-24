@@ -1,13 +1,10 @@
 # common settings
 # issue about merging pillars: https://github.com/saltstack/salt/issues/3991
 system:
-  {% if grains['os'] == 'Ubuntu'%}
+  {% if grains['kernel'] == 'Linux'%}
   user: root
   files_dir: /tmp/salt_files/
-  {% elif grains['os'] == 'RedHat'%}
-  user: root
-  files_dir: /tmp/salt_files/
-  {% elif grains['os'] == 'Windows'%}
+  {% elif grains['kernel'] == 'Windows'%}
   # Windows does not support runas functionality in cmd.run,
   # so we cant run splunk commands as another user.
   user: Aministrator
@@ -20,17 +17,20 @@ splunk:
   splunkweb_port: 8000
   auth: 'admin:changeme'
   start_after_install: True # It's calling splunk.start, not using LAUNCHSPLUNK
+  version: 6.1.3
+  build: 220630
+  fetcher_url: http://r.susqa.com/cgi-bin/splunk_build_fetcher.py
+  pkg_released: False
   dataset: 's3://qasus_data/new_test_data/FoursquareData.txt'
   app: 's3://qasus_data/apps/sideview-utils-lgpl_135.tgz'
-  #
 
   {% if grains['kernel'] == 'Linux'%}
   home: /opt/splunk
-  pkg: http://r.susqa.com/6.1.3/linux/splunk-6.1.3-220630-Linux-x86_64.tgz
+  pkg: Linux-x86_64.tgz
 
   {% elif grains['kernel'] == 'Windows' %}
   home: C:\Program Files\Splunk
-  pkg: http://r.susqa.com/6.1.3/windows/splunk-6.1.3-220630-x64-release.msi
+  pkg: x64-release.msi
   {% endif %}
 
 

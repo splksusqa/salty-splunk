@@ -58,10 +58,11 @@ are executed remotely.
             sudo rpm -Uvh winexe-1.00.1-10.2.x86_64.rpm 
             sudo chkconfig salt-master on
         fi
-        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.get_splunkd_port\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.*\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\ntimeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
+        mkdir ~/.ssh/
         echo """-----BEGIN RSA PRIVATE KEY-----
         MIIEogIBAAKCAQEAqhjhYPZcF4WwWyPLTFssLnovuF84B0qfNONrXCOnTnS0YOO7
         NYPAcwYsnqfW849Hq28tkslbEELltWv3f1INkwyo0ZwE6WhNwfgcyNy49y5Cu6P6
@@ -113,7 +114,7 @@ are executed remotely.
         peer:
           .*:
             - network.ip_addrs
-            - splunk.get_splunkd_port
+            - splunk.*
 
 1. Copy pillar/* to your pillar_roots (default is */srv/pillar*) or set salt 
    pillar_roots to */srv/salt/pillar* (edit **/etc/salt/master**), i.e.:
@@ -122,11 +123,11 @@ are executed remotely.
           base:
             - /srv/salt/pillar
 
-1. (Optional)You'll need to set `file_recv: True` (in **/etc/salt/master**)
+1. (Optional) You need to set `file_recv: True` (in **/etc/salt/master**)
    to enable retrieving files from minions, e.g.:
     - `salt '*' cp.push <file path in minion>`
 1. Check the IP of the salt-master, set it in *cloud/cloud.profiles* 
-   (replace **salt-master.qa** with the real IP)
+   (replace **salt-master.qa** with the real hostname or ip)
 1. Put the followings to *cloud/cloud.providers*
     - **id** (Access key ID)
     - **key** (Secret access key)
@@ -206,7 +207,7 @@ match minions (specified by **- match: grains**), so only the minions that have
 There are several ways of targeting minions: 
 (http://docs.saltstack.com/en/latest/topics/targeting/index.html#targeting)
 
-| Targets   | Usage in cli commands                                             | Used in sls files                                                 |
+| Targets   | Usage in cli commands                                             | Usage in sls files                                                 |
 |-----------|-------------------------------------------------------------------|-------------------------------------------------------------------|
 | ID        | `salt '*' test.ping`                                              | `'*'`                                                             |
 |           | `salt -E 'prod-.*' test.ping`                                     | `'prod-.*'` (match: pcre)                                         |
@@ -227,8 +228,8 @@ and **Execution modules**
 (http://docs.saltstack.com/en/latest/ref/modules/)
 
 ### State modules
-Salt state modules are the real actual enforcement and management of the states
-that defined in the **.sls** files. These modules are written in python, used to 
+Salt state modules are the actual enforcement and management of the states that
+defined in the **.sls** files. These modules are written in python, used to 
 realize the defined states (in .sls files) that we want. State modules should 
 check the current states within a node and make necessary changes if the state
 is not met the defined states. Take the apache example in *State* section, the
@@ -316,16 +317,16 @@ This readme file.
 1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
     - might be compatible with win2012R2 with winexe_1.00.1-1_amd64.deb, but not
       fully tested yet.
-1. if you manually deleted the nodes (instead of using `salt-cloud -d <node>`), 
+1. If you manually deleted the nodes (instead of using `salt-cloud -d <node>`), 
 you will need to delete the keys as well:
 `salt-key -d <node1> <node2> <node3> ...`
-1. if you keep getting `SaltCloudSystemExit: Failed to authenticate against 
-remote windows host`, 
-try to increase the check interval (time.sleep) in 
-*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py* line308.
+1. If you keep getting `SaltCloudSystemExit: Failed to authenticate against 
+remote windows host`, add a retry mechanism into *validate_windows_cred* of
+*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py*.
 Because windows might be up but not yet be ready to install winexesvc, so it'll 
-return an error, and salt-cloud would think there is an authentication error.
-1. if you manage to use `cloud.map` to provision minions, you will encounter an
+return an error, and salt-cloud would think that is an authentication error, see 
+https://github.com/saltstack/salt/issues/18308
+1. If you manage to use `cloud.map` to provision minions, you will encounter an
 error (see the issue [here](https://github.com/saltstack/salt/issues/14593))
 saying `The specified fingerprint in the master configuration file`. 
 You'll need to edit 

@@ -3,25 +3,25 @@
 #### ubuntu ####
 ubuntu:
   provider: aws_ec2
+  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) - Amazon official AMI
   size: m3.medium
   minion:
     master: salt-master
-  image: ami-864d84ee # Ubuntu Server 14.04 LTS (HVM) - Amazon official AMI
-  script: Ubuntu
+  script: bootstrap-salt # Ubuntu
 
 #### redhat ####
 redhat:
   provider: aws_ec2
+  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) - Amazon official AMI
   size: m3.medium
   minion:
     master: salt-master
-  image: ami-785bae10 # Red Hat Enterprise Linux 7.0 (HVM) - Amazon official AMI
   script: RHEL6
 
 #### win2012 ####
 win2012:
-  image: ami-e4a9618c # win2012_ami_20140724
   provider: aws_ec2
+  image: ami-2616834e # win2012_ami_20140724
   size: m3.medium
   minion:
     master: salt-master
@@ -31,8 +31,8 @@ win2012:
 
 #### win2008 ####
 win2008:
-  image: ami-eca86084 # win2008_ami_20140724
   provider: aws_ec2
+  image: ami-3e168356 # win2008_ami_20140724
   size: m3.medium
   minion:
     master: salt-master

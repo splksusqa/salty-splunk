@@ -10,9 +10,14 @@ install-psutil:
 install-splunk:
   splunk:
     - installed
-    - source:              {{ pillar['splunk']['pkg'] }}
-    - install_flags:       {{ pillar['splunk']['install_flags'] }}
     - splunk_home:         {{ pillar['splunk']['home'] }}
+    - pkg:                 {{ pillar['splunk']['pkg'] }}
+    - version:             {{ pillar['splunk']['version'] }}
+    - build:               {{ pillar['splunk']['build'] }}
+    - fetcher_url:         {{ pillar['splunk']['fetcher_url'] }}
+    - pkg_released:        {{ pillar['splunk']['pkg_released'] }}
+    - instances:           {{ pillar['splunk']['instances'] }}
+    - install_flags:       {{ pillar['splunk']['install_flags'] }}
     - start_after_install: {{ pillar['splunk']['start_after_install'] }}
 
 
@@ -24,7 +29,7 @@ set-splunkd-port:
       - splunk: install-splunk
 
 
-{% if not (grains['role'] == 'heavy-forwarder' or grains['role'] == 'light-forwarder') %}
+{% if not (grains['role'] == 'universal-forwarder' or grains['role'] == 'light-forwarder') %}
 set-splunkweb-port:
   splunk:
     - splunkweb_port
@@ -41,6 +46,17 @@ enable_remote_access:
     - uri: services/properties/server/general
     - body:
         allowRemoteLogin: always
+    - require:
+      - splunk: install-splunk
+
+
+set-min-disk:
+  splunk:
+    - rest_configured
+    - method: post
+    - uri: services/server/settings/settings
+    - body:
+        minFreeSpace: 1000
     - require:
       - splunk: install-splunk
 
