@@ -21,6 +21,7 @@ splunk:
   build: 220630
   fetcher_url: http://r.susqa.com/cgi-bin/splunk_build_fetcher.py
   pkg_released: False
+  instances: 1
   dataset: 's3://qasus_data/new_test_data/FoursquareData.txt'
   app: 's3://qasus_data/apps/sideview-utils-lgpl_135.tgz'
 
