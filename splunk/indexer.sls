@@ -11,4 +11,5 @@ set_retention:
         maxTotalDataSizeMB: 10000
         maxWarmDBCount: 15
         maxDataSize: 500
-
+    - require:
+      - splunk: install-splunk

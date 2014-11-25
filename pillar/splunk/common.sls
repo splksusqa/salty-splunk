@@ -28,18 +28,22 @@ splunk:
   {% if grains['kernel'] == 'Linux'%}
   home: /opt/splunk
   pkg: Linux-x86_64.tgz
-
   {% elif grains['kernel'] == 'Windows' %}
   home: C:\Program Files\Splunk
   pkg: x64-release.msi
   {% endif %}
 
+  {% if grains['role'] == 'universal-fwd' %}
+  type: splunkforwarder
+  {% else %}
+  type: splunk
+  {% endif %}
 
   install_flags:
   # http://docs.splunk.com/Documentation/Splunk/latest/Installation/InstallonWindowsviathecommandline#Supported_flags
   # Windows: quiet and AGREETOLICENSE are hard coded in install function
   # and INSTALLDIR is defined as pillar['splunk']['home']
-    {% if grains['os'] == 'Windows' %}
+    {% if grains['kernel'] == 'Windows' %}
     LAUNCHSPLUNK: 0
     {% endif %}
 

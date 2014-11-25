@@ -29,6 +29,7 @@ def installed(name,
               pkg,
               version,
               build='',
+              type='splunk',
               fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py',
               pkg_released=False,
               instances=1,
@@ -51,7 +52,7 @@ def installed(name,
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
     user = user or __salt__['pillar.get']('system:user')
     install_flags = install_flags or {}
-    pkg_src = _get_pkg_url(pkg=pkg, version=version, build=build,
+    pkg_src = _get_pkg_url(pkg=pkg, version=version, build=build, type=type,
                            pkg_released=pkg_released,fetcher_url=fetcher_url)
     pkg_name = os.path.basename(pkg_src)
     pkg_type = _validate_pkg_for_platform(pkg_name)
@@ -59,7 +60,7 @@ def installed(name,
     if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
         cached_pkg = __salt__['utils.cache_file'](source=pkg_src, dest=dest)
         logger.info("Installing pkg from '{s}', stored at '{c}'".format(
-                    s=source, c=cached_pkg))
+                    s=pkg_src, c=cached_pkg))
         if 'splunk.stop' in __salt__:
             __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__],
@@ -243,15 +244,17 @@ def configured(name,
 
 
 #### internal functions ####
-def _get_pkg_url(pkg, version, build='', pkg_released=False,
+def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
     params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
+    if type == 'splunkforwarder':
+        params.update({'UF': '1'})
     if pkg_released:
         params.update({'VERSION': version})
     else:
         params.update({'BRANCH': version})
         if build:
-            params.update({'BUILD': build})
+            params.update({'P4CHANGE': build})
     r = requests.get(fetcher_url, params=params)
     return r.text.strip()
 

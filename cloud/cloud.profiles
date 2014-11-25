@@ -68,19 +68,19 @@ ubuntu-splunk-searchhead:
     role: splunk-searchhead
   extends: ubuntu
 
-ubuntu-splunk-universal-forwarder:
+ubuntu-splunk-universal-fwd:
   grains:
-    role: splunk-universal-forwarder
+    role: splunk-universal-fwd
   extends: ubuntu
 
-ubuntu-splunk-heavy-forwarder:
+ubuntu-splunk-heavy-fwd:
   grains:
-    role: splunk-heavy-forwarder
+    role: splunk-heavy-fwd
   extends: ubuntu
 
-ubuntu-splunk-light-forwarder:
+ubuntu-splunk-light-fwd:
   grains:
-    role: splunk-light-forwarder
+    role: splunk-light-fwd
   extends: ubuntu
 
 ubuntu-splunk-shc-captain:
@@ -119,19 +119,19 @@ redhat-splunk-searchhead:
     role: splunk-searchhead
   extends: redhat
 
-redhat-splunk-universal-forwarder:
+redhat-splunk-universal-fwd:
   grains:
-    role: splunk-universal-forwarder
+    role: splunk-universal-fwd
   extends: redhat
 
-redhat-splunk-heavy-forwarder:
+redhat-splunk-heavy-fwd:
   grains:
-    role: splunk-heavy-forwarder
+    role: splunk-heavy-fwd
   extends: redhat
 
-redhat-splunk-light-forwarder:
+redhat-splunk-light-fwd:
   grains:
-    role: splunk-light-forwarder
+    role: splunk-light-fwd
   extends: redhat
 
 redhat-splunk-shc-captain:
@@ -171,19 +171,19 @@ win2012-splunk-searchhead:
     role: splunk-searchhead
   extends: win2012
 
-win2012-splunk-universal-forwarder:
+win2012-splunk-universal-fwd:
   grains:
-    role: splunk-universal-forwarder
+    role: splunk-universal-fwd
   extends: win2012
 
-win2012-splunk-heavy-forwarder:
+win2012-splunk-heavy-fwd:
   grains:
-    role: splunk-heavy-forwarder
+    role: splunk-heavy-fwd
   extends: win2012
 
-win2012-splunk-light-forwarder:
+win2012-splunk-light-fwd:
   grains:
-    role: splunk-light-forwarder
+    role: splunk-light-fwd
   extends: win2012
 
 ## win2008 ##
@@ -212,19 +212,19 @@ win2008-splunk-searchhead:
     role: splunk-searchhead
   extends: win2008
 
-win2008-splunk-universal-forwarder:
+win2008-splunk-universal-fwd:
   grains:
-    role: splunk-universal-forwarder
+    role: splunk-universal-fwd
   extends: win2008
 
-win2008-splunk-heavy-forwarder:
+win2008-splunk-heavy-fwd:
   grains:
-    role: splunk-heavy-forwarder
+    role: splunk-heavy-fwd
   extends: win2008
 
-win2008-splunk-light-forwarder:
+win2008-splunk-light-fwd:
   grains:
-    role: splunk-light-forwarder
+    role: splunk-light-fwd
   extends: win2008
 
 
