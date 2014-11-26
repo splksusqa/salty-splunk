@@ -18,33 +18,41 @@ are executed remotely.
 # Steps
 ## Quickstart script to install & setup a salt-master
 1. Save the following texts into a script (e.g. setup-salt-master.sh),
-   - if you need to launch salt-minions with salt-cloud on ec2, replace 
-     **<access key id>**, **<secret access key>**, **<key pair name>**, and
-     **<private key location>** in the script with your AWS access key id,
-     secret access key, key pair name, and the private key that matches with 
-     the key pair. (You'll need to send the private key to the location)
+   - if you need to launch salt-minions with salt-cloud on ec2, replace the 
+     followings:
+     - **<access key id>**: AWS access key id
+     - **<secret access key>**: AWS secret access key
+     - **<key pair name>**: your key pair name on AWS (e.g.: jenkins)
+     - **<private key location>**: path of the private key for the key pair name
+       , it needs to be stored on the machine.
    - If you're using EC2 as your master, you can paste the following
-     texts into **user data** section in the page after selecting desired ami
-   - **NOTE**: this is script is only tested in Ubuntu and Centos6, and you'll
+     texts into **user data** section in the page after selecting desired AMI
+   - **NOTE**: this script is only tested in Ubuntu and Centos6, and you'll
      hit an issue (see *Known issues* section) on Redhat 7 of EC2.
    
         #! /bin/bash
         # you can check /var/log/cloud-init-output.log for the outputs
         # usually the whole shell script takes around 70s
+        # this script is only for Ubuntu or Redhat/Centos.
         ACCESS_KEY_ID="<access key id>"
         SECRET_ACCESS_KEY="<secret access key>"
         KEYNAME="<key pair name>"
         PRIVATE_KEY="<private key location>"
         is_ubuntu=`grep 'Ubuntu' /proc/version`
         is_redhat=`grep 'Red Hat' /proc/version` #also for centos 6
+
+        ## install salt-master, salt-cloud and related stuff.
         if [ "$is_ubuntu" ]; then
             sudo add-apt-repository ppa:saltstack/salt -y
             sudo apt-get update -y 
+            sudo apt-get install git -y
             sudo apt-get install salt-master -y
             sudo apt-get install python-libcloud -y 
             sudo apt-get install salt-cloud -y
             sudo apt-get install smbclient -y
-            wget http://download.opensuse.org/repositories/home:/uibmz:/opsi:/opsi40-testing/xUbuntu_12.04/amd64/winexe_1.00.1-1_amd64.deb
+            wget -nc -q https://raw.githubusercontent.com/billcchung/misc/master/install-salt-master/patch/cloud.py
+            cloud_loc="/usr/lib/python2.`salt --versions-report | awk -F. '/Python/{print $2}'`/dist-packages/salt/utils/cloud.py"
+            wget -nc -q http://download.opensuse.org/repositories/home:/uibmz:/opsi:/opsi40-testing/xUbuntu_12.04/amd64/winexe_1.00.1-1_amd64.deb
             sudo dpkg -i winexe_1.00.1-1_amd64.deb
         elif [ "$is_redhat" ]; then
             # The steps are for redhat 6
@@ -53,14 +61,23 @@ are executed remotely.
             sudo yum -y install samba-client
             sudo yum -y install python-libcloud
             sudo yum -y install salt-cloud
-            curl -O curl -O http://ftp5.gwdg.de/pub/opensuse/repositories/home:/uibmz:/opsi:/opsi40-testing/CentOS_CentOS-6/x86_64/winexe-1.00.1-10.2.x86_64.rpm
+            curl -O https://raw.githubusercontent.com/billcchung/misc/master/install-salt-master/patch/cloud.py
+            cloud_loc="/usr/lib/python2.`salt --versions-report | awk -F. '/Python/{print $2}'`/site-packages/salt/utils/cloud.py"
+            curl -O http://ftp5.gwdg.de/pub/opensuse/repositories/home:/uibmz:/opsi:/opsi40-testing/CentOS_CentOS-6/x86_64/winexe-1.00.1-10.2.x86_64.rpm
             sudo rpm -Uvh winexe-1.00.1-10.2.x86_64.rpm 
             sudo chkconfig salt-master on
         fi
-        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.get_splunkd_port\n" | sudo tee -a /etc/salt/master > /dev/null
+        # update cloud.py
+        sudo mv -f cloud.py $cloud_loc
+
+        # edit salt master config
+        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.*\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\ntimeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
+        
+        # fetch splunk realted modules, states and other stuff.
+        mkdir ~/.ssh/
         echo """-----BEGIN RSA PRIVATE KEY-----
         MIIEogIBAAKCAQEAqhjhYPZcF4WwWyPLTFssLnovuF84B0qfNONrXCOnTnS0YOO7
         NYPAcwYsnqfW849Hq28tkslbEELltWv3f1INkwyo0ZwE6WhNwfgcyNy49y5Cu6P6
@@ -91,50 +108,17 @@ are executed remotely.
         echo -e "Host bitbucket.org\n\tHostName bitbucket.org\n\tUser git\n\tIdentityFile ~/.ssh/id_rsa_bitbucket\n\tStrictHostKeyChecking no\n" | sudo tee -a /root/.ssh/config > /dev/null
         sudo chmod 400 /root/.ssh/id_rsa_bitbucket
         sudo git clone git@bitbucket.org:splunksusqa/salt.git /srv/salt
-        sudo sed -i "s/salt-master.qa/`hostname -I`/" /srv/salt/cloud/cloud.profiles 
-        sudo sed -i "/^  id/ s/:.*/: $ACCESS_KEY_ID/" /srv/salt/cloud/cloud.providers
-        sudo sed -i "/^  key:/ s/:.*/: $SECRET_ACCESS_KEY/" /srv/salt/cloud/cloud.providers 
-        sudo sed -i "/^  keyname:/ s/:.*/: KEYNAME/" /srv/salt/cloud/cloud.providers 
-        sudo sed -i "/^  private_key:/ s/:.*/: PRIVATE_KEY/" /srv/salt/cloud/cloud.providers 
-        sudo cp /srv/salt/cloud/* /etc/salt/
+        
+        # update cloud configurations, link the conf directories to /srv/salt/cloud
+        sudo sed -i "s/salt-master/`hostname -I`/"            /srv/salt/cloud/cloud.profiles.d/ec2.conf
+        sudo sed -i "/^  id/ s/:.*/: $ACCESS_KEY_ID/"         /srv/salt/cloud/cloud.providers.d/ec2.conf
+        sudo sed -i "/^  key:/ s/:.*/: $SECRET_ACCESS_KEY/"   /srv/salt/cloud/cloud.providers.d/ec2.conf
+        sudo sed -i "/^  keyname:/ s/:.*/: $KEYNAME/"         /srv/salt/cloud/cloud.providers.d/ec2.conf
+        sudo sed -i "/^  private_key:/ s/:.*/: $PRIVATE_KEY/" /srv/salt/cloud/cloud.providers.d/ec2.conf
+        for d in conf deploy maps profiles providers; do 
+            sudo rm -r /etc/salt/cloud.${d}.d ; sudo ln -s /srv/salt/cloud/cloud.${d}.d /etc/salt/cloud.${d}.d
+        done
         sudo service salt-master restart
-
-## Steps to install & step a salt-master
-1. Launch an EC2 ubuntu instance (will be running salt-master and salt-cloud).
-1. Install salt-master and salt-cloud and their dependencies.
-1. Clone this repo to your salt root (default is */srv/salt*, so you can run the 
-   following command in */srv/*):
-    - `git clone https://susqa@bitbucket.org/splunksusqa/salt.git`
-1. Install winexe from repo:
-    - `sudo dpkg -i data/winexe_1.00.1-1_amd64.deb`
-1. Enable peer communications (edit **/etc/salt/master**):
-
-        peer:
-          .*:
-            - network.ip_addrs
-            - splunk.get_splunkd_port
-
-1. Copy pillar/* to your pillar_roots (default is */srv/pillar*) or set salt 
-   pillar_roots to */srv/salt/pillar* (edit **/etc/salt/master**), i.e.:
-
-        pillar_roots:
-          base:
-            - /srv/salt/pillar
-
-1. (Optional)You'll need to set `file_recv: True` (in **/etc/salt/master**)
-   to enable retrieving files from minions, e.g.:
-    - `salt '*' cp.push <file path in minion>`
-1. Check the IP of the salt-master, set it in *cloud/cloud.profiles* 
-   (replace **salt-master.qa** with the real IP)
-1. Put the followings to *cloud/cloud.providers*
-    - **id** (Access key ID)
-    - **key** (Secret access key)
-    - **keyname** (ssh key pairs, only the name)
-    - **private_key** (the real ssh-key file that matches with keyname)
-1. Copy *cloud/cloud.profiles* and *cloud/cloud.providers* to */etc/salt/*. 
-    - Check if you can access the ami: `salt-cloud --list-images aws_ec2`
-    - Note: */srv/salt/* is the root for salt related stuff, if you changed the 
-      root, remember to change **win_installer** path in *cloud.profiles* too.
 
 ## Launch instances with salt-cloud
 1. The command:
@@ -205,7 +189,7 @@ match minions (specified by **- match: grains**), so only the minions that have
 There are several ways of targeting minions: 
 (http://docs.saltstack.com/en/latest/topics/targeting/index.html#targeting)
 
-| Targets   | Usage in cli commands                                             | Used in sls files                                                 |
+| Targets   | Usage in cli commands                                             | Usage in sls files                                                 |
 |-----------|-------------------------------------------------------------------|-------------------------------------------------------------------|
 | ID        | `salt '*' test.ping`                                              | `'*'`                                                             |
 |           | `salt -E 'prod-.*' test.ping`                                     | `'prod-.*'` (match: pcre)                                         |
@@ -226,8 +210,8 @@ and **Execution modules**
 (http://docs.saltstack.com/en/latest/ref/modules/)
 
 ### State modules
-Salt state modules are the real actual enforcement and management of the states
-that defined in the **.sls** files. These modules are written in python, used to 
+Salt state modules are the actual enforcement and management of the states that
+defined in the **.sls** files. These modules are written in python, used to 
 realize the defined states (in .sls files) that we want. State modules should 
 check the current states within a node and make necessary changes if the state
 is not met the defined states. Take the apache example in *State* section, the
@@ -315,16 +299,16 @@ This readme file.
 1. salt-cloud provisioning using winexe, which is incompatible with win2012R2
     - might be compatible with win2012R2 with winexe_1.00.1-1_amd64.deb, but not
       fully tested yet.
-1. if you manually deleted the nodes (instead of using `salt-cloud -d <node>`), 
+1. If you manually deleted the nodes (instead of using `salt-cloud -d <node>`), 
 you will need to delete the keys as well:
 `salt-key -d <node1> <node2> <node3> ...`
-1. if you keep getting `SaltCloudSystemExit: Failed to authenticate against 
-remote windows host`, 
-try to increase the check interval (time.sleep) in 
-*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py* line308.
+1. If you keep getting `SaltCloudSystemExit: Failed to authenticate against 
+remote windows host`, add a retry mechanism into *validate_windows_cred* of
+*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py*.
 Because windows might be up but not yet be ready to install winexesvc, so it'll 
-return an error, and salt-cloud would think there is an authentication error.
-1. if you manage to use `cloud.map` to provision minions, you will encounter an
+return an error, and salt-cloud would think that is an authentication error, see 
+https://github.com/saltstack/salt/issues/18308
+1. If you manage to use `cloud.map` to provision minions, you will encounter an
 error (see the issue [here](https://github.com/saltstack/salt/issues/14593))
 saying `The specified fingerprint in the master configuration file`. 
 You'll need to edit 

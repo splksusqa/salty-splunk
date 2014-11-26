@@ -1,8 +1,12 @@
+include:
+  - splunk.common
+
 set-role:
   splunk:
-    - role_configured
-    - method: rest
-    - endpoint: services/search/distributed/peers
-    - setting:
-        distributedSearch:
-          servers: idx1, idx2, idx3
+    - configured
+    - interface: rest
+    - uri: services/search/distributed/peers
+    - body:
+        name: 'idx:port'
+        remoteUsername: 'admin'
+        remotePassword: 'changeme'

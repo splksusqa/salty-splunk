@@ -11,7 +11,11 @@ import re
 import logging
 import platform
 import itertools
-
+lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        '..', '_modules', 'lib')
+if not lib_path in sys.path:
+    sys.path.append(lib_path)
+import requests
 # salt
 import salt.utils
 import salt.exceptions
@@ -21,8 +25,14 @@ logger = logging.getLogger(__name__)
 
 #### State functions ####
 def installed(name,
-              source,
               splunk_home,
+              pkg,
+              version,
+              build='',
+              type='splunk',
+              fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py',
+              pkg_released=False,
+              instances=1,
               dest='',
               install_flags='',
               start_after_install=True,
@@ -31,9 +41,9 @@ def installed(name,
     Install splunk if it's not installed as specified pkg
 
     :param str name: name of the state, sent by salt
-    :param str source: pkg source, can be http, https, salt, ftp schema
+    :param str source: pkg source, can be http, https, salt, ftp schemes
     :param str splunk_home: installdir
-    :param str dest: location for storing the pkg
+    :param str dest: location for storing the pkg, useful for future usages.
     :param dict install_flags: extra installation flags
     :param bool start_after_install: start splunk after installation
     :return: results of name, changes, results, and comment.
@@ -42,27 +52,31 @@ def installed(name,
     ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
     user = user or __salt__['pillar.get']('system:user')
     install_flags = install_flags or {}
-    pkg = os.path.basename(source)
-    pkg_type = _validate_pkg_for_platform(pkg)
-    pkg_state = _get_current_pkg_state(pkg)
+    pkg_src = _get_pkg_url(pkg=pkg, version=version, build=build, type=type,
+                           pkg_released=pkg_released,fetcher_url=fetcher_url)
+    pkg_name = os.path.basename(pkg_src)
+    pkg_type = _validate_pkg_for_platform(pkg_name)
+    pkg_state = _get_current_pkg_state(pkg_name)
     if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
-        cached_pkg = __salt__['utils.cache_file'](source=source, dest=dest)
+        cached_pkg = __salt__['utils.cache_file'](source=pkg_src, dest=dest)
         logger.info("Installing pkg from '{s}', stored at '{c}'".format(
-                    s=source, c=cached_pkg))
-        __salt__['splunk.stop']()
+                    s=pkg_src, c=cached_pkg))
+        if 'splunk.stop' in __salt__:
+            __salt__['splunk.stop']()
         install_ret = getattr(sys.modules[__name__],
                               "_install_{t}".format(t=pkg_type))(
                           pkg=cached_pkg, splunk_home=splunk_home,
-                          user=user, flags=install_flags)
+                          instances=instances, user=user, flags=install_flags)
         ret['comment'] = install_ret['comment']
         logger.info("Install runner returned code: {r}, comment: {c}".format(
                     r=install_ret['retcode'], c=install_ret['comment']))
         if install_ret['retcode'] == 0:
             if start_after_install:
+                __salt__['saltutil.refresh_modules']()
                 __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
-                              'after': __salt__['splunk.info']()}
+                              'after': pkg_name}
 
     elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
         ret['comment'] = pkg_state['comment']
@@ -71,6 +85,12 @@ def installed(name,
         ret['comment'] = pkg_state['comment']
     return ret
 
+
+def running(name, splunk_home, instances=1, user=''):
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    user = user or __salt__['pillar.get']('system:user')
+    ret.update(__salt__['splunk.start']())
+    return ret
 
 def app_installed(name,
                   source,
@@ -190,7 +210,7 @@ def cli_configured(name,
                    **kwargs):
     """
     Run cli command while state.highstate is called.
-    Note this is not really check a configuration or a state, but just run cli.
+    Note this doesn't check a configuration or state, but just run cli.
 
     :param name:
     :param kwargs:
@@ -230,6 +250,21 @@ def configured(name,
 
 
 #### internal functions ####
+def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
+        fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
+    params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
+    if type == 'splunkforwarder':
+        params.update({'UF': '1'})
+    if pkg_released:
+        params.update({'VERSION': version})
+    else:
+        params.update({'BRANCH': version})
+        if build:
+            params.update({'P4CHANGE': build})
+    r = requests.get(fetcher_url, params=params)
+    return r.text.strip()
+
+
 def _is_pkg_installed(pkg):
     """
     check if splunk is installed at desired version/build
@@ -245,6 +280,7 @@ def _is_pkg_installed(pkg):
             return True
     else:
         return False
+
 
 def _get_current_pkg_state(pkg):
     """
@@ -346,7 +382,7 @@ def _run_install_cmd(cmd, user, comment=''):
     return ret
 
 
-def _install_tgz(pkg, splunk_home, flags, user):
+def _install_tgz(pkg, splunk_home, instances, flags, user):
     """
     Install tgz package, note the flags are not used.
 
@@ -360,19 +396,20 @@ def _install_tgz(pkg, splunk_home, flags, user):
     return _run_install_cmd(cmd, user)
 
 
-def _install_rpm(pkg, splunk_home, flags, user):
+def _install_rpm(pkg, splunk_home, instances, flags, user):
     raise NotImplementedError
 
 
-def _install_msi(pkg, splunk_home, flags, user):
+def _install_msi(pkg, splunk_home, instances, flags, user):
     if not flags: flags = {}
-    cmd ='msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
-             c=pkg, h=splunk_home, q='/quiet',
-             f=' '.join('%s="%r"' %t for t in flags.iteritems()))
+    cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" {f} {q}'.format(
+              c=pkg, h=splunk_home, q='/quiet',
+              f=' '.join("{0}={1}".format(
+                  t[0], str(t[1]).strip("'" '"')) for t in flags.iteritems()))
     return _run_install_cmd(cmd, user)
 
 
-def _install_deb(pkg, splunk_home, flags, user):
+def _install_deb(pkg, splunk_home, instances, flags, user):
     """
     Install deb package, note that according to (http://docs.splunk.com/
     Documentation/Splunk/latest/Installation/InstallonLinux#Debian_DEB_install),
@@ -394,7 +431,7 @@ def _install_deb(pkg, splunk_home, flags, user):
     raise NotImplementedError
 
 
-def _install_Z(pkg, splunk_home, flags, user):
+def _install_Z(pkg, splunk_home, instances, flags, user):
     """
 
     :param pkg:
@@ -405,7 +442,7 @@ def _install_Z(pkg, splunk_home, flags, user):
     raise NotImplementedError
 
 
-def _install_zip(pkg, splunk_home, flags, user):
+def _install_zip(pkg, splunk_home, instances, flags, user):
     """
 
     :param pkg:

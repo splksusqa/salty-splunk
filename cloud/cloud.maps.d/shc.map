@@ -1,0 +1,16 @@
+# Because of the issue: https://github.com/saltstack/salt/issues/14593
+# cloud.map isnt ready for provisioning windows minions yet
+ubuntu-splunk-shc-captain:
+  - cchung-splunk-shc-captain
+
+ubuntu-splunk-shc-member:
+  - cchung-splunk-shc-member-01:
+      requires:
+        - cchung-splunk-shc-captain
+  - cchung-splunk-shc-member-02:
+      requires:
+        - cchung-splunk-shc-captain
+  - cchung-splunk-shc-member-03:
+      requires:
+        - cchung-splunk-shc-captain
+
