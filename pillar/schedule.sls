@@ -1,24 +1,24 @@
 schedule:
 #  monitoring:
 #    function: monitor.
-  system-cpu-percent:
-    function: ps.cpu_percent
-    seconds: 10
-    maxrunning: 2
-    returner: splunk
-
-  system-disk:
-    function: ps.disk_usage
-    {% if grains['kernel'] == 'Linux'%}
-    kwargs:
-      path: '/'
-    {% elif grains['kernel'] == 'Windows' %}
-    kwargs:
-      path: 'C:\'
-    {% endif %}
-    seconds: 10
-    maxrunning: 1
-    returner: splunk
+#  system-cpu-percent:
+#    function: ps.cpu_percent
+#    seconds: 10
+#    maxrunning: 2
+#    returner: splunk
+#
+#  system-disk:
+#    function: ps.disk_usage
+#    {% if grains['kernel'] == 'Linux'%}
+#    kwargs:
+#      path: '/'
+#    {% elif grains['kernel'] == 'Windows' %}
+#    kwargs:
+#      path: 'C:\'
+#    {% endif %}
+#    seconds: 10
+#    maxrunning: 1
+#    returner: splunk
 
 #
 #
