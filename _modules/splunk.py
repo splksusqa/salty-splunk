@@ -43,7 +43,7 @@ def __virtual__():
     :return: is_splunk_installed()
     :rtype: bool
     """
-    return is_splunk_installed()
+    return True
 
 
 def home():
@@ -182,6 +182,9 @@ def listen_port(port, type='splunktcp', params=None):
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'comment': ''}
+    if not is_splunk_installed():
+        ret['comment'] = 'Splunk is not installed'
+        return ret
     params = params or {}
     if type == 'splunktcp':
         cmd_ = "enable listen {p}".format(p=port)
@@ -245,6 +248,9 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
     logger.info("Running function '{f}' with vars: {v}".format(
                 f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
+    if not is_splunk_installed():
+        ret['comment'] = 'Splunk is not installed'
+        return ret
     params = params or {}
     source = __salt__['utils.cache_file'](source=source, dest=dest)
     if index:
@@ -284,10 +290,17 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
 def multi_instances(func):
     def multi(**kwargs):
         instances = __pillar__['splunk']['instances']
-        for i in instances:
-            kwargs.update()
-            func(**kwargs)
-    raise NotImplementedError
+        splunk_home_base = kwargs.get('home')
+        splunk_port_base = kwargs.get('port')
+        ret = {}
+        for i in xrange(0, instances):
+            kwargs.update({
+                'splunk_home': splunk_home_base + '_' + str(i),
+                'port': int(splunk_port_base) + i
+            })
+            ret.update({ splunk_home_base + '_' + str(i): func(**kwargs)})
+        return ret
+    return multi
 
 
 # @multi_instances
@@ -615,6 +628,7 @@ def push_file(source):
 
 def check_log(type='crash'):
     raise NotImplementedError
+
 
 def check_crash():
     raise NotImplementedError

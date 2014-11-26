@@ -43,7 +43,7 @@ def installed(name,
     :param str name: name of the state, sent by salt
     :param str source: pkg source, can be http, https, salt, ftp schemes
     :param str splunk_home: installdir
-    :param str dest: location for storing the pkg
+    :param str dest: location for storing the pkg, useful for future usages.
     :param dict install_flags: extra installation flags
     :param bool start_after_install: start splunk after installation
     :return: results of name, changes, results, and comment.
@@ -76,7 +76,7 @@ def installed(name,
                 __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
-                              'after': __salt__['splunk.info']()}
+                              'after': pkg_name}
 
     elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
         ret['comment'] = pkg_state['comment']
@@ -85,6 +85,12 @@ def installed(name,
         ret['comment'] = pkg_state['comment']
     return ret
 
+
+def running(name, splunk_home, instances=1, user=''):
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    user = user or __salt__['pillar.get']('system:user')
+    ret.update(__salt__['splunk.start']())
+    return ret
 
 def app_installed(name,
                   source,
@@ -204,7 +210,7 @@ def cli_configured(name,
                    **kwargs):
     """
     Run cli command while state.highstate is called.
-    Note this is not really check a configuration or a state, but just run cli.
+    Note this doesn't check a configuration or state, but just run cli.
 
     :param name:
     :param kwargs:

@@ -34,16 +34,16 @@ base:
     - match: grain
     - splunk.searchhead
 
-  'role:splunk-universal-forwarder':
+  'role:splunk-universal-fwd':
     - match: grain
-    - splunk.universal-forwarder
+    - splunk.universal-fwd
 
-  'role:splunk-heavy-forwarder':
+  'role:splunk-heavy-fwd':
     - match: grain
-    - splunk.heavy-forwarder
+    - splunk.heavy-fwd
 
-  'role:splunk-light-forwarder':
+  'role:splunk-light-fwd':
     - match: grain
-    - splunk.light-forwarder
+    - splunk.light-fwd
 
 

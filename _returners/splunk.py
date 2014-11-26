@@ -23,7 +23,7 @@ def returner(ret):
     elif scheme.lower() == 'udp':
         sock = socket.SOCK_DGRAM
     else:
-        raise Exception("Not supported schema {s}".format(s=scheme))
+        raise Exception("Not supported scheme: {s}".format(s=scheme))
     s = socket.socket(socket.AF_INET, sock)
     s.connect((ip, port))
     s.send(json.dumps(ret))

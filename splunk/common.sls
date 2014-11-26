@@ -14,6 +14,7 @@ install-splunk:
     - pkg:                 {{ pillar['splunk']['pkg'] }}
     - version:             {{ pillar['splunk']['version'] }}
     - build:               {{ pillar['splunk']['build'] }}
+    - type:                {{ pillar['splunk']['type'] }}
     - fetcher_url:         {{ pillar['splunk']['fetcher_url'] }}
     - pkg_released:        {{ pillar['splunk']['pkg_released'] }}
     - instances:           {{ pillar['splunk']['instances'] }}
@@ -29,7 +30,7 @@ set-splunkd-port:
       - splunk: install-splunk
 
 
-{% if not (grains['role'] == 'universal-forwarder' or grains['role'] == 'light-forwarder') %}
+{% if not (grains['role'] == 'splunk-universal-fwd' or grains['role'] == 'splunk-light-fwd') %}
 set-splunkweb-port:
   splunk:
     - splunkweb_port
