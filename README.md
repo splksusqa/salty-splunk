@@ -25,6 +25,7 @@ are executed remotely.
      - **<key pair name>**: your key pair name on AWS (e.g.: jenkins)
      - **<private key location>**: path of the private key for the key pair name
        , it needs to be stored on the machine.
+
    - If you're using EC2 as your master, you can paste the following
      texts into **user data** section in the page after selecting desired AMI
    - **NOTE**: this script is only tested in Ubuntu and Centos6, and you'll
