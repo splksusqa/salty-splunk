@@ -816,7 +816,7 @@ def uninstall():
     else:
         shutil.rmtree(home())
 
-    # TODO: reload modules to make splunk module unavailable after purge.
+    ret['retcode'] = 0
     return ret
 
 
