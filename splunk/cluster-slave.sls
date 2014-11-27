@@ -1,6 +1,20 @@
 include:
   - splunk.common
 
+#set-slave:
+#  splunk:
+#    - configured
+#    - interface: rest
+#    - method: post
+#    - uri: services/cluster/config/config
+#    - body:
+#        mode: slave
+#        master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain').values()[0] }}"
+#        replication_port: "{{ pillar['cluster-slave']['replication_port'] }}"
+#    - require:
+#      - sls: splunk.common
+
+
 set-slave:
   splunk:
     - configured
@@ -9,13 +23,14 @@ set-slave:
     - stanza:
         clustering:
           mode: slave
-          master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain')[0] }}"
+          master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain').values()[0] }}"
         replication_port://{{ pillar['cluster-slave']['replication_port'] }}: {}
+    - restart_splunk: True
     - require:
       - sls: splunk.common
 
 
- listen_splunktcp:
+listen_splunktcp:
   splunk:
     - configured
     - interface: rest

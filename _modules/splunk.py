@@ -304,7 +304,7 @@ def multi_instances(func):
 
 
 # @multi_instances
-def cmd(command, auth='', user='', timeout=60, params=None, **kwargs):
+def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     """
     Splunk cli command.
 

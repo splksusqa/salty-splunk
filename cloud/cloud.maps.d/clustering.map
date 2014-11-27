@@ -5,6 +5,8 @@ ubuntu-splunk-cluster-master:
 
 ubuntu-splunk-cluster-searchhead:
   - cchung-splunk-cluster-searchhead
+      requires:
+        - cchung-splunk-cluster-master
 
 ubuntu-splunk-cluster-slave:
   - cchung-splunk-cluster-slave-01:
