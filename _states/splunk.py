@@ -72,7 +72,6 @@ def installed(name,
                     r=install_ret['retcode'], c=install_ret['comment']))
         if install_ret['retcode'] == 0:
             if start_after_install:
-                __salt__['saltutil.refresh_modules']()
                 __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
@@ -85,12 +84,6 @@ def installed(name,
         ret['comment'] = pkg_state['comment']
     return ret
 
-
-def running(name, splunk_home, instances=1, user=''):
-    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
-    user = user or __salt__['pillar.get']('system:user')
-    ret.update(__salt__['splunk.start']())
-    return ret
 
 def app_installed(name,
                   source,
@@ -262,6 +255,10 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         if build:
             params.update({'P4CHANGE': build})
     r = requests.get(fetcher_url, params=params)
+    if 'Error' in r.text.strip():
+         raise salt.exceptions.CommandExecutionError(
+                   "Fetcher returned an error: {e}, requested url: {u}".format(
+                       e=r.text.strip(), u=r.url))
     return r.text.strip()
 
 
