@@ -75,7 +75,7 @@ def installed(name,
                 __salt__['splunk.start']()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
-                              'after': pkg_name}
+                              'after': __salt__['splunk.info']()}
 
     elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
         ret['comment'] = pkg_state['comment']
@@ -245,21 +245,27 @@ def configured(name,
 #### internal functions ####
 def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
-    params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
-    if type == 'splunkforwarder':
-        params.update({'UF': '1'})
-    if pkg_released:
-        params.update({'VERSION': version})
+    schemes = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
+    if any([True for i in schemes if pkg.startswith(i)]):
+        pkg_url = pkg # pkg is set as static url
     else:
-        params.update({'BRANCH': version})
-        if build:
-            params.update({'P4CHANGE': build})
-    r = requests.get(fetcher_url, params=params)
-    if 'Error' in r.text.strip():
-         raise salt.exceptions.CommandExecutionError(
-                   "Fetcher returned an error: {e}, requested url: {u}".format(
-                       e=r.text.strip(), u=r.url))
-    return r.text.strip()
+        params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
+        if type == 'splunkforwarder':
+            params.update({'UF': '1'})
+        if pkg_released:
+            params.update({'VERSION': version})
+        else:
+            params.update({'BRANCH': version})
+            if build:
+                params.update({'P4CHANGE': build})
+        r = requests.get(fetcher_url, params=params)
+        if 'Error' in r.text.strip():
+             raise salt.exceptions.CommandExecutionError(
+                       "Fetcher returned an error: {e}, "
+                       "requested url: {u}".format(
+                           e=r.text.strip(), u=r.url))
+        pkg_url = r.text.strip()
+    return pkg_url
 
 
 def _is_pkg_installed(pkg):

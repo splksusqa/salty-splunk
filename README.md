@@ -30,7 +30,7 @@ are executed remotely.
      texts into **user data** section in the page after selecting desired AMI
    - **NOTE**: this script is only tested in Ubuntu and Centos6, and you'll
      hit an issue (see *Known issues* section) on Redhat 7 of EC2.
-   
+
         #! /bin/bash
         # you can check /var/log/cloud-init-output.log for the outputs
         # usually the whole shell script takes around 70s
@@ -76,7 +76,7 @@ are executed remotely.
         echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
         echo -e "\ntimeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
-        
+
         # fetch splunk realted modules, states and other stuff.
         mkdir ~/.ssh/
         echo """-----BEGIN RSA PRIVATE KEY-----
@@ -109,7 +109,7 @@ are executed remotely.
         echo -e "Host bitbucket.org\n\tHostName bitbucket.org\n\tUser git\n\tIdentityFile ~/.ssh/id_rsa_bitbucket\n\tStrictHostKeyChecking no\n" | sudo tee -a /root/.ssh/config > /dev/null
         sudo chmod 400 /root/.ssh/id_rsa_bitbucket
         sudo git clone git@bitbucket.org:splunksusqa/salt.git /srv/salt
-        
+
         # update cloud configurations, link the conf directories to /srv/salt/cloud
         sudo sed -i "s/salt-master/`hostname -I`/"            /srv/salt/cloud/cloud.profiles.d/ec2.conf
         sudo sed -i "/^  id/ s/:.*/: $ACCESS_KEY_ID/"         /srv/salt/cloud/cloud.providers.d/ec2.conf
