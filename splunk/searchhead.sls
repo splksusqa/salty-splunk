@@ -1,6 +1,7 @@
 include:
   - splunk.common
 
+{% for mgmt in salt['publish.publish']('role:splunk-indexer', 'splunk.get_mgmt_uri', None, 'grain').values() %}
 add-peer:
   splunk:
     - configured
@@ -8,8 +9,9 @@ add-peer:
     - method: post
     - uri: services/search/distributed/peers
     - body:
-        name: 'idx:port'
+        name: {{ mgmt }}
         remoteUsername: 'admin'
         remotePassword: 'changeme'
+{% endfor %}
 
 

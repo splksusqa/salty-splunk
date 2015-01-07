@@ -15,6 +15,7 @@ import logging
 import inspect
 import shutil
 import socket
+from functools import wraps
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
@@ -35,6 +36,56 @@ default_stanza = 'default'
 logger = logging.getLogger(__name__)
 
 
+rest_endpoints = {
+    #'indexes': 'servicesNS/nobody/_cluster/data/indexes/',
+    'indexes': "services/data/indexes/{idx}",
+    'appinstall': '/services/apps/appinstall',
+    'splunktcp': 'servicesNS/nobody/search/data/inputs/tcp/cooked',
+    'tcp': 'servicesNS/nobody/search/data/inputs/tcp/raw',
+    'udp': 'servicesNS/nobody/search/data/inputs/udp',
+}
+
+
+#### Decorators ####
+
+def log(func):
+    @wraps(func)
+    def l(*args, **kwargs):
+        ret = func(*args, **kwargs)
+        logger.info("Function '{f}' with '{v}' returned '{r}'".format(
+                        f=func.__name__, v=kwargs, r=ret))
+        return ret
+    return l
+
+
+def multi_instances(func):
+    @wraps(func)
+    def multi(*args, **kwargs):
+        instances = __pillar__['splunk']['instances']
+        splunk_home_base = kwargs.get('home')
+        splunk_port_base = kwargs.get('port')
+        ret = {}
+        for i in xrange(instances):
+            kwargs.update({
+                'splunk_home': splunk_home_base + '_' + str(i),
+                'port': int(splunk_port_base) + i
+            })
+            ret.update({ splunk_home_base + '_' + str(i): func(**kwargs)})
+        return ret
+    return multi
+
+
+def splunk_installed(func):
+    @wraps(func)
+    def checked(*args, **kwargs):
+        if not is_splunk_installed():
+            raise
+        return func(**kwargs)
+    return checked
+
+
+#### Salt functions ####
+
 def __virtual__():
     """
     Salt virtual function:
@@ -53,9 +104,7 @@ def home():
     :return: splunk_home (pillar['splunk']['home'])
     :rtype: str
     """
-    splunk_home = __pillar__['splunk']['home']
-    logger.info("Getting splunk_home '{h}' from pillar".format(h=splunk_home))
-    return splunk_home
+    return __pillar__['splunk']['home']
 
 
 def is_splunk_installed():
@@ -66,12 +115,10 @@ def is_splunk_installed():
     :rtype: bool
     """
     splunk_home = home()
-    if os.path.exists(_path('bin')):
-        logger.info("Splunk is installed at '{h}'".format(h=splunk_home))
-        return True
-    else:
-        logger.info("Splunk is not installed at '{h}'".format(h=splunk_home))
-        return False
+    is_installed = os.path.exists(_path('bin'))
+    logger.info("Splunk {i}installed at '{h}'".format(
+                   i='' if is_installed else 'not ', h=splunk_home))
+    return is_installed
 
 
 def start():
@@ -80,7 +127,7 @@ def start():
 
     :return: results of calling cmd
     """
-    return cmd('start')
+    return cmd('start')['stdout']
 
 
 def restart():
@@ -89,7 +136,7 @@ def restart():
 
     :return: results of calling cmd
     """
-    return cmd('restart')
+    return cmd('restart')['stdout']
 
 
 def stop(force=False):
@@ -100,7 +147,7 @@ def stop(force=False):
     """
     cmd_ = 'stop'
     if force: cmd_ += ' -f'
-    return cmd(cmd_)
+    return cmd(cmd_)['stdout']
 
 
 def status():
@@ -118,7 +165,7 @@ def version():
 
     :return: results of calling cmd
     """
-    return cmd('version')
+    return cmd('version')['stdout']
 
 
 def set_splunkweb_port(port=''):
@@ -163,24 +210,40 @@ def get_splunkweb_port():
     return cmd('show web-port')['stdout'].split(':')[1].strip()
 
 
-def get_mgmt_uri():
+@log
+def get_mgmt_uri(scheme=True, **kwargs):
     """
     Get splunk mgmt uri
     :return: splunk mgmt uri
     :rtype: str
     """
-    return 'https://' + socket.gethostname().strip() + ':' + get_splunkd_port()
+    mgmt_uri = socket.gethostname().strip() + ':' + get_splunkd_port()
+    if scheme:  ## TODO: might not be https...
+        mgmt_uri = 'https://' + mgmt_uri
+    return mgmt_uri
 
 
-def listen_port(port, type='splunktcp', params=None):
+@log
+def get_listening_uri(type='splunktcp', ordinal=0, **kwargs):
+    """
+
+    :return:
+    """
+    contents = rest_call(uri=rest_endpoints[type], show_content=True)
+    ports = [i['name'] for i in contents['content']['entry']]
+    if len(ports) == 0:
+        raise salt.exceptions.CommandExecutionError("No splunktcp port avail.")
+    return socket.gethostname().strip() + ':' + ports[ordinal]
+
+
+@log
+def listen(port, type='splunktcp', params=None, **kwargs):
     """
 
     :param port:
     :param type:
     :return:
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'comment': ''}
     if not is_splunk_installed():
         ret['comment'] = 'Splunk is not installed'
@@ -196,21 +259,21 @@ def listen_port(port, type='splunktcp', params=None):
     return cmd(cmd_, params=params)
 
 
-def info():
+@log
+def info(**kwargs):
     """
     splunk product information, contains version, build, product, and platform
 
     :return: splunk.version contents
     :rtype: dict
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     if not is_splunk_installed():
         return {}
     f = open(os.path.join(_path('etc'), 'splunk.version'), 'r')
     return dict([l.strip().split('=') for l in f.readlines()])
 
 
+@log
 def install_app(source, dest='', method='cli', **kwargs):
     """
 
@@ -219,8 +282,6 @@ def install_app(source, dest='', method='cli', **kwargs):
     :param kwargs:
     :return:
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     if method == 'cli':
         source = __salt__['utils.cache_file'](source=source, dest=dest)
         cmd_ = "install app {s}".format(s=source)
@@ -228,15 +289,15 @@ def install_app(source, dest='', method='cli', **kwargs):
     elif method == 'rest':
         if not source.startswith('http'):
             source = __salt__['utils.cache_file'](source=source, dest=dest)
-        appinstall_uri = '/services/apps/appinstall'
-        return rest_call(uri=appinstall_uri, method='post',
+        return rest_call(uri=rest_endpoints['appinstall'], method='post',
                          body={'name': source}, **kwargs)
     else:
         return "Install app method {m} is not supported".format(m=method)
 
 
+@log
 def add_monitor(source, dest='', index='', wait=False, event_count=0,
-                params=None):
+                params=None, **kwargs):
     """
 
     :param source:
@@ -245,8 +306,6 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
     :param event_count:
     :return:
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'stdout': '', 'stderr': '', 'cmd': '', 'comment': ''}
     if not is_splunk_installed():
         ret['comment'] = 'Splunk is not installed'
@@ -267,12 +326,13 @@ def add_monitor(source, dest='', index='', wait=False, event_count=0,
         return ret
 
 
-def _wait_until_indexing_stable(index, event_count=0, source='', sourcetype=''):
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
+@log
+def _wait_until_indexing_stable(index, event_count=0, source='', sourcetype='',
+                                **kwargs):
     raise NotImplementedError
 
 
+@log
 def massive_cmd(command, func='cmd', flags='', parallel=False):
     """
 
@@ -282,28 +342,11 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
     :param parallel:
     :return:
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     raise NotImplementedError
 
 
-def multi_instances(func):
-    def multi(**kwargs):
-        instances = __pillar__['splunk']['instances']
-        splunk_home_base = kwargs.get('home')
-        splunk_port_base = kwargs.get('port')
-        ret = {}
-        for i in xrange(0, instances):
-            kwargs.update({
-                'splunk_home': splunk_home_base + '_' + str(i),
-                'port': int(splunk_port_base) + i
-            })
-            ret.update({ splunk_home_base + '_' + str(i): func(**kwargs)})
-        return ret
-    return multi
 
-
-# @multi_instances
+@log
 def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     """
     Splunk cli command.
@@ -317,8 +360,6 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     :return: retcode, stdout, stderr, and cmd.
     :rtype: dict
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'cmd': '', 'cwd': '',
            'stdout': '', 'stderr': '', 'pid': ''}
     if not is_splunk_installed():
@@ -353,13 +394,10 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     ret.update(resp)
     ret['cmd'] = cmd_
     ret['cwd'] = cwd
-    msg = ("Ran splunk cmd '{cmd}' at '{cwd}', retcode={retcode}\n"
-           "stdout:\n{stdout}\nstderr:\n{stderr}".format(**ret))
-    logger.info(msg)
     return ret
 
 
-# @multi_instances
+@log
 def rest_call(uri, method='get', body=None, params=None, auth=None,
               headers=None, base_uri='https://localhost', port=None,
               timeout=60, show_content=False, output_mode='json', **kwargs):
@@ -379,8 +417,6 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     :return: retcode, comment, changes, url, status_code, and content.
     :rtype: dict
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     ret = {'retcode': 127, 'comment': '', 'changes': '', 'status_code': 0,
            'url': '', 'content': 'Not showing response contents by default.'}
     if not is_splunk_installed():
@@ -420,6 +456,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     return ret
 
 
+@log
 def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
                 action='edit', **kwargs):
     """
@@ -440,9 +477,6 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
     :returns: retcode, comment, and changes
     :rtype: dict
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
-
     ret = {'retcode': 127, 'comment': '', 'changes': ''}
 
     if not is_splunk_installed():
@@ -522,6 +556,8 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
         return ret
 
 
+#### Internal functions ####
+
 class _FakeSecHead(object):
     """
     Handle conf file for key-value without section.
@@ -542,7 +578,8 @@ class _FakeSecHead(object):
             return self.fp.readline()
 
 
-def _read_config(conf_file):
+@log
+def _read_config(conf_file, **kwargs):
     """
     Read the conf from file, the key-value pairs without stanza will be applied
     as default_stanza (now is [default]).
@@ -551,8 +588,6 @@ def _read_config(conf_file):
     :return: ConfigParser.SafeConfigParser()
     :rtype: object
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     # handle unicode endings, SQA-420
     content = open(conf_file).read()
     for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
@@ -565,7 +600,8 @@ def _read_config(conf_file):
     return cp
 
 
-def _write_config(conf_file, cp):
+@log
+def _write_config(conf_file, cp, **kwargs):
     """
     Write the configurations in ConfigParser into conf file.
 
@@ -574,13 +610,12 @@ def _write_config(conf_file, cp):
     :return: ConfigParser
     :rtype: object
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     with open(conf_file, 'w+') as f:
         return cp.write(f)
 
 
-def locate_conf_file(scope, conf):
+@log
+def locate_conf_file(scope, conf, **kwargs):
     """
     Locate the conf file in specified scope.
 
@@ -589,12 +624,11 @@ def locate_conf_file(scope, conf):
     :return: path of the conf file
     :rtype: str
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     return os.path.join(*[_path('etc')] + scope.split(':') + [conf])
 
 
-def get_file(source, dest=''):
+@log
+def get_file(source, dest='', **kwargs):
     """
     Get a file from source and save it to dest inside splunk dir.
     Available source schemes are s3://, http://, https://, salt://
@@ -606,12 +640,11 @@ def get_file(source, dest=''):
     :return: file path on minion (or error messages.)
     :rtype: str
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     return __salt__['utils.cache_file'](source=source, dest=_path(dest))
 
 
-def push_file(source):
+@log
+def push_file(source, **kwargs):
     """
     Push a file inside splunk up to salt-master, and save it to cachedir of
     salt-master, source format is dir:sub_dir_1:sub_dir_2:filename,
@@ -621,30 +654,33 @@ def push_file(source):
     :return: if the file is successfully pushed to salt-master
     :rtype: bool
     """
-    logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
     return __salt__['cp.push'](_path(source))
 
 
-def check_log(type='crash'):
+@log
+def check_log(type='crash', **kwargs):
     raise NotImplementedError
 
 
-def check_crash():
+@log
+def check_crash(**kwargs):
     raise NotImplementedError
 
 
-def check_errors(logfile='', allowed=5):
+@log
+def check_errors(logfile='', allowed=5, **kwargs):
     raise NotImplementedError
 
 
-def event_count(host=None, source=None, sourcetype=None):
+@log
+def event_count(host=None, source=None, sourcetype=None, **kwargs):
     raise NotImplementedError
 
 
-def total_event_count(index='main', method='rest'):
+@log
+def total_event_count(index='main', method='rest', **kwargs):
     if method == 'rest':
-        uri = "services/data/indexes/{idx}".format(idx=index)
+        uri = rest_endpoints['indexes'].format(idx=index)
         count = rest_call(uri, show_content=True
                     )['content']['entry'][0]['content']['totalEventCount']
     elif method == 'file':
@@ -655,7 +691,8 @@ def total_event_count(index='main', method='rest'):
     return count
 
 
-def get_pids(output='list'):
+@log
+def get_pids(output='list', **kwargs):
     """
     Get splunk pids in list or dict.
 
@@ -682,7 +719,8 @@ def get_pids(output='list'):
     return pids
 
 
-def perf(verbose=False):
+@log
+def perf(verbose=False, **kwargs):
     """
     Get the performance metrics of splunk.
 
@@ -707,7 +745,8 @@ def perf(verbose=False):
     return perf_metrics
 
 
-def _get_perf_metrics(pid, verbose):
+@log
+def _get_perf_metrics(pid, verbose, **kwargs):
     p = psutil.Process(pid=int(pid))
     p.get_cpu_percent()  # drop the first time ot cpu_percent
 
@@ -771,22 +810,8 @@ def _get_perf_metrics(pid, verbose):
     return metrics
 
 
-def _named_tuple_list_to_dict_list(tuple_list):
-    return [dict(zip(i._fields, i)) for i in tuple_list]
-
-
-def _path(path):
-    """
-    Get the path in splunk dir.
-
-    :param path_: path
-    :return: path in splunk dir.
-    :rtype: str
-    """
-    return os.path.join(home(), *path.split(':'))
-
-
-def uninstall():
+@log
+def uninstall(**kwargs):
     """
     Uninstall splunk, this
     :return:
@@ -824,6 +849,21 @@ cli = cmd
 get_web_port = get_splunkweb_port
 set_web_port = set_splunkweb_port
 
-rest_endpoints = {
-    'indexes': 'servicesNS/nobody/_cluster/data/indexes/'
-}
+
+#### Internal functions ####
+
+def _named_tuple_list_to_dict_list(tuple_list):
+    return [dict(zip(i._fields, i)) for i in tuple_list]
+
+
+def _path(path):
+    """
+    Get the path in splunk dir.
+
+    :param path_: path
+    :return: path in splunk dir.
+    :rtype: str
+    """
+    return os.path.join(home(), *path.split(':'))
+
+

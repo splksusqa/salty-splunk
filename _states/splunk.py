@@ -13,8 +13,10 @@ import platform
 import itertools
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                         '..', '_modules', 'lib')
-if not lib_path in sys.path:
-    sys.path.append(lib_path)
+for path in os.listdir(lib_path):
+    sys.path.append(path)
+# if not lib_path in sys.path:
+#     sys.path.append(lib_path)
 import requests
 # salt
 import salt.utils
@@ -131,7 +133,7 @@ def port_listened(name,
     :param kwargs:
     :return:
     """
-    return cli_configured(name=name, func='listen_port', port=port, type=type,
+    return cli_configured(name=name, func='listen', port=port, type=type,
                           **kwargs)
 
 

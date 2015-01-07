@@ -6,6 +6,11 @@ base:
 #    - match: grain
 #    - splunk.common
 
+  'brach:dash':
+    - match: grain
+    - splunk.dash
+
+
   'role:splunk-cluster-master':
     - match: grain
     - splunk.cluster-master
@@ -18,9 +23,6 @@ base:
     - match: grain
     - splunk.cluster-slave
 
-  'role:splunk-shc-captain':
-    - match: grain
-    - splunk.shc-captain
 
   'role:splunk-shc-member':
     - match: grain

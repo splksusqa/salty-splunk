@@ -1,19 +1,6 @@
 include:
   - splunk.common
 
-#set-slave:
-#  splunk:
-#    - configured
-#    - interface: rest
-#    - method: post
-#    - uri: services/cluster/config/config
-#    - body:
-#        mode: slave
-#        master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain').values()[0] }}"
-#        replication_port: "{{ pillar['cluster-slave']['replication_port'] }}"
-#    - require:
-#      - sls: splunk.common
-
 
 set-slave:
   splunk:
@@ -64,6 +51,21 @@ listen_udp:
         name: 9998
     - require:
       - sls: splunk.common
+
+
+set_retention:
+  splunk:
+    - configured
+    - interface: rest
+    - method: post
+    - uri: servicesNS/nobody/system/data/indexes/main
+    - body:
+        maxTotalDataSizeMB: 25000
+        maxWarmDBCount: 15
+        maxDataSize: 500
+    - require:
+      - sls: splunk.common
+
 
 # if you'd like to use the following states, remember to put aws keys
 # since they're using data/app from s3 buckets

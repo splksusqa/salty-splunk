@@ -1,3 +1,3 @@
 # indexer specific settings
 include:
- - splunk.common
+  - splunk.common

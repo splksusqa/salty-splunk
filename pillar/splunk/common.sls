@@ -33,7 +33,7 @@ splunk:
   pkg: x64-release.msi
   {% endif %}
 
-  {% if grains['role'] == 'universal-fwd' %}
+  {% if grains['role'] == 'splunk-universal-fwd' %}
   type: splunkforwarder
   {% else %}
   type: splunk
@@ -46,6 +46,11 @@ splunk:
     {% if grains['kernel'] == 'Windows' %}
     LAUNCHSPLUNK: 0
     {% endif %}
+
+  listen:
+    splunktcp: 9996
+    tcp: 9997
+    udp: 9998
 
 monitoring:
   # default to blank, will get the ip of master, so splunk for monitoring should
@@ -60,6 +65,21 @@ s3.key:
 s3.service_url: s3.amazonaws.com
 
 # Apps:
+# https://s3.amazonaws.com/splunk_apps/add-on-for-jira_201.tgz
+# https://s3.amazonaws.com/splunk_apps/gen_data.tgz
+# https://s3.amazonaws.com/splunk_apps/google-maps_113.tgz
+# https://s3.amazonaws.com/splunk_apps/sideview-utils-lgpl_135.tgz
+# https://s3.amazonaws.com/splunk_apps/sos-splunk-on-splunk_32.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-add-on-for-unix-and-linux_503.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-app-for-hadoopops_113.zip
+# https://s3.amazonaws.com/splunk_apps/splunk-db-connect_114.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-for-google-app-engine_11.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-for-palo-alto-networks_411.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-hadoop-connect_121.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-hadoop-connect_122.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-on-splunk-sos-add-on-for-unix-and-linux_205.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-on-splunk-sos-add-on-for-windows_233.tgz
+# https://s3.amazonaws.com/splunk_apps/splunk-technology-add-on-for-hadoopops_111.tgz
 # s3://splunk_apps/add-on-for-jira_201.tgz
 # s3://splunk_apps/gen_data.tgz
 # s3://splunk_apps/google-maps_113.tgz

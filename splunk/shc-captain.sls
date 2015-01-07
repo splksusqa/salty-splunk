@@ -1,3 +1,4 @@
+
 include:
  - splunk.common
 
@@ -14,25 +15,32 @@ set-shc:
           pass4SymmKey: 'pass'
     - restart_splunk: True
 
-wait:
-  cmd.run:
-    - name: 'sleep 30'
-
-
-bootstrap-shc:
+boostrap-shc:
   splunk:
     - configured
-    - interface: rest
-    - method: post
-    - uri: services/shcluster/member/consensus/foo/bootstrap
+    - interface: cli
+    - command: "bootstrap shcluster-captain"
+    - params:
+        servers_list: {{ salt['publish.publish']('*-shc-*', 'splunk.get_mgmt_uri').values()|join(",") }}
+
+#bootstrap-shc:
+#  splunk:
+#    - configured
+#    - interface: rest
+#    - method: post
+#    - uri: services/shcluster/member/consensus/foo/bootstrap
+#
+#
+#add-members:
+#  splunk:
+#    - configured
+#    - interface: rest
+#    - method: post
+#    - uri: services/shcluster/member/consensus/foo
+#    - body:
+#        shc_cluster_configuration_id: 1
+#        shc_new_servers: "{{ salt['publish.publish']('role:splunk-shc-*', 'splunk.get_mgmt_uri', '', 'grain').values()|join(",") }}"
+#
 
 
-add-members:
-  splunk:
-    - configured
-    - interface: rest
-    - method: post
-    - uri: services/shcluster/member/consensus/foo
-    - body:
-        shc_cluster_configuration_id: 1
-        shc_new_servers: "{{ salt['publish.publish']('role:splunk-shc-*', 'splunk.get_mgmt_uri', '', 'grain').values()|join(",") }}"
+

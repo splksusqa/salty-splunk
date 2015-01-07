@@ -46,11 +46,7 @@ are executed remotely.
         if [ "$is_ubuntu" ]; then
             sudo add-apt-repository ppa:saltstack/salt -y
             sudo apt-get update -y 
-            sudo apt-get install git -y
-            sudo apt-get install salt-master -y
-            sudo apt-get install python-libcloud -y 
-            sudo apt-get install salt-cloud -y
-            sudo apt-get install smbclient -y
+            sudo apt-get install git salt-master python-libcloud salt-cloud smbclient -y
             wget -nc -q https://raw.githubusercontent.com/billcchung/misc/master/install-salt-master/patch/cloud.py
             cloud_loc="/usr/lib/python2.`salt --versions-report | awk -F. '/Python/{print $2}'`/dist-packages/salt/utils/cloud.py"
             wget -nc -q http://download.opensuse.org/repositories/home:/uibmz:/opsi:/opsi40-testing/xUbuntu_12.04/amd64/winexe_1.00.1-1_amd64.deb
@@ -58,10 +54,7 @@ are executed remotely.
         elif [ "$is_redhat" ]; then
             # The steps are for redhat 6
             sudo rpm -Uvh http://ftp.linux.ncsu.edu/pub/epel/6/i386/epel-release-6-8.noarch.rpm
-            sudo yum -y install salt-master
-            sudo yum -y install samba-client
-            sudo yum -y install python-libcloud
-            sudo yum -y install salt-cloud
+            sudo yum -y install salt-master samba-client python-libcloud salt-cloud
             curl -O https://raw.githubusercontent.com/billcchung/misc/master/install-salt-master/patch/cloud.py
             cloud_loc="/usr/lib/python2.`salt --versions-report | awk -F. '/Python/{print $2}'`/site-packages/salt/utils/cloud.py"
             curl -O http://ftp5.gwdg.de/pub/opensuse/repositories/home:/uibmz:/opsi:/opsi40-testing/CentOS_CentOS-6/x86_64/winexe-1.00.1-10.2.x86_64.rpm
@@ -316,6 +309,7 @@ You'll need to edit
 [this line](https://github.com/saltstack/salt/blob/develop/salt/utils/__init__.py#L786)
 with `key = ''.join(fp_.readlines()[1:-1]).replace("\r\n", "\n")`
 to make windows minions provisioned by `salt-cloud -m cloud.map` happy
-
+1. The *publish.publish* module doesnt support compound matching, see issue [here]
+(https://github.com/saltstack/salt/issues/17194)
 # Credits
 

@@ -61,8 +61,3 @@ set-min-disk:
     - require:
       - splunk: install-splunk
 
-
-
-
-
-

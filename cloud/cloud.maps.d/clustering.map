@@ -4,8 +4,8 @@ ubuntu-splunk-cluster-master:
   - cchung-splunk-cluster-master
 
 ubuntu-splunk-cluster-searchhead:
-  - cchung-splunk-cluster-searchhead
-      requires:
+  - cchung-splunk-cluster-searchhead:
+      requires: 
         - cchung-splunk-cluster-master
 
 ubuntu-splunk-cluster-slave:
@@ -18,4 +18,3 @@ ubuntu-splunk-cluster-slave:
   - cchung-splunk-cluster-slave-03:
       requires:
         - cchung-splunk-cluster-master
-
