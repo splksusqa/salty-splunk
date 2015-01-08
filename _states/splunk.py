@@ -12,7 +12,7 @@ import logging
 import platform
 import itertools
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        '..', '_modules', 'lib')
+                        '..', 'modules', 'lib')
 for path in os.listdir(lib_path):
     sys.path.append(path)
 # if not lib_path in sys.path:
