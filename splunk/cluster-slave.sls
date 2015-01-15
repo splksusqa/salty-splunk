@@ -2,6 +2,20 @@ include:
   - splunk.common
 
 
+set_retention:
+  splunk:
+    - configured
+    - interface: rest
+    - method: post
+    - uri: servicesNS/nobody/system/data/indexes/main
+    - body:
+        maxTotalDataSizeMB: {{ pillar['retention']['maxTotalDataSizeMB'] }}
+        maxWarmDBCount:     {{ pillar['retention']['maxWarmDBCount'] }}
+        maxDataSize:        {{ pillar['retention']['maxDataSize'] }}
+    - require:
+      - sls: splunk.common
+
+
 set-slave:
   splunk:
     - configured
@@ -53,33 +67,18 @@ listen_udp:
       - sls: splunk.common
 
 
-set_retention:
+data:
   splunk:
-    - configured
-    - interface: rest
-    - method: post
-    - uri: servicesNS/nobody/system/data/indexes/main
-    - body:
-        maxTotalDataSizeMB: 25000
-        maxWarmDBCount: 15
-        maxDataSize: 500
+    - data_monitored
+    - source: {{ pillar['dataset']['1m'] }}
     - require:
       - sls: splunk.common
 
 
-# if you'd like to use the following states, remember to put aws keys
-# since they're using data/app from s3 buckets
-#data:
-#  splunk:
-#    - data_monitored
-#    - source: {{ pillar['splunk']['dataset'] }}
-#    - require:
-#      - sls: splunk.common
-#
-#
-#app:
-#  splunk:
-#    - app_installed
-#    - source: {{ pillar['splunk']['app'] }}
-#    - require:
-#      - sls: splunk.common
+app:
+  splunk:
+    - app_installed
+    - source: {{ pillar['app']['gendata'] }}
+    - require:
+      - sls: splunk.common
+

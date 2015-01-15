@@ -2,6 +2,20 @@ include:
   - splunk.common
 
 
+set_retention:
+  splunk:
+    - configured
+    - interface: rest
+    - method: post
+    - uri: servicesNS/nobody/system/data/indexes/main
+    - body:
+        maxTotalDataSizeMB: {{ pillar['retention']['maxTotalDataSizeMB'] }}
+        maxWarmDBCount:     {{ pillar['retention']['maxWarmDBCount'] }}
+        maxDataSize:        {{ pillar['retention']['maxDataSize'] }}
+    - require:
+      - sls: splunk.common
+
+
 listen_splunktcp:
   splunk:
     - configured
@@ -38,15 +52,17 @@ listen_udp:
       - sls: splunk.common
 
 
-set_retention:
+data:
   splunk:
-    - configured
-    - interface: rest
-    - method: post
-    - uri: servicesNS/nobody/system/data/indexes/main
-    - body:
-        maxTotalDataSizeMB: {{ pillar['retention']['maxTotalDataSizeMB'] }}
-        maxWarmDBCount:     {{ pillar['retention']['maxWarmDBCount'] }}
-        maxDataSize:        {{ pillar['retention']['maxDataSize'] }}
+    - data_monitored
+    - source: {{ pillar['dataset']['1m'] }}
     - require:
       - sls: splunk.common
+
+
+app:
+  splunk:
+    - app_installed
+    - source: {{ pillar['app']['gendata'] }}
+    - require:
+      - sls: splunk.

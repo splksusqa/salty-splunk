@@ -4,9 +4,14 @@ Module for various utils
 ==========================
 """
 import os
+import sys
 import errno
-import requests
 import logging
+
+lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
+if not lib_path in sys.path:
+    sys.path.append(lib_path)
+import requests
 
 # salt
 import salt.exceptions

@@ -7,7 +7,7 @@ set-shc:
     - interface: conf
     - conf: server.conf
     - stanza:
-        replication_port://39997: {}
+        replication_port://{{ pillar['shc-member']['replication_port'] }}: {}
         shclustering:
           disabled: '0'
           mgmt_uri: https://{{ grains['host']}}:{{ pillar['splunk']['splunkd_port'] }}

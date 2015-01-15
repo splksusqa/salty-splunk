@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 rest_endpoints = {
     #'indexes': 'servicesNS/nobody/_cluster/data/indexes/',
     'indexes': "services/data/indexes/{idx}",
-    'appinstall': '/services/apps/appinstall',
+    'appinstall': 'services/apps/appinstall',
     'splunktcp': 'servicesNS/nobody/search/data/inputs/tcp/cooked',
     'tcp': 'servicesNS/nobody/search/data/inputs/tcp/raw',
     'udp': 'servicesNS/nobody/search/data/inputs/udp',
@@ -145,9 +145,7 @@ def stop(force=False):
 
     :return: results of calling cmd
     """
-    cmd_ = 'stop'
-    if force: cmd_ += ' -f'
-    return cmd(cmd_)['stdout']
+    return cmd('stop' + (' -f' if force else ''))['stdout']
 
 
 def status():

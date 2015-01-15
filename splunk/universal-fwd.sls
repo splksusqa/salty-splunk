@@ -1,17 +1,52 @@
 include:
   - splunk.common
 
-{% for mgmt in salt['publish.publish']('role:*slave', 'splunk.get_listening_uri', 'type=splunktcp', 'grain').values() %}
+{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
+{% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
 
-set_fwd_server_{{mgmt}}:
+{% for recievers in [slaves, indexers] %}
+  {% if recievers %}
+    {% for host,uri in recievers.iteritems() %}
+
+set_fwd_server_{{host}}:
   splunk:
     - configured
     - interface: rest
     - method: post
     - uri: services/data/outputs/tcp/server
     - body:
-        name: {{mgmt}}
+        name: {{uri}}
     - require:
       - splunk: install-splunk
 
+    {% endfor %}
+  {% endif %}
 {% endfor %}
+
+
+data:
+  splunk:
+    - data_monitored
+    - source: {{ pillar['dataset']['1m'] }}
+    - require:
+      - sls: splunk.common
+
+
+app:
+  splunk:
+    - app_installed
+    - source: {{ pillar['app']['gendata'] }}
+    - require:
+      - sls: splunk.common
+
+# uf doesnt have such rest endpoint
+#app:
+#  splunk:
+#    - configured
+#    - interface: rest
+#    - method: post
+#    - uri: services/apps/appinstall
+#    - body:
+#        name: {{ pillar['app']['gendata'] }}
+#    - require:
+#      - sls: splunk.common

@@ -1,5 +1,11 @@
 # Because of the issue: https://github.com/saltstack/salt/issues/14593
 # cloud.map isnt ready for provisioning windows minions yet
+
+ubuntu-splunk-indexer:
+  - defaultdeployment-splunk-indexer-01
+  - defaultdeployment-splunk-indexer-02
+  - defaultdeployment-splunk-indexer-03
+
 ubuntu-splunk-shc-captain:
   - defaultdeployment-splunk-shc-captain
 
@@ -10,6 +16,4 @@ ubuntu-splunk-shc-member:
   - defaultdeployment-splunk-shc-member-02:
       requires:
         - defaultdeployment-splunk-shc-captain
-  - defaultdeployment-splunk-shc-member-03:
-      requires:
-        - defaultdeployment-splunk-shc-captain
+

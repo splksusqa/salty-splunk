@@ -17,13 +17,11 @@ splunk:
   splunkweb_port: 8000
   auth: 'admin:changeme'
   start_after_install: True # It's calling splunk.start, not using LAUNCHSPLUNK
-  version: 6.1.3
-  build: 220630
+  version: 6.1.6
+  build: ''
   fetcher_url: http://r.susqa.com/cgi-bin/splunk_build_fetcher.py
   pkg_released: False
   instances: 1
-  dataset: 's3://qasus_data/new_test_data/FoursquareData.txt'
-  app: 's3://qasus_data/apps/sideview-utils-lgpl_135.tgz'
 
   {% if grains['kernel'] == 'Linux'%}
   home: /opt/splunk
@@ -52,52 +50,4 @@ splunk:
     tcp: 9997
     udp: 9998
 
-monitoring:
-  # default to blank, will get the ip of master, so splunk for monitoring should
-  # be installed at master.
-  splunk_ip:
-  listen_port: 9997
-  listen_scheme: tcp
 
-## used by s3fs (of salt) ##
-s3.keyid:
-s3.key:
-s3.service_url: s3.amazonaws.com
-
-# Apps:
-# https://s3.amazonaws.com/splunk_apps/add-on-for-jira_201.tgz
-# https://s3.amazonaws.com/splunk_apps/gen_data.tgz
-# https://s3.amazonaws.com/splunk_apps/google-maps_113.tgz
-# https://s3.amazonaws.com/splunk_apps/sideview-utils-lgpl_135.tgz
-# https://s3.amazonaws.com/splunk_apps/sos-splunk-on-splunk_32.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-add-on-for-unix-and-linux_503.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-app-for-hadoopops_113.zip
-# https://s3.amazonaws.com/splunk_apps/splunk-db-connect_114.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-for-google-app-engine_11.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-for-palo-alto-networks_411.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-hadoop-connect_121.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-hadoop-connect_122.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-on-splunk-sos-add-on-for-unix-and-linux_205.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-on-splunk-sos-add-on-for-windows_233.tgz
-# https://s3.amazonaws.com/splunk_apps/splunk-technology-add-on-for-hadoopops_111.tgz
-# s3://splunk_apps/add-on-for-jira_201.tgz
-# s3://splunk_apps/gen_data.tgz
-# s3://splunk_apps/google-maps_113.tgz
-# s3://splunk_apps/sideview-utils-lgpl_135.tgz
-# s3://splunk_apps/sos-splunk-on-splunk_32.tgz
-# s3://splunk_apps/splunk-add-on-for-unix-and-linux_503.tgz
-# s3://splunk_apps/splunk-app-for-enterprise-security_311.tgz
-# s3://splunk_apps/splunk-app-for-hadoopops_113.zip
-# s3://splunk_apps/splunk-db-connect_114.tgz
-# s3://splunk_apps/splunk-for-google-app-engine_11.tgz
-# s3://splunk_apps/splunk-for-palo-alto-networks_411.tgz
-# s3://splunk_apps/splunk-hadoop-connect_121.tgz
-# s3://splunk_apps/splunk-hadoop-connect_122.tgz
-# s3://splunk_apps/splunk-on-splunk-sos-add-on-for-unix-and-linux_205.tgz
-# s3://splunk_apps/splunk-on-splunk-sos-add-on-for-windows_233.tgz
-# s3://splunk_apps/splunk-technology-add-on-for-hadoopops_111.tgz
-
-#  app_source_sos_addon: s3://splunk_apps/splunk-add-on-for-unix-and-linux_503.tgz
-#  app_dest_sos_addon: /tmp/splunk-add-on-for-unix-and-linux_503.tgz
-#  app_source_sos: s3://splunk_apps/splunk-on-splunk-sos-add-on-for-unix-and-linux_205.tgz
-#  app_dest_sos: /tmp/splunk-on-splunk-sos-add-on-for-unix-and-linux_205.tgz

@@ -65,10 +65,11 @@ are executed remotely.
         sudo mv -f cloud.py $cloud_loc
 
         # edit salt master config
-        echo -e "\npeer:\n  .*:\n    - network.ip_addrs\n    - splunk.*\n" | sudo tee -a /etc/salt/master > /dev/null
-        echo -e "\npillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
-        echo -e "\nfile_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
-        echo -e "\ntimeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "peer:\n  .*:\n    - network.ip_addrs\n    - splunk.*\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "pillar_roots:\n  base:\n    - /srv/salt/pillar\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "file_recv: True\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "timeout: 15\n" | sudo tee -a /etc/salt/master > /dev/null
+        echo -e "runner_dirs: ['/srv/salt/runners']\n" | sudo tee -a /etc/salt/master > /dev/null
 
         # fetch splunk realted modules, states and other stuff.
         mkdir ~/.ssh/
@@ -297,11 +298,10 @@ This readme file.
 you will need to delete the keys as well:
 `salt-key -d <node1> <node2> <node3> ...`
 1. If you keep getting `SaltCloudSystemExit: Failed to authenticate against 
-remote windows host`, add a retry mechanism into *validate_windows_cred* of
-*/usr/lib/python2.7/dist-packages/salt/utils/cloud.py*.
-Because windows might be up but not yet be ready to install winexesvc, so it'll 
-return an error, and salt-cloud would think that is an authentication error, see 
-https://github.com/saltstack/salt/issues/18308
+remote windows host`, check if */usr/lib/python2.7/dist-packages/salt/utils/cloud.py* 
+is correctly updated. It's because windows might be up but not yet be ready to 
+install winexesvc, so it'll return an error, and salt-cloud would think that is 
+an authentication error, see https://github.com/saltstack/salt/issues/18308
 1. If you manage to use `cloud.map` to provision minions, you will encounter an
 error (see the issue [here](https://github.com/saltstack/salt/issues/14593))
 saying `The specified fingerprint in the master configuration file`. 
