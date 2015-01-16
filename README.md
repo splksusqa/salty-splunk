@@ -113,6 +113,7 @@ are executed remotely.
         for d in conf deploy maps profiles providers; do 
             sudo rm -r /etc/salt/cloud.${d}.d ; sudo ln -s /srv/salt/cloud/cloud.${d}.d /etc/salt/cloud.${d}.d
         done
+        sudo rm /etc/salt/cloud; sudo ln -s /srv/salt/cloud /etc/salt/cloud
         sudo service salt-master restart
 
 ## Launch instances with salt-cloud
