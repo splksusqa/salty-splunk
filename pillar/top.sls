@@ -39,13 +39,13 @@ base:
     - match: grain
     - splunk.cluster-slave
 
-  'role:splunk-shc-deployer:
-    - match: grain
-    - splunk.shc-deployer
-
   'role:splunk-shc-member':
     - match: grain
     - splunk.shc-member
+
+  'role:splunk-shc-deployer':
+    - match: grain
+    - splunk.shc-deployer
 
   'role:splunk-indexer':
     - match: grain

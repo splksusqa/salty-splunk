@@ -27,6 +27,10 @@ base:
     - match: grain
     - splunk.shc-member
 
+  'role:splunk-shc-deployer':
+    - match: grain
+    - splunk.shc-deployer
+
   'role:splunk-indexer':
     - match: grain
     - splunk.indexer
