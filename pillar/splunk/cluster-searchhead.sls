@@ -1,3 +1,3 @@
 # cluster-searchhead specific settings
 include:
- - splunk.common
+  - splunk.common

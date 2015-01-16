@@ -4,4 +4,4 @@ boostrap-shc:
     - interface: cli
     - command: "bootstrap shcluster-captain"
     - params:
-        servers_list: {{ salt['publish.publish']('*-shc-*', 'splunk.get_mgmt_uri').values()|join(",") }}
+        servers_list: {{ salt['publish.publish']('role:splunk-shc-member', 'splunk.get_mgmt_uri', None, 'grain').values()|join(",") }}
