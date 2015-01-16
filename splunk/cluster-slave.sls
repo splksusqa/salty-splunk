@@ -38,7 +38,7 @@ listen_splunktcp:
     - method: post
     - uri: servicesNS/nobody/search/data/inputs/tcp/cooked
     - body:
-        name: 9996
+        name: {{ pillar['listen_port']['splunktcp'] }}
     - require:
       - sls: splunk.common
 
@@ -50,7 +50,7 @@ listen_tcp:
     - method: post
     - uri: servicesNS/nobody/search/data/inputs/tcp/raw
     - body:
-        name: 9997
+        name: {{ pillar['listen_port']['tcp'] }}
     - require:
       - sls: splunk.common
 
@@ -62,7 +62,7 @@ listen_udp:
     - method: post
     - uri: servicesNS/nobody/search/data/inputs/udp
     - body:
-        name: 9998
+        name: {{ pillar['listen_port']['udp'] }}
     - require:
       - sls: splunk.common
 
