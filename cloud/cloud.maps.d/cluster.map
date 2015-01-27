@@ -20,12 +20,3 @@ ubuntu-splunk-cluster-slave:
       requires:
         - defaultdeployment-splunk-cluster-master
 
-ubuntu-splunk-universal-fwd:
-  - defaultdeployment-splunk-universal-fwd-01:
-      requires:
-        - defaultdeployment-splunk-cluster-slave-01
-  - defaultdeployment-splunk-universal-fwd-02:
-      requires:
-        - defaultdeployment-splunk-cluster-slave-02
-
-

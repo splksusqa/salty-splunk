@@ -2,11 +2,6 @@
 
 base:
 
-#  'role:splunk*':
-#    - match: grain
-#    - splunk.common
-
-
   'role:splunk-cluster-master':
     - match: grain
     - splunk.cluster-master

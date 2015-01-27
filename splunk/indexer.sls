@@ -65,4 +65,4 @@ app:
     - app_installed
     - source: {{ pillar['app']['gendata'] }}
     - require:
-      - sls: splunk.
+      - sls: splunk.common

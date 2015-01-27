@@ -13,3 +13,4 @@ ubuntu-splunk-shc-member:
   - defaultdeployment-splunk-shc-member-03:
       requires:
         - defaultdeployment-splunk-shc-captain
+

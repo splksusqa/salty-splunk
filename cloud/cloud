@@ -1,2 +1,3 @@
 # start_action: state.highstate
-start_action: saltutil.sync_all
+# start_action: saltutil.sync_all
+log_level: warning
