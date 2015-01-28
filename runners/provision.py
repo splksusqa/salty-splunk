@@ -61,7 +61,7 @@ class SaltWrapper(object):
             master_prof = profile.format(**self.roles['idx'])
             master = [self.tag + '-' + master_prof]
             machines.update({master_prof: master})
-            self.roles['idx']['role'] = self.groups['idx']['master']
+            self.roles['idx']['role'] = self.groups['idx']['slave']
         else:
             self.roles['idx']['role'] = self.groups['idx']['standalone']
 
