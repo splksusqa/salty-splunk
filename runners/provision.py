@@ -1,5 +1,6 @@
 import os
 import re
+import sys
 import time
 import salt
 
@@ -18,14 +19,14 @@ class SaltWrapper(object):
                 'idx-cluster': 'splunk-cluster-searchhead',
                 'shc-captain': 'splunk-shc-captain',
                 'shc-member': 'splunk-shc-member',
-                'standalone': 'splunk-searchhead'},
+                'standalone': 'splunk-searchhead',
+                'shc-deployer': 'splunk-shc-deployer'},
             'fwd': {
                 'universal': 'splunk-universal-fwd',
                 'heavy': 'splunk-heavy-fwd',
                 'light': 'splunk-light-fwd'},
             'lic': 'splunk-lic-master',
             'dmc': 'splunk-dmc',
-            'dep': 'splunk-deployer'
         }
 
         self.tag = tag or 'no_tag'
@@ -78,7 +79,7 @@ class SaltWrapper(object):
 
         self.roles['lic']['role'] = self.groups['lic']
         self.roles['dmc']['role'] = self.groups['dmc']
-        self.roles['dep']['role'] = self.groups['dep']
+        self.roles['dep']['role'] = self.groups['sh']['shc-deployer']
 
         for r in ROLES:
             if not isinstance(self.roles[r]['num'], int):
@@ -113,6 +114,7 @@ class SaltWrapper(object):
             else:
                 print "Connected: {}".format(connected)
                 print "Waiting for: {}".format(waiting)
+            sys.stdout.flush()
 
         self.master.cmd('*', 'saltutil.sync_all', [])
         self.master.cmd('*', 'saltutil.refresh_pillar', [])

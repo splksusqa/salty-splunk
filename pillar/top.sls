@@ -22,6 +22,7 @@ base:
     - splunk.dataset
     - splunk.app
     - splunk.retention
+    - splunk.idx-replication
 
   'role:splunk-shc-member':
     - match: grain
