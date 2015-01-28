@@ -1,17 +1,4 @@
 # common settings
-# issue about merging pillars: https://github.com/saltstack/salt/issues/3991
-system:
-  {% if grains['kernel'] == 'Linux'%}
-  user: root
-  files_dir: /tmp/salt_files/
-  {% elif grains['kernel'] == 'Windows'%}
-  # Windows does not support runas functionality in cmd.run,
-  # so we cant run splunk commands as another user.
-  user: Aministrator
-  files_dir: 'C:\temp\salt_files\'
-  {% endif %}
-
-
 splunk:
   splunkd_port: 8089
   splunkweb_port: 8000

@@ -15,7 +15,9 @@ import logging
 import inspect
 import shutil
 import socket
+import platform
 from functools import wraps
+from distutils.version import LooseVersion
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
@@ -587,10 +589,10 @@ def _read_config(conf_file, **kwargs):
     :rtype: object
     """
     # handle unicode endings, SQA-420
-    content = open(conf_file).read()
+    content = open(conf_file, 'r+').read()
     for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
         content = re.sub(e, '', content)
-    open(conf_file, 'w').write(content)
+    open(conf_file, 'w+').write(content)
     # read as ConfigParser (cp)
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
@@ -821,10 +823,22 @@ def uninstall(**kwargs):
             os.kill(int(pid), 9)
         except OSError:
             pass
-    if salt.utils.is_windows():
+    splunktype = __pillar__['splunk']['type']
+    if splunktype == 'splunk':
+        product = "splunk"
+        services = ['splunkd', 'splunkweb']
+    elif splunktype == 'splunkforwarder':
+        product = "UniversalForwarder"
+        services = ['splunkforwarder']
+    else:
+        product = ""
+        services = []
+
+
+    if salt.utils.is_windows() and product and services:
         sc_cmd = " & ".join(["sc {0} {1}".format(action, service)
                               for action in ['stop', 'delete', 'stop']
-                              for service in ['splunkd', 'splunkweb']])
+                              for service in services])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](sc_cmd))
 
         proc_to_kill = ['msiexec.exe', 'notdpad.exe', 'cmd.exe', 'firefox.exe',
@@ -833,13 +847,74 @@ def uninstall(**kwargs):
                                     for proc in proc_to_kill])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](taskkill_cmd))
 
-        uninstall_cmd = ('wmic product where name="splunk" call uninstall '
-                         '/nointeractive')
+        uninstall_cmd = ('wmic product where name="{}" call uninstall '
+                         '/nointeractive'.format(product))
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](uninstall_cmd))
     else:
         shutil.rmtree(home())
 
     ret['retcode'] = 0
+    return ret
+
+
+@log
+def install(name,
+            splunk_home,
+            pkg,
+            version,
+            build='',
+            type='splunk',
+            fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py',
+            pkg_released=False,
+            instances=1,
+            dest='',
+            install_flags='',
+            start_after_install=True,
+            user='',
+            **kwargs):
+    """
+    Install splunk if it's not installed as specified pkg
+
+    :param str name: name of the state, sent by salt
+    :param str source: pkg source, can be http, https, salt, ftp schemes
+    :param str splunk_home: installdir
+    :param str dest: location for storing the pkg, useful for future usages.
+    :param dict install_flags: extra installation flags
+    :param bool start_after_install: start splunk after installation
+    :return: results of name, changes, results, and comment.
+    :rtype: dict
+    """
+    ret = {'name': name, 'changes': {}, 'result': False, 'comment': ''}
+    user = user or __salt__['pillar.get']('system:user')
+    install_flags = install_flags or {}
+    pkg_src = _get_pkg_url(pkg=pkg, version=version, build=build, type=type,
+                           pkg_released=pkg_released,fetcher_url=fetcher_url)
+    pkg_name = os.path.basename(pkg_src)
+    pkg_type = _validate_pkg_for_platform(pkg_name)
+    pkg_state = _get_current_pkg_state(pkg_name)
+    if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
+        cached_pkg = __salt__['utils.cache_file'](source=pkg_src, dest=dest)
+        logger.info("Installing pkg from '{s}', stored at '{c}'".format(
+                    s=pkg_src, c=cached_pkg))
+        stop()
+        install_ret = getattr(sys.modules[__name__],
+                              "_install_{t}".format(t=pkg_type))(
+                          pkg=cached_pkg, splunk_home=splunk_home,
+                          instances=instances, user=user, flags=install_flags)
+        ret['comment'] = install_ret['comment']
+        logger.info("Install runner returned code: {r}, comment: {c}".format(
+                    r=install_ret['retcode'], c=install_ret['comment']))
+        if install_ret['retcode'] == 0:
+            if start_after_install: start()
+            ret['result'] = True
+            ret['changes'] = {'before': pkg_state['current_state'],
+                              'after': info()}
+
+    elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
+        ret['comment'] = pkg_state['comment']
+        ret['result'] = True
+    else: # retcode is 0, not going to install
+        ret['comment'] = pkg_state['comment']
     return ret
 
 
@@ -849,6 +924,204 @@ set_web_port = set_splunkweb_port
 
 
 #### Internal functions ####
+
+def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
+        fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
+    schemes = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
+    if any([True for i in schemes if pkg.startswith(i)]):
+        pkg_url = pkg # pkg is set as static url
+    else:
+        params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
+        if type == 'splunkforwarder':
+            params.update({'UF': '1'})
+        if pkg_released:
+            params.update({'VERSION': version})
+        else:
+            params.update({'BRANCH': version})
+            if build:
+                if build.isdigit():
+                    params.update({'P4CHANGE': build})
+                else:
+                    logger.warn("build '{b}' is not a number!".format(b=build))
+
+        r = requests.get(fetcher_url, params=params)
+        if 'Error' in r.text.strip():
+             raise salt.exceptions.CommandExecutionError(
+                       "Fetcher returned an error: {e}, "
+                       "requested url: {u}".format(
+                           e=r.text.strip(), u=r.url))
+        pkg_url = r.text.strip()
+    return pkg_url
+
+
+def _is_pkg_installed(pkg):
+    """
+    check if splunk is installed at desired version/build
+
+    :param pkg:
+    :return:
+    """
+    reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
+    (version, build) = (reg.group(2), reg.group(3))
+    if info():
+        if info()['VERSION'] == version and info()['BUILD'] == build:
+            return True
+    else:
+        return False
+
+
+def _get_current_pkg_state(pkg):
+    """
+
+    :param pkg:
+    :return:
+    """
+    ret = {'retcode': 127, 'comment': '', 'current_state': ''}
+    reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
+    (version, build) = (reg.group(2), reg.group(3))
+
+    if is_splunk_installed():
+        current_pkg = info()
+        ret['current_state'] = current_pkg
+        ret['comment'] = "Current pkg {v}-{b} ".format(
+            v=current_pkg['VERSION'], b=current_pkg['BUILD'])
+        if LooseVersion(current_pkg['VERSION']) > LooseVersion(version):
+            ret['retcode'] = 0
+            ret['comment'] += "has higher version than '{p}'".format(p=pkg)
+        elif LooseVersion(current_pkg['VERSION']) == LooseVersion(version):
+            if current_pkg['BUILD'] > build:
+                ret['retcode'] = 0
+                ret['comment'] += ("has same version, but higher build than "
+                                   "'{p}'".format(p=pkg))
+            elif current_pkg['BUILD'] == build:
+                ret['retcode'] = 2
+                ret['comment'] += ("has same version and build with "
+                                   "'{p}'".format(p=pkg))
+            else:
+                ret['retcode'] = 1
+                ret['comment'] += ("has same version, but lower build than "
+                                   "'{p}'".format(p=pkg))
+        else:
+            ret['retcode'] = 1
+            ret['comment'] += "has lower version than '{p}'".format(p=pkg)
+    else:
+        ret['retcode'] = 1
+        ret['comment'] = 'No Splunk is installed'
+    return ret
+
+
+def _validate_pkg_for_platform(pkg):
+    """
+    validate the pkg is correct for current platform, and returns the pkg type
+
+    :param pkg: name of the package, e.g. splunk-6.1.3-217765-Linux-x86_64.tgz,
+                it has to match with defined extensions (tgz, zip, msi, etc)
+    :return: type of the pkg, e.g. tgz, rpm, deb.
+    """
+    matrix = {
+        'msi': 'Windows',
+        'zip': 'Windows',
+        'tgz': 'Linux', # TODO: need to handle tgz for Darwin
+        'rpm': 'Linux',
+        'deb': 'Linux',
+        'Z': 'SunOS',
+    }
+    os_ = platform.system()
+    type = [t for t in matrix if pkg.endswith(t) and os_ == matrix[t]]
+    if not type:
+        raise salt.exceptions.CommandExecutionError(
+                  "pkg {p} is not for platform {o}".format(p=pkg, o=os_))
+    return type[0]
+
+
+def _run_install_cmd(cmd, user, comment=''):
+    """
+
+    :param cmd:
+    :return:
+    """
+    if salt.utils.is_windows():
+        user = None
+    ret = __salt__['cmd.run_all'](cmd, runas=user)
+    if ret['retcode'] == 0:
+        ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
+    else:
+        ret['comment'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
+                              c=cmd, r=ret['retcode'], s=ret['stderr'])
+    ret['comment'] += comment
+    return ret
+
+
+def _install_tgz(pkg, splunk_home, instances, flags, user):
+    """
+    Install tgz package, note the flags are not used.
+
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    """
+    cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
+           s=splunk_home, p=pkg)
+    return _run_install_cmd(cmd, user)
+
+
+def _install_rpm(pkg, splunk_home, instances, flags, user):
+    raise NotImplementedError
+
+
+def _install_msi(pkg, splunk_home, instances, flags, user):
+    if not flags: flags = {}
+    cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
+              c=pkg, h=splunk_home, q='/quiet',
+              f=' '.join("{0}={1}".format(
+                  t[0], str(t[1]).strip("'" '"')) for t in flags.iteritems()))
+    return _run_install_cmd(cmd, user)
+
+
+def _install_deb(pkg, splunk_home, instances, flags, user):
+    """
+    Install deb package, note that according to (http://docs.splunk.com/
+    Documentation/Splunk/latest/Installation/InstallonLinux#Debian_DEB_install),
+    deb package can only be installed to /opt/splunk, so splunk_home will be
+    ignored.
+
+    :param pkg: pkg location
+    :param splunk_home: must be /opt/splunk for deb package
+    :param flags: other installation flags
+    :return:
+    """
+    comment = ''
+    if not splunk_home == '/opt/splunk':
+        comment += ("splunk_home ({s}) should be '/opt/splunk' for deb pkg! "
+                    "It will have no effects".format(s=splunk_home))
+    cmd = "sudo dpkg -i {p} {f}".format(p=pkg, f=flags)
+    ret = _run_install_cmd(cmd, user)
+    ret['comment'] += comment
+    return ret
+
+
+def _install_Z(pkg, splunk_home, instances, flags, user):
+    """
+
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    """
+    raise NotImplementedError
+
+
+def _install_zip(pkg, splunk_home, instances, flags, user):
+    """
+
+    :param pkg:
+    :param splunk_home:
+    :param flags:
+    :return:
+    """
+    raise NotImplementedError
+
 
 def _named_tuple_list_to_dict_list(tuple_list):
     return [dict(zip(i._fields, i)) for i in tuple_list]

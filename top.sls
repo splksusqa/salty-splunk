@@ -46,4 +46,11 @@ base:
     - match: grain
     - splunk.light-fwd
 
+  'role:splunk-dmc':
+    - match: grain
+    - splunk.dmc
+
+  'role:splunk-lic-master':
+    - match: grain
+    - splunk.lic-master
 
