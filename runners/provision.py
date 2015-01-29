@@ -96,24 +96,23 @@ class SaltWrapper(object):
         for profile, names in self.machines.iteritems():
             if len(names):
                 print "Launching {}".format(names)
-            cloud = salt.cloud.CloudClient(self.conf['cloud'])
-            cloud.profile(profile, names, parallel=parallel)
+                cloud = salt.cloud.CloudClient(self.conf['cloud'])
+                cloud.profile(profile, names, parallel=parallel)
 
         start = time.time()
         timeout = 900 # 15 mins
         while True:
             time.sleep(30)
+            print "Checking for connected machines..."
             all_machines = self.runner.cmd('manage.status', [])
-            connected = all_machines['up']
-            waiting = all_machines['down']
-            if len(connected) == self.machines_num:
+            if len(all_machines['up']) == self.machines_num:
                 print "All machines are up!"
                 break
-            elif time.time() - start > timeout:
-                print "Time out after {}s!".format(time.time() - start)
-            else:
-                print "Connected: {}".format(connected)
-                print "Waiting for: {}".format(waiting)
+
+            if time.time() - start > timeout:
+                raise RuntimeError("Time out after {}s!".format(
+                    time.time() - start))
+
             sys.stdout.flush()
 
         self.master.cmd('*', 'saltutil.sync_all', [])

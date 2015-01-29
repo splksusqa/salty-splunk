@@ -826,6 +826,10 @@ def uninstall(**kwargs):
     splunktype = __pillar__['splunk']['type']
     if splunktype == 'splunk':
         product = "splunk"
+        if (LooseVersion(__pillar__['splunk']['version']) >=
+                LooseVersion('6.2.0') or
+            __pillar__['splunk']['version'] in ['dash', 'ember', 'current']):
+            product = "SplunkEnterprise"
         services = ['splunkd', 'splunkweb']
     elif splunktype == 'splunkforwarder':
         product = "UniversalForwarder"
