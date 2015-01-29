@@ -1,2 +1,2 @@
-cluster-slave:
-  replication_port: 8888
+idx-replication:
+  port: 8888

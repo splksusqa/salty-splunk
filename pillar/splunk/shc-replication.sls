@@ -1,1 +1,2 @@
-replication_port: 8889
+shc-replication:
+  port: 8889

@@ -25,7 +25,7 @@ set-slave:
         clustering:
           mode: slave
           master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain').values()[0] }}"
-        replication_port://{{ pillar['cluster-slave']['replication_port'] }}: {}
+        replication_port://{{ pillar['idx-replication']['port'] }}: {}
     - restart_splunk: True
     - require:
       - sls: splunk.common
