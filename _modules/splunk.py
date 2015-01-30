@@ -838,7 +838,6 @@ def uninstall(**kwargs):
         product = ""
         services = []
 
-
     if salt.utils.is_windows() and product and services:
         sc_cmd = " & ".join(["sc {0} {1}".format(action, service)
                               for action in ['stop', 'delete', 'stop']
@@ -855,7 +854,11 @@ def uninstall(**kwargs):
                          '/nointeractive'.format(product))
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](uninstall_cmd))
     else:
-        shutil.rmtree(home())
+        shome = home()
+        if os.path.exists(shome):
+            shutil.rmtree(shome)
+        else:
+            ret['comment'] += 'splunk is not installed at {}'.format(shome)
 
     ret['retcode'] = 0
     return ret

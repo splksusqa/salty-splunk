@@ -16,7 +16,7 @@ shc-captain:
 
 add-searchpeer:
   salt.state:
-    - tgt: 'role:splunk-shc-*'
+    - tgt: 'role:splunk-shc-member'
     - tgt_type: grain
     - sls: splunk.shc-add-searchpeer
     - require:

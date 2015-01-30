@@ -50,7 +50,6 @@ class SaltWrapper(object):
         self.master = salt.client.LocalClient(self.conf['master'])
         self.master_opts = salt.config.master_config('/etc/salt/master')
         self.runner = salt.runner.RunnerClient(self.master_opts)
-        print self.roles
 
 
     def get_machine_list(self):
@@ -84,7 +83,6 @@ class SaltWrapper(object):
         for r in ROLES:
             if not isinstance(self.roles[r]['num'], int):
                 self.roles[r]['num'] = 1 if self.roles[r]['num'] else 0
-            print self.roles[r]
             prof = profile.format(**self.roles[r])
             names = [self.tag + '-' + prof + '-' + str(i)
                      for i in range(self.roles[r]['num'])]
@@ -100,7 +98,7 @@ class SaltWrapper(object):
                 cloud.profile(profile, names, parallel=parallel)
 
         start = time.time()
-        timeout = 900 # 15 mins
+        timeout = 1500 # 25 mins
         while True:
             time.sleep(30)
             print "Checking for connected machines..."

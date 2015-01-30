@@ -36,6 +36,12 @@ dist-sh:
     - require:
       - salt: dist-idx
 
+shc-deployer:
+  salt.state:
+    - tgt: 'role:splunk-shc-deployer'
+    - tgt_type: grain
+    - sls: splunk.shc-deployer
+
 shc-member:
   salt.state:
     - tgt: 'role:splunk-shc-member'
@@ -52,7 +58,7 @@ shc-captain:
 
 add-searchpeer:
   salt.state:
-    - tgt: 'role:splunk-shc-*'
+    - tgt: 'role:splunk-shc-member'
     - tgt_type: grain
     - sls: splunk.shc-add-searchpeer
     - require:
