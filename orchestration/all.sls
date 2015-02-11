@@ -1,5 +1,11 @@
 # salt-run state.orch orchestration.all
 
+lic-master-setup:
+  salt.state:
+    - tgt: 'role:splunk-lic-master'
+    - tgt_type: grain
+    - sls: splunk.lic-master
+
 dist-idx:
   salt.state:
     - tgt: 'role:splunk-indexer'
@@ -71,3 +77,4 @@ uf-setup:
     - sls: splunk.universal-fwd
     - require:
       - salt: slave_setup
+

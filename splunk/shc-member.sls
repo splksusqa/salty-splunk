@@ -19,3 +19,24 @@ set-shc:
           pass4SymmKey: 'pass'
     - restart_splunk: True
 
+{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
+{% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
+
+{% for recievers in [slaves, indexers] %}
+  {% if recievers %}
+    {% for host,uri in recievers.iteritems() %}
+
+set_fwd_server_{{host}}:
+  splunk:
+    - configured
+    - interface: rest
+    - method: post
+    - uri: services/data/outputs/tcp/server
+    - body:
+        name: {{uri}}
+    - require:
+      - splunk: install-splunk
+
+    {% endfor %}
+  {% endif %}
+{% endfor %}

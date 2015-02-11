@@ -98,7 +98,7 @@ class SaltWrapper(object):
                 cloud.profile(profile, names, parallel=parallel)
 
         start = time.time()
-        timeout = 1500 # 25 mins
+        timeout = 1800 # 30 mins
         while True:
             time.sleep(30)
             print "Checking for connected machines..."
@@ -113,6 +113,7 @@ class SaltWrapper(object):
 
             sys.stdout.flush()
 
+        time.sleep(30)
         self.master.cmd('*', 'saltutil.sync_all', [])
         self.master.cmd('*', 'saltutil.refresh_pillar', [])
         return 0
