@@ -16,3 +16,4 @@ add-searchpeer-{{ idx }}:
         remotePassword: 'changeme'
   {% endfor %}
 {% endif %}
+

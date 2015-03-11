@@ -1,7 +1,6 @@
 __author__ = 'cchung'
 import socket
 import json
-import csv
 import logging
 logger = logging.getLogger(__name__)
 

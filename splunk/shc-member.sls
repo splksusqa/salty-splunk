@@ -19,24 +19,26 @@ set-shc:
           pass4SymmKey: 'pass'
     - restart_splunk: True
 
-{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
-{% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
+{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_mgmt_uri', None, 'grain') %}
+{% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_mgmt_uri', None, 'grain') %}
 
 {% for recievers in [slaves, indexers] %}
   {% if recievers %}
     {% for host,uri in recievers.iteritems() %}
 
-set_fwd_server_{{host}}:
+add-searchpeer-{{ idx }}:
   splunk:
     - configured
     - interface: rest
     - method: post
-    - uri: services/data/outputs/tcp/server
+    - uri: services/search/distributed/peers
     - body:
-        name: {{uri}}
-    - require:
-      - splunk: install-splunk
+        name: {{ idx }}
+        # TODO: update them to the passwd and username of peers, not hardcoded
+        remoteUsername: 'admin'
+        remotePassword: 'changeme'
 
     {% endfor %}
   {% endif %}
 {% endfor %}
+

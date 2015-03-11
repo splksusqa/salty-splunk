@@ -58,6 +58,7 @@ base:
   'role:splunk-heavy-fwd':
     - match: grain
     - splunk.common
+    - splunk.retention
     - splunk.listen
     - splunk.dataset
     - splunk.app
