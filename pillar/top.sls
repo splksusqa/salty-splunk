@@ -70,7 +70,7 @@ base:
     - splunk.dataset
     - splunk.app
 
-  'role:splunk-dm':
+  'role:splunk-dmc':
     - match: grain
     - splunk.common
     - splunk.app

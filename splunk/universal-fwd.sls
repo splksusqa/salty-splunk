@@ -8,16 +8,16 @@ include:
   {% if recievers %}
     {% for host,uri in recievers.iteritems() %}
 
-set_fwd_server_{{host}}:
+set_fwd_server_{{ host }}:
   splunk:
     - configured
     - interface: rest
     - method: post
     - uri: services/data/outputs/tcp/server
     - body:
-        name: {{uri}}
+        name: {{ uri }}
     - require:
-      - splunk: install-splunk
+      - sls: splunk.common
 
     {% endfor %}
   {% endif %}

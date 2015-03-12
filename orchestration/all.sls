@@ -6,75 +6,90 @@ lic-master-setup:
     - tgt_type: grain
     - sls: splunk.lic-master
 
-dist-idx:
+dist-idx-setup:
   salt.state:
     - tgt: 'role:splunk-indexer'
     - tgt_type: grain
     - sls: splunk.indexer
 
-master_setup:
+cluster-master-setup:
   salt.state:
     - tgt: 'role:splunk-cluster-master'
     - tgt_type: grain
     - sls: splunk.cluster-master
 
-slave_setup:
+cluster-slave-setup:
   salt.state:
     - tgt: 'role:splunk-cluster-slave'
     - tgt_type: grain
     - sls: splunk.cluster-slave
     - require:
-      - salt: master_setup
+      - salt: cluster-master-setup
 
-searchhead_setup:
+cluster-searchhead-setup:
   salt.state:
     - tgt: 'role:splunk-cluster-searchhead'
     - tgt_type: grain
     - sls: splunk.cluster-searchhead
     - require:
-      - salt: master_setup
+      - salt: cluster-master-setup
 
-dist-sh:
+dist-sh-setup:
   salt.state:
     - tgt: 'role:splunk-searchhead'
     - tgt_type: grain
     - sls: splunk.searchhead
     - require:
-      - salt: dist-idx
+      - salt: dist-idx-setup
 
-shc-deployer:
+shc-deployer-setup:
   salt.state:
     - tgt: 'role:splunk-shc-deployer'
     - tgt_type: grain
     - sls: splunk.shc-deployer
 
-shc-member:
+shc-member-setup:
   salt.state:
     - tgt: 'role:splunk-shc-member'
     - tgt_type: grain
     - sls: splunk.shc-member
 
-shc-captain:
+shc-captain-setup:
   salt.state:
     - tgt: 'role:splunk-shc-captain'
     - tgt_type: grain
     - sls: splunk.shc-captain
     - require:
-      - salt: shc-member
+      - salt: shc-member-setup
 
-add-searchpeer:
+shc-add-searchpeer:
   salt.state:
     - tgt: 'role:splunk-shc-member'
     - tgt_type: grain
     - sls: splunk.shc-add-searchpeer
     - require:
-      - salt: shc-captain
+      - salt: shc-captain-setup
 
-uf-setup:
+heavy-fwd-setup:
+  salt.state:
+    - tgt: 'role:splunk-heavy-fwd'
+    - tgt_type: grain
+    - sls: splunk.heavy-fwd
+
+light-fwd-setup:
+  salt.state:
+    - tgt: 'role:splunk-light-fwd'
+    - tgt_type: grain
+    - sls: splunk.light-fwd
+
+universal-fwd-setup:
   salt.state:
     - tgt: 'role:splunk-universal-fwd'
     - tgt_type: grain
     - sls: splunk.universal-fwd
-    - require:
-      - salt: slave_setup
 
+dmc-setup:
+  salt.state:
+    - tgt: 'role:splunk-dmc'
+    - tgt_type: grain
+    - sls: splunk.dmc

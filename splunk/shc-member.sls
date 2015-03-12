@@ -21,22 +21,20 @@ set-shc:
 
 {% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_mgmt_uri', None, 'grain') %}
 {% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_mgmt_uri', None, 'grain') %}
-
 {% for recievers in [slaves, indexers] %}
   {% if recievers %}
     {% for host,uri in recievers.iteritems() %}
 
-add-searchpeer-{{ idx }}:
+set_fwd_server_{{ host }}:
   splunk:
     - configured
     - interface: rest
     - method: post
-    - uri: services/search/distributed/peers
+    - uri: services/data/outputs/tcp/server
     - body:
-        name: {{ idx }}
-        # TODO: update them to the passwd and username of peers, not hardcoded
-        remoteUsername: 'admin'
-        remotePassword: 'changeme'
+        name: {{ uri }}
+    - require:
+      - sls: splunk.common
 
     {% endfor %}
   {% endif %}
