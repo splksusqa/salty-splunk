@@ -22,6 +22,17 @@ install-splunk:
     - start_after_install: {{ pillar['splunk']['start_after_install'] }}
 
 
+set-splunk-server-name:
+  splunk:
+    - configured
+    - interface: conf
+    - conf: server.conf
+    - stanza:
+        general:
+          serverName: {{ grains['id'] }}
+    - restart_splunk: True
+
+
 set-splunkd-port:
   splunk:
     - splunkd_port

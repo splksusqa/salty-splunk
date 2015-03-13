@@ -98,7 +98,7 @@ class SaltWrapper(object):
                 cloud.profile(profile, names, parallel=parallel)
 
         start = time.time()
-        timeout = 1800 # 30 mins
+        timeout = 1200 + self.machines_num*30 # 30 mins
         while True:
             time.sleep(30)
             print "Checking for connected machines..."
