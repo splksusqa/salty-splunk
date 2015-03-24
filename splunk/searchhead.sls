@@ -1,6 +1,7 @@
 include:
   - splunk.common
 
+# add search peers and fwd_server
 {% set indexers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_mgmt_uri', None, 'grain') %}
 {% if indexers %}
   {% for host,uri in indexers.iteritems() %}
