@@ -203,8 +203,6 @@ def publish(tgt, fun, arg=None, expr_form='glob', returner='', timeout=5):
 
             salt '*' publish.publish test.kwarg arg="['cheese=spam','spam=cheese']"
 
-
-
     '''
     return _publish(tgt,
                     fun,
@@ -214,7 +212,6 @@ def publish(tgt, fun, arg=None, expr_form='glob', returner='', timeout=5):
                     timeout=timeout,
                     form='clean',
                     wait=True)
-
 
 def full_data(tgt, fun, arg=None, expr_form='glob', returner='', timeout=5):
     '''
