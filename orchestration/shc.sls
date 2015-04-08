@@ -1,5 +1,11 @@
 # salt-run state.orch orchestration.cluster
 
+shc-deployer-setup:
+  salt.state:
+    - tgt: 'role:splunk-shc-deployer'
+    - tgt_type: grain
+    - sls: splunk.shc-deployer
+
 shc-member:
   salt.state:
     - tgt: 'role:splunk-shc-member'
