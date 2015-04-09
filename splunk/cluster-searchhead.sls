@@ -28,7 +28,7 @@ set-searchhead:
     - require:
       - sls: splunk.common
 
-{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_mgmt_uri', None, 'grain') %}
+{% set slaves = salt['publish.publish']('role:splunk-cluster-slave', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
 {% if slaves %}
   {% for host,uri in slaves.iteritems() %}
 
