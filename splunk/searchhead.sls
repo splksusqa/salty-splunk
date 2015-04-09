@@ -18,6 +18,12 @@ add-searchpeer-{{ host }}:
         remoteUsername: 'admin'
         remotePassword: 'changeme'
 
+  {% endfor %}
+{% endif %}
+
+{% set receivers = salt['publish.publish']('role:splunk-indexer', 'splunk.get_listening_uri', 'type=splunktcp', 'grain') %}
+{% if receivers %}
+  {% for host, uri in receivers.iteritems() %}
 set_fwd_server_{{ host }}:
   splunk:
     - configured
