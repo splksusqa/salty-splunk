@@ -1,4 +1,4 @@
-# salt-run state.orch orchestration.cluster
+# salt-run state.orch orchestration.shc
 
 shc-deployer-setup:
   salt.state:

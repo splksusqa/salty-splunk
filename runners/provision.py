@@ -4,7 +4,7 @@ import sys
 import time
 import salt
 
-ROLES = ['idx', 'sh', 'fwd', 'lic', 'dmc', 'dep']
+ROLES = ['idx', 'sh', 'fwd', 'lic', 'dmc', 'dep', 'ds']
 
 class SaltWrapper(object):
 
@@ -27,6 +27,7 @@ class SaltWrapper(object):
                 'light': 'splunk-light-fwd'},
             'lic': 'splunk-lic-master',
             'dmc': 'splunk-dmc',
+            'ds': 'splunk-deployment-server'
         }
 
         self.tag = tag or 'no_tag'
@@ -79,6 +80,7 @@ class SaltWrapper(object):
         self.roles['lic']['role'] = self.groups['lic']
         self.roles['dmc']['role'] = self.groups['dmc']
         self.roles['dep']['role'] = self.groups['sh']['shc-deployer']
+        self.roles['ds']['role'] = self.groups['ds']
 
         for r in ROLES:
             if not isinstance(self.roles[r]['num'], int):
