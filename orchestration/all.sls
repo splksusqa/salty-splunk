@@ -6,6 +6,12 @@ lic-master-setup:
     - tgt_type: grain
     - sls: splunk.lic-master
 
+deployment-server-setup:
+  salt.state:
+    - tgt: 'role:splunk-deployment-server'
+    - tgt_type: grain
+    - sls: splunk.deployment-server
+
 dist-idx-setup:
   salt.state:
     - tgt: 'role:splunk-indexer'

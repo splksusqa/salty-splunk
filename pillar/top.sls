@@ -79,3 +79,8 @@ base:
     - match: grain
     - splunk.common
     - splunk.app
+
+  'role:splunk-deployment-server':
+    - match: grain
+    - splunk.common
+    - splunk.app
