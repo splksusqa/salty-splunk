@@ -589,10 +589,11 @@ def _read_config(conf_file, **kwargs):
     :rtype: object
     """
     # handle unicode endings, SQA-420
-    content = open(conf_file, 'r+').read()
-    for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
-        content = re.sub(e, '', content)
-    open(conf_file, 'w+').write(content)
+    if os.path.exists(conf_file):
+        content = open(conf_file, 'r+').read()
+        for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
+            content = re.sub(e, '', content)
+        open(conf_file, 'w+').write(content)
     # read as ConfigParser (cp)
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
