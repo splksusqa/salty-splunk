@@ -947,7 +947,7 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         else:
             params.update({'BRANCH': version})
             if build:
-                if build.isdigit():
+                if isinstance(build, int) or build.isdigit():
                     params.update({'P4CHANGE': build})
                 else:
                     logger.warn("build '{b}' is not a number!".format(b=build))
