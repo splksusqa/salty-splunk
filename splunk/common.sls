@@ -6,6 +6,13 @@ install-psutil:
     - name: python-psutil
 {% endif %}
 
+# create splunk home folder
+{% if not grains['kernel'] == 'Linux'%}
+{{ pillar['splunk']['home'] }}:
+  file.directory:
+    - mode: 777
+    - makedirs: True
+{% endif %}
 
 install-splunk:
   splunk:

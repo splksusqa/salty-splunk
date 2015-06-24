@@ -1069,7 +1069,7 @@ def _install_tgz(pkg, splunk_home, instances, flags, user):
     :param flags:
     :return:
     """
-    cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
+    cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
            s=splunk_home, p=pkg)
     return _run_install_cmd(cmd, user)
 
