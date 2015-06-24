@@ -589,10 +589,11 @@ def _read_config(conf_file, **kwargs):
     :rtype: object
     """
     # handle unicode endings, SQA-420
-    content = open(conf_file, 'r+').read()
-    for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
-        content = re.sub(e, '', content)
-    open(conf_file, 'w+').write(content)
+    if os.path.exists(conf_file):
+        content = open(conf_file, 'r+').read()
+        for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
+            content = re.sub(e, '', content)
+        open(conf_file, 'w+').write(content)
     # read as ConfigParser (cp)
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
@@ -946,7 +947,7 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         else:
             params.update({'BRANCH': version})
             if build:
-                if build.isdigit():
+                if isinstance(build, int) or build.isdigit():
                     params.update({'P4CHANGE': build})
                 else:
                     logger.warn("build '{b}' is not a number!".format(b=build))
@@ -1068,7 +1069,7 @@ def _install_tgz(pkg, splunk_home, instances, flags, user):
     :param flags:
     :return:
     """
-    cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
+    cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
            s=splunk_home, p=pkg)
     return _run_install_cmd(cmd, user)
 

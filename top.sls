@@ -54,3 +54,6 @@ base:
     - match: grain
     - splunk.lic-master
 
+  'role:splunk-deployment-server':
+    - match: grain
+    - splunk.deployment-server
