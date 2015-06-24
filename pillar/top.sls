@@ -5,6 +5,10 @@ base:
     - system
     - s3
 
+  'role:nfsserver'
+    - match: grain
+    - nfs
+
   'role:splunk-cluster-master':
     - match: grain
     - splunk.common
