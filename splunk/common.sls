@@ -7,7 +7,7 @@ install-psutil:
 {% endif %}
 
 # create splunk home folder
-{% if not grains['kernel'] == 'Linux'%}
+{% if grains['kernel'] == 'Linux'%}
 {{ pillar['splunk']['home'] }}:
   file.directory:
     - mode: 777
@@ -27,6 +27,10 @@ install-splunk:
     - instances:           {{ pillar['splunk']['instances'] }}
     - install_flags:       {{ pillar['splunk']['install_flags'] }}
     - start_after_install: {{ pillar['splunk']['start_after_install'] }}
+    {% if grains['kernel'] == 'Linux'%}
+    - require:
+      - file: {{ pillar['splunk']['home'] }}
+    {% endif %}
 
 
 set-splunk-server-name:
