@@ -1,0 +1,3 @@
+[submodule "formulas/nfs"]
+	path = formulas/nfs
+	url = https://github.com/saltstack-formulas/nfs-formula.git

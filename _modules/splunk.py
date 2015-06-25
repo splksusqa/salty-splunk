@@ -217,7 +217,10 @@ def get_mgmt_uri(scheme=True, **kwargs):
     :return: splunk mgmt uri
     :rtype: str
     """
-    mgmt_uri = socket.gethostname().strip() + ':' + get_splunkd_port()
+    ipv4s = __salt__['network.ip_addrs']()
+    first_ip = ipv4s[0]
+
+    mgmt_uri = str(first_ip).strip() + ':' + get_splunkd_port()
     if scheme:  ## TODO: might not be https...
         mgmt_uri = 'https://' + mgmt_uri
     return mgmt_uri

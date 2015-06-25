@@ -4,7 +4,7 @@ splunk:
   splunkweb_port: 8000
   auth: 'admin:changeme'
   start_after_install: True # It's calling splunk.start, not using LAUNCHSPLUNK
-  version: 6.2.2
+  version: 6.2.4
   build: ''
   fetcher_url: http://r.susqa.com/cgi-bin/splunk_build_fetcher.py
   pkg_released: False

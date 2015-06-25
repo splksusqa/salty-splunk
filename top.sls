@@ -57,3 +57,7 @@ base:
   'role:splunk-deployment-server':
     - match: grain
     - splunk.deployment-server
+
+  'role:nfsserver':
+    - match: grain
+    - nfs.server
