@@ -5,7 +5,7 @@ base:
     - system
     - s3
 
-  'role:nfsserver'
+  'role:nfsserver':
     - match: grain
     - nfs
 
