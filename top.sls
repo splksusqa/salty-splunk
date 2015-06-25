@@ -61,3 +61,8 @@ base:
   'role:nfsserver':
     - match: grain
     - nfs.server
+    - splunk.shp-share-storage
+
+  'role:splunk-shp-searchhead':
+    - match: grain
+    - splunk.shp-searchhead

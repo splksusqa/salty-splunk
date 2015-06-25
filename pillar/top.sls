@@ -4,10 +4,8 @@ base:
     - schedule
     - system
     - s3
-
-  'role:nfsserver':
-    - match: grain
     - nfs
+    - splunk.common
 
   'role:splunk-cluster-master':
     - match: grain

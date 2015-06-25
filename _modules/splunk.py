@@ -371,7 +371,7 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     params = params or {}
     auth = auth or __pillar__['splunk']['auth']
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help',
-                    'btool']
+                    'btool', 'pooling']
     for k,v in params.iteritems():
         command += " -{k} {v}".format(k=k,v=v)
     if os.path.exists(_path('ftr')) or os.path.exists(_path('.ftr')):
