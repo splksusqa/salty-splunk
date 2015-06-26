@@ -6,6 +6,9 @@ include:
 {% set splunk_home = salt['pillar.get']('splunk.home') %}
 {% set share_apps_folder = pillar['splunk']['home'] ~ "/etc/apps" %}
 {% set share_users_folder = pillar['splunk']['home'] ~ "/etc/users" %}
+{% for r in grains['role'] if r == 'splunk-shp-init-folder' %}
+{% set is_init_folder_role = True %}
+{% endif %}
 
 stop-splunk:
   module.run:
@@ -21,20 +24,20 @@ setup-shp:
     - require:
       - module: stop-splunk
 
-{% if 'shp-init-folder' in grains['role']%}
+{% if is_init_folder_role %}
 copy-apps-folder:
   module.run:
     - name: cmd.run
-    - cmd: "mkdir -p {{ share_apps_folder }};/bin/cp -r {{ share_apps_folder }}/* {{ share_folder }}/etc/apps -f"
+    - cmd: "/bin/cp -r {{ share_apps_folder }}/* {{ share_folder }}/etc/apps -f"
     - require:
-      - sls: splunk.common
+      - splunk: setup-shp
 
 copy-user-folder:
   module.run:
     - name: cmd.run
-    - cmd: "mkdir -p {{ share_users_folder }};/bin/cp -r {{ share_users_folder }}/* {{ share_folder }}/etc/users -f"
+    - cmd: "/bin/cp -r {{ share_users_folder }}/* {{ share_folder }}/etc/users -f"
     - require:
-      - sls: splunk.common
+      - splunk: setup-shp
 {% endif %}
 
 start-splunk:
@@ -42,7 +45,7 @@ start-splunk:
     - name: splunk.start
     - require:
       - splunk: setup-shp
-      {% if 'shp-init-folder' in grains['role']%}
+      {% if is_init_folder_role %}
       - module: copy-apps-folder
       - module: copy-user-folder
       {% endif %}
