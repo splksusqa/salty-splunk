@@ -3,45 +3,53 @@ import re
 import sys
 import time
 import salt
+import logging
 
-ROLES = ['idx', 'sh', 'fwd', 'lic', 'dmc', 'dep']
 
 class SaltWrapper(object):
 
-    def __init__(self, roles, tag, log='', conf_dir=''):
-        self.roles = roles
-        self.groups = {
-            'idx': {
-                'master': 'splunk-cluster-master',
-                'slave': 'splunk-cluster-slave',
-                'standalone': 'splunk-indexer'},
-            'sh': {
-                'idx-cluster': 'splunk-cluster-searchhead',
-                'shc-captain': 'splunk-shc-captain',
-                'shc-member': 'splunk-shc-member',
-                'standalone': 'splunk-searchhead',
-                'shc-deployer': 'splunk-shc-deployer'},
-            'fwd': {
-                'universal': 'splunk-universal-fwd',
-                'heavy': 'splunk-heavy-fwd',
-                'light': 'splunk-light-fwd'},
-            'lic': 'splunk-lic-master',
-            'dmc': 'splunk-dmc',
-        }
+    GROUPS = {
+        'idx': {
+            'master': 'splunk-cluster-master',
+            'slave': 'splunk-cluster-slave',
+            'standalone': 'splunk-indexer'},
+        'sh': {
+            'idx-cluster': 'splunk-cluster-searchhead',
+            'shc-captain': 'splunk-shc-captain',
+            'shc-member': 'splunk-shc-member',
+            'standalone': 'splunk-searchhead'},
+        'fwd': {
+            'universal': 'splunk-universal-fwd',
+            'heavy': 'splunk-heavy-fwd',
+            'light': 'splunk-light-fwd'},
+        'dep': 'splunk-shc-deployer',
+        'lic': 'splunk-lic-master',
+        'dmc': 'splunk-dmc',
+        'ds': 'splunk-deployment-server'
+    }
 
+    def __init__(self, roles, tag, log='', conf_dir=''):
+        self.logger = logging.getLogger()
+        self.logger.setLevel(logging.INFO)
+        fmt = logging.Formatter('%(asctime)s %(name)s -'
+                                '%(levelname)s - %(message)s')
+        main_hdlr = logging.FileHandler(os.path.join(os.path.expanduser('~'),
+                                                     log or 'provision.log'))
+        main_hdlr.setFormatter(fmt)
+        self.salt_cloud_log = os.path.join(os.path.expanduser('~'),
+                                           'salt_cloud.log')
+        self.logger.addHandler(main_hdlr)
+        self.roles = roles
         self.tag = tag or 'no_tag'
         self.conf_dir = conf_dir or '/etc/salt/'
         self.salt_home = '/srv/salt'
         self.pillars = {
-            'top': os.path.join(self.salt_home, 'pillar', 'top.sls'),
+            'top':        os.path.join(self.salt_home, 'pillar', 'top.sls'),
             'splunk': {
                 'common': os.path.join(self.salt_home, 'pillar', 'splunk',
                                        'common.sls'),
             }
         }
-        self.log_file = os.path.join(os.path.expanduser('~'),
-                                     log or 'provision.log')
-        self.salt_log = os.path.join(os.path.expanduser('~'), 'salt_log')
         self.conf = {'master': os.path.join(self.conf_dir, 'master'),
                      'minion': os.path.join(self.conf_dir, 'minion'),
                      'cloud' : os.path.join(self.conf_dir, 'cloud')}
@@ -50,43 +58,48 @@ class SaltWrapper(object):
         self.master = salt.client.LocalClient(self.conf['master'])
         self.master_opts = salt.config.master_config('/etc/salt/master')
         self.runner = salt.runner.RunnerClient(self.master_opts)
+        self.logger.info("Roles: " + str(self.roles))
+        self.logger.info("Machines: " + str(self.machines))
 
 
     def get_machine_list(self):
         machines = {}
         profile = "{platform}-{role}-{size}"
 
-        if self.roles['idx']['cluster']:
-            self.roles['idx']['role'] = self.groups['idx']['master']
-            master_prof = profile.format(**self.roles['idx'])
-            master = [self.tag + '-' + master_prof]
-            machines.update({master_prof: master})
-            self.roles['idx']['role'] = self.groups['idx']['slave']
-        else:
-            self.roles['idx']['role'] = self.groups['idx']['standalone']
+        if 'idx' in self.roles:
+            if self.roles['idx']['cluster']:
+                self.roles['idx']['role'] = self.GROUPS['idx']['master']
+                master_prof = profile.format(**self.roles['idx'])
+                master = [self.tag + '-' + master_prof]
+                machines.update({master_prof: master})
+                self.roles['idx']['role'] = self.GROUPS['idx']['slave']
+            else:
+                self.roles['idx']['role'] = self.GROUPS['idx']['standalone']
 
-        if self.roles['sh']['cluster']:
-            self.roles['sh']['role'] = self.groups['sh']['shc-captain']
-            captain_prof = profile.format(**self.roles['sh'])
-            captain = [self.tag + '-' + captain_prof]
-            machines.update({captain_prof: captain})
-            self.roles['sh']['role'] = self.groups['sh']['shc-member']
-        elif self.roles['idx']['cluster']:
-            self.roles['sh']['role'] = self.groups['sh']['idx-cluster']
-        else:
-            self.roles['sh']['role'] = self.groups['sh']['standalone']
+        if 'sh' in self.roles:
+            if self.roles['sh']['cluster']:
+                self.roles['sh']['role'] = self.GROUPS['sh']['shc-captain']
+                captain_prof = profile.format(**self.roles['sh'])
+                captain = [self.tag + '-' + captain_prof]
+                machines.update({captain_prof: captain})
+                self.roles['sh']['role'] = self.GROUPS['sh']['shc-member']
+            elif 'idx' in self.roles and self.roles['idx']['cluster']:
+                self.roles['sh']['role'] = self.GROUPS['sh']['idx-cluster']
+            else:
+                self.roles['sh']['role'] = self.GROUPS['sh']['standalone']
 
-        self.roles['lic']['role'] = self.groups['lic']
-        self.roles['dmc']['role'] = self.groups['dmc']
-        self.roles['dep']['role'] = self.groups['sh']['shc-deployer']
+        for single_node in ['lic', 'dmc', 'ds', 'dep']:
+            if single_node in self.roles:
+                self.roles[single_node]['role'] = self.GROUPS[single_node]
 
-        for r in ROLES:
-            if not isinstance(self.roles[r]['num'], int):
-                self.roles[r]['num'] = 1 if self.roles[r]['num'] else 0
-            prof = profile.format(**self.roles[r])
-            names = [self.tag + '-' + prof + '-' + str(i)
-                     for i in range(self.roles[r]['num'])]
-            machines.update({prof:names})
+        for r in self.GROUPS:
+            if r in self.roles:
+                if not isinstance(self.roles[r]['num'], int):
+                    self.roles[r]['num'] = 1 if self.roles[r]['num'] else 0
+                prof = profile.format(**self.roles[r])
+                names = [self.tag + '-' + prof + '-' + str(i)
+                         for i in range(self.roles[r]['num'])]
+                machines.update({prof:names})
         return machines
 
 
@@ -95,10 +108,14 @@ class SaltWrapper(object):
             if len(names):
                 print "Launching {}".format(names)
                 cloud = salt.cloud.CloudClient(self.conf['cloud'])
+                sys.stdout = open(self.salt_cloud_log, 'a+')
+                sys.stderr = open(self.salt_cloud_log, 'a+')
                 cloud.profile(profile, names, parallel=parallel)
+                sys.stdout = sys.__stdout__
+                sys.stderr = sys.__stderr__
 
         start = time.time()
-        timeout = 1200 + self.machines_num*30 # 30 mins
+        timeout = 1200 + self.machines_num*30
         while True:
             time.sleep(30)
             print "Checking for connected machines..."
@@ -120,9 +137,11 @@ class SaltWrapper(object):
 
 
     def setup_all(self):
-        for r, values in self.roles.iteritems():
-            self.generate_pillar(values['version'], values['build'],
-                                 values['role'])
+        for r, v in self.roles.iteritems():
+            self.generate_pillar(v['version'], v['build'], v['role'])
+            if r == 'idx' and v.get('cluster', ''):
+                self.generate_pillar(v['version'], v['build'],
+                                     self.GROUPS['idx']['master'])
         return self.runner.cmd('state.orch', ['orchestration.all'])
 
 
@@ -152,9 +171,11 @@ class SaltWrapper(object):
 
 def provision(tag='no_tag', log='provision.log', **kwargs):
     roles = {}
-    for r in ROLES:
-        roles.update({r: kwargs.get(r, {})})
+    for r in SaltWrapper.GROUPS:
+        if kwargs.get(r):
+            roles.update({r: kwargs.get(r)})
     s = SaltWrapper(roles, tag, log)
     s.launch_all()
     s.setup_all()
     return 0
+

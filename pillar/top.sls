@@ -4,6 +4,8 @@ base:
     - schedule
     - system
     - s3
+    - nfs
+    - splunk.common
 
   'role:splunk-cluster-master':
     - match: grain
@@ -76,6 +78,11 @@ base:
     - splunk.app
 
   'role:splunk-lic-master':
+    - match: grain
+    - splunk.common
+    - splunk.app
+
+  'role:splunk-deployment-server':
     - match: grain
     - splunk.common
     - splunk.app

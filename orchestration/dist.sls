@@ -1,4 +1,4 @@
-# salt-run state.orch orchestration.cluster
+# salt-run state.orch orchestration.dist
 
 dist-idx:
   salt.state:

@@ -217,7 +217,10 @@ def get_mgmt_uri(scheme=True, **kwargs):
     :return: splunk mgmt uri
     :rtype: str
     """
-    mgmt_uri = socket.gethostname().strip() + ':' + get_splunkd_port()
+    ipv4s = __salt__['network.ip_addrs']()
+    first_ip = ipv4s[0]
+
+    mgmt_uri = str(first_ip).strip() + ':' + get_splunkd_port()
     if scheme:  ## TODO: might not be https...
         mgmt_uri = 'https://' + mgmt_uri
     return mgmt_uri
@@ -368,7 +371,7 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     params = params or {}
     auth = auth or __pillar__['splunk']['auth']
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help',
-                    'btool']
+                    'btool', 'pooling']
     for k,v in params.iteritems():
         command += " -{k} {v}".format(k=k,v=v)
     if os.path.exists(_path('ftr')) or os.path.exists(_path('.ftr')):
@@ -589,10 +592,11 @@ def _read_config(conf_file, **kwargs):
     :rtype: object
     """
     # handle unicode endings, SQA-420
-    content = open(conf_file, 'r+').read()
-    for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
-        content = re.sub(e, '', content)
-    open(conf_file, 'w+').write(content)
+    if os.path.exists(conf_file):
+        content = open(conf_file, 'r+').read()
+        for e in [r'\xfe\xff', r'\xff\xfe', r'\xef\xbb\xbf']:
+            content = re.sub(e, '', content)
+        open(conf_file, 'w+').write(content)
     # read as ConfigParser (cp)
     cp = ConfigParser.SafeConfigParser()
     cp.optionxform = str
@@ -953,7 +957,7 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         else:
             params.update({'BRANCH': version})
             if build:
-                if build.isdigit():
+                if isinstance(build, int) or build.isdigit():
                     params.update({'P4CHANGE': build})
                 else:
                     logger.warn("build '{b}' is not a number!".format(b=build))
@@ -1075,7 +1079,7 @@ def _install_tgz(pkg, splunk_home, instances, flags, user):
     :param flags:
     :return:
     """
-    cmd = "mkdir -p {s}; tar --strip-components=1 -xf {p} -C {s}".format(
+    cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
            s=splunk_home, p=pkg)
     return _run_install_cmd(cmd, user)
 

@@ -52,3 +52,18 @@ app:
     - source: {{ pillar['app']['gendata'] }}
     - require:
       - sls: splunk.common
+
+
+{% set deployment_server = salt['publish.publish']('role:splunk-deployment-server', 'splunk.get_mgmt_uri', 'scheme=False', 'grain') %}
+{% if deployment_server %}
+set_deployment_server:
+  splunk:
+    - configured
+    - interface: rest
+    - method: post
+    - uri: services/admin/deploymentclient/config
+    - body:
+        targetUri: "{{ deployment_server.values()[0] }}"
+    - require:
+      - sls: splunk.common
+{% endif %}
