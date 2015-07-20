@@ -64,4 +64,10 @@ set_deployment_server:
         targetUri: "{{ deployment_server.values()[0] }}"
     - require:
       - sls: splunk.common
+
+restart-splunk:
+  splunk:
+  - cli_configured
+  - command: "restart"
+
 {% endif %}

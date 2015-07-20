@@ -84,3 +84,4 @@ base:
     - match: grain
     - splunk.common
     - splunk.app
+    - splunk.serverclasses
