@@ -18,12 +18,15 @@ import socket
 import platform
 from functools import wraps
 from distutils.version import LooseVersion
+
 lib_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'lib')
 if not lib_path in sys.path:
     sys.path.append(lib_path)
 import requests
+
 try:
     import psutil
+
     HAS_PSUTIL = True
 except ImportError:
     HAS_PSUTIL = False
@@ -37,9 +40,8 @@ __pillar__ = {}
 default_stanza = 'default'
 logger = logging.getLogger(__name__)
 
-
 rest_endpoints = {
-    #'indexes': 'servicesNS/nobody/_cluster/data/indexes/',
+    # 'indexes': 'servicesNS/nobody/_cluster/data/indexes/',
     'indexes': "services/data/indexes/{idx}",
     'appinstall': 'services/apps/appinstall',
     'splunktcp': 'servicesNS/nobody/search/data/inputs/tcp/cooked',
@@ -55,8 +57,9 @@ def log(func):
     def l(*args, **kwargs):
         ret = func(*args, **kwargs)
         logger.info("Function '{f}' with '{v}' returned '{r}'".format(
-                        f=func.__name__, v=kwargs, r=ret))
+            f=func.__name__, v=kwargs, r=ret))
         return ret
+
     return l
 
 
@@ -72,8 +75,9 @@ def multi_instances(func):
                 'splunk_home': splunk_home_base + '_' + str(i),
                 'port': int(splunk_port_base) + i
             })
-            ret.update({ splunk_home_base + '_' + str(i): func(**kwargs)})
+            ret.update({splunk_home_base + '_' + str(i): func(**kwargs)})
         return ret
+
     return multi
 
 
@@ -83,6 +87,7 @@ def splunk_installed(func):
         if not is_splunk_installed():
             raise
         return func(**kwargs)
+
     return checked
 
 
@@ -119,7 +124,7 @@ def is_splunk_installed():
     splunk_home = home()
     is_installed = os.path.exists(_path('bin'))
     logger.info("Splunk {i}installed at '{h}'".format(
-                   i='' if is_installed else 'not ', h=splunk_home))
+        i='' if is_installed else 'not ', h=splunk_home))
     return is_installed
 
 
@@ -348,7 +353,6 @@ def massive_cmd(command, func='cmd', flags='', parallel=False):
     raise NotImplementedError
 
 
-
 @log
 def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     """
@@ -372,8 +376,8 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     auth = auth or __pillar__['splunk']['auth']
     no_auth_cmds = ['status', 'restart', 'start', 'stop', 'version', 'help',
                     'btool', 'pooling']
-    for k,v in params.iteritems():
-        command += " -{k} {v}".format(k=k,v=v)
+    for k, v in params.iteritems():
+        command += " -{k} {v}".format(k=k, v=v)
     if os.path.exists(_path('ftr')) or os.path.exists(_path('.ftr')):
         command += ' --accept-license --no-prompt --answer-yes'
     if not command.split(' ')[0] in no_auth_cmds:
@@ -386,13 +390,13 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     else:
         user = user or __pillar__['system']['user']
         cwd = ''
-        cmd_ = _path('bin:splunk') +" "+ command
+        cmd_ = _path('bin:splunk') + " " + command
     resp = __salt__['cmd.run_all'](cmd_, cwd=cwd, runas=user, timeout=timeout)
     resp.update({
         'stdout': os.linesep.join(
-                      filter(str.strip, resp['stdout'].splitlines())),
+            filter(str.strip, resp['stdout'].splitlines())),
         'stderr': os.linesep.join(
-                      filter(str.strip, resp['stderr'].splitlines())),
+            filter(str.strip, resp['stderr'].splitlines())),
     })
     ret.update(resp)
     ret['cmd'] = cmd_
@@ -440,7 +444,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
         params.update({'output_mode': output_mode})
     url = "{b}:{p}/{u}".format(b=base_uri, p=port, u=uri)
     logger.info("Rest call to {url}, with params={params}, body={body}".format(
-                **locals()))
+        **locals()))
     resp = getattr(requests, method.lower())(url, params=params, data=body,
                                              verify=False, timeout=timeout,
                                              headers=headers,
@@ -448,7 +452,7 @@ def rest_call(uri, method='get', body=None, params=None, auth=None,
     ret['status_code'] = resp.status_code
     ret['url'] = resp.url
     logger.info("Rest call to {url}, got status_code={status_code}".format(
-                **ret))
+        **ret))
     if resp.status_code in [200, 201, 202, 203, 204]:
         ret['retcode'] = 0
     if show_content:
@@ -505,7 +509,7 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
             if stanza in cp.sections():
                 cp.remove_section(stanza)
                 ret['changes'] = "\nRemoved section '{s}'.".format(
-                                 s=stanza)
+                    s=stanza)
             else:
                 ret['comment'] += ("\nSection to remove '{s}' not exists, "
                                    "skipping".format(s=stanza))
@@ -533,7 +537,7 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
             elif isinstance(kv, str) and action.strip() in ['remove', 'delete']:
                 cp.remove_option(s, kv)
                 ret['changes'] += ("\nRemoved key '{k}' from section '{s}'"
-                                   ".".format(k=kv,s=s))
+                                   ".".format(k=kv, s=s))
             else:
                 msg = ("\nTo add/edit, kv should be dict, and to remove/delete,"
                        " kv should be str, but you kv={t} for action={a}, in"
@@ -551,11 +555,11 @@ def edit_stanza(conf, stanza, scope='system:local', restart_splunk=False,
             restart()
         ret['retcode'] = 0
         ret['comment'] = "Successfully updated conf {c} with stanza {s}".format(
-                         c=conf, s=stanza)
+            c=conf, s=stanza)
         return ret
     except Exception as e:
         ret['comment'] = "Failed to update conf {c}, except: {e}".format(
-                         c=conf, e=e)
+            c=conf, e=e)
         return ret
 
 
@@ -567,6 +571,7 @@ class _FakeSecHead(object):
     This piece of codes is mainly from Alex's answer here:
     http://stackoverflow.com/questions/2819696/parsing-properties-file-in-python
     """
+
     def __init__(self, fp, sechead):
         self.fp = fp
         self.sechead = "[{s}]{l}".format(s=sechead, l=os.linesep)
@@ -670,7 +675,7 @@ def check_log(type='crash', **kwargs):
 def check_crash(**kwargs):
     splunk_home = home()
     crash_file = []
-    log_path = os.path.join(splunk_home,'var','log','splunk')
+    log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
     for file in os.listdir(log_path):
         if file.startswith("crash-"):
             crash_file.append(file)
@@ -693,7 +698,7 @@ def total_event_count(index='main', method='rest', **kwargs):
     if method == 'rest':
         uri = rest_endpoints['indexes'].format(idx=index)
         count = rest_call(uri, show_content=True
-                    )['content']['entry'][0]['content']['totalEventCount']
+                          )['content']['entry'][0]['content']['totalEventCount']
     elif method == 'file':
         raise NotImplementedError
     else:
@@ -740,7 +745,7 @@ def perf(verbose=False, **kwargs):
     :rtype: dict
     """
     logger.info("Running function '{f}' with vars: {v}".format(
-                f=inspect.stack()[0][3], v=locals()))
+        f=inspect.stack()[0][3], v=locals()))
 
     if not HAS_PSUTIL:
         return "psutil not installed."
@@ -763,23 +768,23 @@ def _get_perf_metrics(pid, verbose, **kwargs):
 
     if not salt.utils.is_windows():
         metrics_map = {
-            'num_handles':      'get_num_fds',
-            #'children':         'get_children',
-            'connections':      'get_connections',
-            'cpu_affinity':     'get_cpu_affinity',
-            'cpu_percent':      'get_cpu_percent',
-            'cpu_times':        'get_cpu_times',
-            'memory_info_ex':   'get_ext_memory_info',
-            'io_counters':      'get_io_counters',
-            'memory_info':      'get_memory_info',
-            'memory_maps':      'get_memory_maps',
-            #'memory_percent':   'get_memory_percent',
+            'num_handles': 'get_num_fds',
+            # 'children':         'get_children',
+            'connections': 'get_connections',
+            'cpu_affinity': 'get_cpu_affinity',
+            'cpu_percent': 'get_cpu_percent',
+            'cpu_times': 'get_cpu_times',
+            'memory_info_ex': 'get_ext_memory_info',
+            'io_counters': 'get_io_counters',
+            'memory_info': 'get_memory_info',
+            'memory_maps': 'get_memory_maps',
+            # 'memory_percent':   'get_memory_percent',
             'num_ctx_switches': 'get_num_ctx_switches',
-            'num_threads':      'get_num_threads',
-            'open_files':       'get_open_files',
-            #'rlimit':           'get_rlimit',
-            'threads':          'get_threads',
-            #'cwd':              'getcwd',
+            'num_threads': 'get_num_threads',
+            'open_files': 'get_open_files',
+            # 'rlimit':           'get_rlimit',
+            'threads': 'get_threads',
+            # 'cwd':              'getcwd',
         }
         for m in metrics_map:  # set attr for compatibility.
             setattr(p, m, getattr(p, metrics_map[m]))
@@ -806,16 +811,16 @@ def _get_perf_metrics(pid, verbose, **kwargs):
     }
     if verbose:  # the followings are the metrics we can get without issues.
         metrics.update({
-            'ctx_switches_voluntary':   p.num_ctx_switches()[0],
+            'ctx_switches_voluntary': p.num_ctx_switches()[0],
             'ctx_switches_involuntary': p.num_ctx_switches()[1],
             'memory_shared': p.memory_info_ex()[2],
-            'memory_text':   p.memory_info_ex()[3],
-            'memory_lib':    p.memory_info_ex()[4],
-            'memory_data':   p.memory_info_ex()[5],
-            'memory_dirty':  p.memory_info_ex()[6],
+            'memory_text': p.memory_info_ex()[3],
+            'memory_lib': p.memory_info_ex()[4],
+            'memory_data': p.memory_info_ex()[5],
+            'memory_dirty': p.memory_info_ex()[6],
             'memory_maps': _named_tuple_list_to_dict_list(p.memory_maps()),
             'thread_info': _named_tuple_list_to_dict_list(p.get_threads()),
-            'open_files':  _named_tuple_list_to_dict_list(p.open_files()),
+            'open_files': _named_tuple_list_to_dict_list(p.open_files()),
             'connections': _named_tuple_list_to_dict_list(p.connections())
         })
     return metrics
@@ -839,7 +844,8 @@ def uninstall(**kwargs):
         product = "splunk"
         if (LooseVersion(__pillar__['splunk']['version']) >=
                 LooseVersion('6.2.0') or
-            __pillar__['splunk']['version'] in ['dash', 'ember', 'current']):
+                    __pillar__['splunk']['version'] in ['dash', 'ember',
+                                                        'current']):
             product = "SplunkEnterprise"
         services = ['splunkd', 'splunkweb']
     elif splunktype == 'splunkforwarder':
@@ -851,14 +857,14 @@ def uninstall(**kwargs):
 
     if salt.utils.is_windows() and product and services:
         sc_cmd = " & ".join(["sc {0} {1}".format(action, service)
-                              for action in ['stop', 'delete', 'stop']
-                              for service in services])
+                             for action in ['stop', 'delete', 'stop']
+                             for service in services])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](sc_cmd))
 
         proc_to_kill = ['msiexec.exe', 'notdpad.exe', 'cmd.exe', 'firefox.exe',
                         'iexplorer.exe', 'chrome.exe', 'powershell.exe']
         taskkill_cmd = " & ".join(["taskkill /im {0} /F".format(proc)
-                                    for proc in proc_to_kill])
+                                   for proc in proc_to_kill])
         ret['comment'] += "{0}\n".format(__salt__['cmd.run_all'](taskkill_cmd))
 
         uninstall_cmd = ('wmic product where name="{}" call uninstall '
@@ -906,32 +912,32 @@ def install(name,
     user = user or __salt__['pillar.get']('system:user')
     install_flags = install_flags or {}
     pkg_src = _get_pkg_url(pkg=pkg, version=version, build=build, type=type,
-                           pkg_released=pkg_released,fetcher_url=fetcher_url)
+                           pkg_released=pkg_released, fetcher_url=fetcher_url)
     pkg_name = os.path.basename(pkg_src)
     pkg_type = _validate_pkg_for_platform(pkg_name)
     pkg_state = _get_current_pkg_state(pkg_name)
-    if pkg_state['retcode'] == 1: # retcode is 1, install the pkg
+    if pkg_state['retcode'] == 1:  # retcode is 1, install the pkg
         cached_pkg = __salt__['utils.cache_file'](source=pkg_src, dest=dest)
         logger.info("Installing pkg from '{s}', stored at '{c}'".format(
-                    s=pkg_src, c=cached_pkg))
+            s=pkg_src, c=cached_pkg))
         stop()
         install_ret = getattr(sys.modules[__name__],
                               "_install_{t}".format(t=pkg_type))(
-                          pkg=cached_pkg, splunk_home=splunk_home,
-                          instances=instances, user=user, flags=install_flags)
+            pkg=cached_pkg, splunk_home=splunk_home,
+            instances=instances, user=user, flags=install_flags)
         ret['comment'] = install_ret['comment']
         logger.info("Install runner returned code: {r}, comment: {c}".format(
-                    r=install_ret['retcode'], c=install_ret['comment']))
+            r=install_ret['retcode'], c=install_ret['comment']))
         if install_ret['retcode'] == 0:
             if start_after_install: start()
             ret['result'] = True
             ret['changes'] = {'before': pkg_state['current_state'],
                               'after': info()}
 
-    elif pkg_state['retcode'] == 2: # retcode = 2, pkg is installed already.
+    elif pkg_state['retcode'] == 2:  # retcode = 2, pkg is installed already.
         ret['comment'] = pkg_state['comment']
         ret['result'] = True
-    else: # retcode is 0, not going to install
+    else:  # retcode is 0, not going to install
         ret['comment'] = pkg_state['comment']
     return ret
 
@@ -944,10 +950,10 @@ set_web_port = set_splunkweb_port
 #### Internal functions ####
 
 def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
-        fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
+                 fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
     schemes = ['salt:', 'http:', 'https:', 'ftp:', 's3:']
     if any([True for i in schemes if pkg.startswith(i)]):
-        pkg_url = pkg # pkg is set as static url
+        pkg_url = pkg  # pkg is set as static url
     else:
         params = {'PLAT_PKG': pkg, 'DELIVER_AS': 'url'}
         if type == 'splunkforwarder':
@@ -964,10 +970,10 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
 
         r = requests.get(fetcher_url, params=params)
         if 'Error' in r.text.strip():
-             raise salt.exceptions.CommandExecutionError(
-                       "Fetcher returned an error: {e}, "
-                       "requested url: {u}".format(
-                           e=r.text.strip(), u=r.url))
+            raise salt.exceptions.CommandExecutionError(
+                "Fetcher returned an error: {e}, "
+                "requested url: {u}".format(
+                    e=r.text.strip(), u=r.url))
         pkg_url = r.text.strip()
     return pkg_url
 
@@ -1039,7 +1045,7 @@ def _validate_pkg_for_platform(pkg):
     matrix = {
         'msi': 'Windows',
         'zip': 'Windows',
-        'tgz': 'Linux', # TODO: need to handle tgz for Darwin
+        'tgz': 'Linux',  # TODO: need to handle tgz for Darwin
         'rpm': 'Linux',
         'deb': 'Linux',
         'Z': 'SunOS',
@@ -1048,7 +1054,7 @@ def _validate_pkg_for_platform(pkg):
     type = [t for t in matrix if pkg.endswith(t) and os_ == matrix[t]]
     if not type:
         raise salt.exceptions.CommandExecutionError(
-                  "pkg {p} is not for platform {o}".format(p=pkg, o=os_))
+            "pkg {p} is not for platform {o}".format(p=pkg, o=os_))
     return type[0]
 
 
@@ -1064,8 +1070,9 @@ def _run_install_cmd(cmd, user, comment=''):
     if ret['retcode'] == 0:
         ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
-        ret['comment'] = "Cmd '{c}' returned '{r}' != 0, stderr={s}".format(
-                              c=cmd, r=ret['retcode'], s=ret['stderr'])
+        ret['comment'] = "Cmd '{c}' returned '{r}' != 0, " \
+                         "stderr={s}, stdout={o}".format(
+            c=cmd, r=ret['retcode'], s=ret['stderr'], o=ret['stdout'])
     ret['comment'] += comment
     return ret
 
@@ -1080,7 +1087,7 @@ def _install_tgz(pkg, splunk_home, instances, flags, user):
     :return:
     """
     cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
-           s=splunk_home, p=pkg)
+        s=splunk_home, p=pkg)
     return _run_install_cmd(cmd, user)
 
 
@@ -1091,9 +1098,9 @@ def _install_rpm(pkg, splunk_home, instances, flags, user):
 def _install_msi(pkg, splunk_home, instances, flags, user):
     if not flags: flags = {}
     cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.format(
-              c=pkg, h=splunk_home, q='/quiet',
-              f=' '.join("{0}={1}".format(
-                  t[0], str(t[1]).strip("'" '"')) for t in flags.iteritems()))
+        c=pkg, h=splunk_home, q='/quiet',
+        f=' '.join("{0}={1}".format(
+            t[0], str(t[1]).strip("'" '"')) for t in flags.iteritems()))
     return _run_install_cmd(cmd, user)
 
 
@@ -1154,5 +1161,3 @@ def _path(path):
     :rtype: str
     """
     return os.path.join(home(), *path.split(':'))
-
-
