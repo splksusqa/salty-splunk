@@ -1064,15 +1064,17 @@ def _run_install_cmd(cmd, user, comment=''):
     :param cmd:
     :return:
     """
-    if salt.utils.is_windows():
-        user = None
-    ret = __salt__['cmd.run_all'](cmd, runas=user)
+    # if salt.utils.is_windows():
+    #     user = None
+    ret = __salt__['cmd.run_all'](cmd, runas='Administrator')
     if ret['retcode'] == 0:
         ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
         ret['comment'] = "Cmd '{c}' returned '{r}' != 0, " \
-                         "stderr={s}, stdout={o}".format(
-            c=cmd, r=ret['retcode'], s=ret['stderr'], o=ret['stdout'])
+                         "user={u}, stderr={s}, stdout={o}".format(
+            c=cmd, r=ret['retcode'], s=ret['stderr'], o=ret['stdout'],
+            u=user
+        )
     ret['comment'] += comment
     return ret
 
