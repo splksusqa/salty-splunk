@@ -1064,9 +1064,9 @@ def _run_install_cmd(cmd, user, comment=''):
     :param cmd:
     :return:
     """
-    # if salt.utils.is_windows():
-    #     user = None
-    ret = __salt__['cmd.run_all'](cmd, runas='Administrator')
+    if salt.utils.is_windows():
+        user = None
+    ret = __salt__['cmd.run_all'](cmd, runas=user, python_shell=True)
     if ret['retcode'] == 0:
         ret['comment'] = "Successfully ran cmd: '{c}'".format(c=cmd)
     else:
