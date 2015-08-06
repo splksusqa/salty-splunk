@@ -386,7 +386,7 @@ def cmd(command, auth='', user='', timeout=120, params=None, **kwargs):
     if salt.utils.is_windows():
         user = None
         cwd = _path('bin')
-        cmd_ = "splunk.exe " + command
+        cmd_ = os.path.join(cwd, "splunk.exe") + " " + command
     else:
         user = user or __pillar__['system']['user']
         cwd = ''
