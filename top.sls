@@ -66,3 +66,7 @@ base:
   'role:splunk-shp-searchhead':
     - match: grain
     - splunk.shp-searchhead
+
+  'role:central-site':
+    - match: grain
+    - splunk.central-site
