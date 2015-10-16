@@ -31,3 +31,8 @@ win_ntp:
   ntp.managed:
     - servers:
       - ntp1.sv.splunk.com
+
+# add to domain
+# install wget
+# install python
+# tempdir
