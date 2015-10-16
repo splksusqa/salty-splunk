@@ -14,5 +14,19 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A
 
 # disable firewall
 disable_firewall:
-  firewall.disabled:
+  win_firewall.disabled:
     - name: disable_win_firewall
+
+# ready for adding to qatw-ipv6.com
+Ethernet:
+  network.managed:
+    - dns_proto: static
+    - dns_servers:
+      - 10.140.28.88
+      - 10.140.6.24
+
+# ntp server for sync time with AD domain
+win_ntp:
+  ntp.managed:
+    - servers:
+      - ntp1.sv.splunk.com
