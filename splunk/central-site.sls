@@ -11,3 +11,8 @@ HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Active Setup\Installed Components\{A509B1A
     - vname: IsInstalled
     - vdata: 0
     - vtype: REG_DWORD
+
+# disable firewall
+disable_firewall:
+  firewall.disabled:
+    - name: disable_win_firewall
