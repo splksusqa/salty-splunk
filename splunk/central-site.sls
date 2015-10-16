@@ -24,6 +24,7 @@ Ethernet:
     - dns_servers:
       - 10.140.28.88
       - 10.140.6.24
+    - ip_proto: dhcp
 
 # ntp server for sync time with AD domain
 win_ntp:
