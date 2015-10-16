@@ -1,0 +1,72 @@
+# Using 'id' for now, but better way of specifying nodes is by its 'role'
+
+base:
+
+  'role:splunk-cluster-master':
+    - match: grain
+    - splunk.cluster-master
+
+  'role:splunk-cluster-searchhead':
+    - match: grain
+    - splunk.cluster-searchhead
+
+  'role:splunk-cluster-slave':
+    - match: grain
+    - splunk.cluster-slave
+
+  'role:splunk-shc-captain':
+    - match: grain
+    - splunk.shc-captain
+
+  'role:splunk-shc-member':
+    - match: grain
+    - splunk.shc-member
+
+  'role:splunk-shc-deployer':
+    - match: grain
+    - splunk.shc-deployer
+
+  'role:splunk-indexer':
+    - match: grain
+    - splunk.indexer
+
+  'role:splunk-searchhead':
+    - match: grain
+    - splunk.searchhead
+
+  'role:splunk-universal-fwd':
+    - match: grain
+    - splunk.universal-fwd
+
+  'role:splunk-heavy-fwd':
+    - match: grain
+    - splunk.heavy-fwd
+
+  'role:splunk-light-fwd':
+    - match: grain
+    - splunk.light-fwd
+
+  'role:splunk-dmc':
+    - match: grain
+    - splunk.dmc
+
+  'role:splunk-lic-master':
+    - match: grain
+    - splunk.lic-master
+
+  'role:splunk-deployment-server':
+    - match: grain
+    - splunk.deployment-server
+
+  'role:nfsserver':
+    - match: grain
+    - nfs.server
+    - splunk.shp-share-storage
+
+  'role:splunk-shp-searchhead':
+    - match: grain
+    - splunk.shp-searchhead
+
+  'role:central-site':
+    - match: grain
+    - splunk.central-site
