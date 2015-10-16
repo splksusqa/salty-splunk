@@ -18,7 +18,7 @@ disable_firewall:
     - name: disable_win_firewall
 
 # ready for adding to qatw-ipv6.com
-Ethernet:
+Ethernet adapter Ethernet:
   network.managed:
     - dns_proto: static
     - dns_servers:
