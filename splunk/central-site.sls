@@ -36,3 +36,11 @@ win_ntp:
 # install wget
 # install python
 # tempdir
+
+# enable msi log
+# TODO for every splunk installation only
+# https://support.microsoft.com/en-us/kb/2545723
+# salt -G 'role:central-site' reg.set_value HKEY_LOCAL_MACHINE 'SOFTWARE\Policies\Microsoft\Windows\Installer' 'Logging' 'voicewarmupx'
+# salt -G 'role:central-site' reg.set_value HKEY_LOCAL_MACHINE 'SOFTWARE\Policies\Microsoft\Windows\Installer' 'Debug' 7 'REG_DWORD'
+# salt -G 'role:central-site' reg.set_value HKEY_LOCAL_MACHINE 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace' 'Flags' 16 'REG_DWORD'
+# salt -G 'role:central-site' reg.set_value HKEY_LOCAL_MACHINE 'SOFTWARE\Microsoft\Windows\CurrentVersion\WindowsUpdate\Trace' 'Level' 4 'REG_DWORD'
