@@ -954,10 +954,14 @@ def _get_pkg_url(pkg, version, build='', type='splunk', pkg_released=False,
         else:
             params.update({'BRANCH': version})
             if build:
+                # Ember starts using hash as build number
+                params.update({'P4CHANGE': build})
+                '''
                 if isinstance(build, int) or build.isdigit():
                     params.update({'P4CHANGE': build})
                 else:
                     logger.warn("build '{b}' is not a number!".format(b=build))
+                '''
 
         r = requests.get(fetcher_url, params=params)
         if 'Error' in r.text.strip():
@@ -977,6 +981,8 @@ def _is_pkg_installed(pkg):
     :return:
     """
     reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
+    if not reg:
+        reg = re.search("splunk(forwarder)?-([0-9.]+)-([A-Za-z0-9]{12})", pkg)
     (version, build) = (reg.group(2), reg.group(3))
     if info():
         if info()['VERSION'] == version and info()['BUILD'] == build:
@@ -993,6 +999,8 @@ def _get_current_pkg_state(pkg):
     """
     ret = {'retcode': 127, 'comment': '', 'current_state': ''}
     reg = re.search("splunk(forwarder)?-([0-9.]+)-(\d{5,7})", pkg)
+    if not reg:
+        reg = re.search("splunk(forwarder)?-([0-9.]+)-([A-Za-z0-9]{12})", pkg)
     (version, build) = (reg.group(2), reg.group(3))
 
     if is_splunk_installed():
