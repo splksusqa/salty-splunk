@@ -57,3 +57,27 @@ base:
   'role:splunk-deployment-server':
     - match: grain
     - splunk.deployment-server
+
+  'role:splunk-ember-indexer':
+    - match: grain
+    - splunk.ember-indexer
+
+  'role:splunk-ember-heavy-fwd':
+    - match: grain
+    - splunk.ember-heavy-fwd
+
+  'role:splunk-ember-shc-deployer':
+    - match: grain
+    - splunk.ember-shc-deployer
+
+  'role:splunk-ember-shc-captain':
+    - match: grain
+    - splunk.ember-shc-captain
+
+  'role:splunk-ember-shc-member':
+    - match: grain
+    - splunk.ember-shc-member
+
+  'role:splunk-ember-searchhead':
+    - match: grain
+    - splunk.ember-searchhead

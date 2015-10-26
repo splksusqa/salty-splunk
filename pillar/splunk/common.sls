@@ -11,7 +11,7 @@ splunk:
   instances: 1
 
   {% if grains['kernel'] == 'Linux'%}
-  home: /opt/splunk
+  home: /opt/centralsite/splunk
   pkg: Linux-x86_64.tgz
   {% elif grains['kernel'] == 'Windows' %}
   home: C:\Program Files\Splunk

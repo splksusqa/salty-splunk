@@ -84,3 +84,25 @@ base:
     - match: grain
     - splunk.common
     - splunk.app
+
+  'role:splunk-ember-indexer':
+    - match: grain
+    - splunk.common
+    - splunk.listen
+    - splunk.dataset
+    - splunk.retention
+
+  'role:splunk-ember-shc-deployer':
+    - match: grain
+    - splunk.common
+
+  'role:splunk-ember-searchhead':
+    - match: grain
+    - splunk.common
+
+  'role:splunk-ember-heavy-fwd':
+    - match: grain
+    - splunk.common
+    - splunk.retention
+    - splunk.listen
+    - splunk.dataset
