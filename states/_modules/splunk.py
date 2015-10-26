@@ -4,7 +4,6 @@ Module for splunk instances
 ==========================
 """
 
-__author__ = 'cchung'
 
 import sys
 import os

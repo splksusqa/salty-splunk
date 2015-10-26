@@ -1,4 +1,3 @@
-__author__ = 'cchung'
 import socket
 import json
 import logging
