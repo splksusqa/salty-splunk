@@ -12,7 +12,7 @@ Vagrant.configure(2) do |config|
   config.vm.box = "puphpet/ubuntu1404-x64"
 
   # states file
-  config.vm.synced_folder "states", "/srv/salt/"
+  config.vm.synced_folder "file_base", "/srv/salt/"
 
   config.vm.provision :salt do |salt|
     salt.minion_config = "config/minion"
