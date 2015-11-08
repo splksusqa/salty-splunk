@@ -14,6 +14,8 @@ Vagrant.configure(2) do |config|
   # states file
   config.vm.synced_folder "file_base", "/srv/salt/"
 
+  config.vm.provision "file", source: "bash_profile", destination: ".bash_profile"
+
   config.vm.provision :salt do |salt|
     salt.minion_config = "config/minion"
     salt.install_master = false
