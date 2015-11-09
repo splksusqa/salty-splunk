@@ -59,12 +59,12 @@ def install(splunk_home,
     if "linux" in platform:
         dest_root = "/opt"
     elif "win" in platform:
-        dest_root = "C:\\"
+        dest_root = 'C:'
     else:
         # to do: throw error when platform is not supported
         dest_root = "/opt"
 
-    pkg_path = os.path.join(dest_root, os.path.basename(url))
+    pkg_path = os.path.join(dest_root, os.sep, os.path.basename(url))
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
@@ -83,4 +83,4 @@ def install(splunk_home,
         cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
             s=splunk_home, p=pkg_path)
 
-    __salt__['cmd.run_all'](cmd)
+    __salt__['cmd.run_all'](cmd, python_shell=True)
