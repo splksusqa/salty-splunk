@@ -1,6 +1,16 @@
 def installed(name, **kwargs):
 	'''
 	'''
-	__salt__['splunk.install'](**kwargs)
-	comment = "Splunk is installed"
-	return {'name': name, 'changes': {}, 'result': True, 'comment': comment}
+	ret = __salt__['splunk.install'](**kwargs)
+	changes = {}
+
+	if 0 == ret['retcode']:
+		result = True
+		comment = "Splunk was installed successfully"
+		changes['new'] = "installed"
+	else:
+		result = False
+		comment = "Splunk was not installed: {s}".format(s=ret['stderr'])
+
+	return {'name': name, 'changes': changes,
+			'result': result, 'comment': comment}
