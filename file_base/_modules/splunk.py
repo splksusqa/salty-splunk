@@ -1,6 +1,7 @@
 import requests
 import sys
 import os
+import salt
 
 PLATFORM = sys.platform
 
@@ -73,8 +74,8 @@ def install(splunk_home,
 
     # install the package
     if "linux" in platform:
-        cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
-            s=splunk_home, p=pkg_path)
+        cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
+               "start --accept-license".format(s=splunk_home, p=pkg_path))
     elif "win" in platform:
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
             c=pkg_path, h=splunk_home, q='/quiet')
