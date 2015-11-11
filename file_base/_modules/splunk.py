@@ -48,8 +48,7 @@ class WindowsMsiInstaller(Installer):
 
     def is_installed(self):
         result = __salt__['service.available']('Splunkd')
-        print result
-        log.debug('return : %s' % result)
+        log.debug('service.available return : %s' % result)
         return result
 
 
