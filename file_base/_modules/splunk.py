@@ -42,8 +42,8 @@ def _get_pkg_url(version, build='', type='splunk', pkg_released=False,
     pkg_url = r.text.strip()
     return pkg_url
 
-def install(splunk_home,
-            version,
+def install(version,
+            splunk_home=None,
             build='',
             type='splunk',
             pkg_released=False,
@@ -69,6 +69,15 @@ def install(splunk_home,
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
+    if splunk_home is None:
+        if "linux" in platform:
+            splunk_home = "/opt/splunk"
+        elif "win" in platform:
+            splunk_home = "C:\\Splunk"
+        else:
+            # to do: throw error when platform is not supported
+            splunk_home = "/opt/splunk"
+
     if not os.path.exists(splunk_home):
         os.mkdir(splunk_home)
 
@@ -84,4 +93,4 @@ def install(splunk_home,
         cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
             s=splunk_home, p=pkg_path)
 
-    __salt__['cmd.run_all'](cmd, python_shell=True)
+    return __salt__['cmd.run_all'](cmd, python_shell=True)
