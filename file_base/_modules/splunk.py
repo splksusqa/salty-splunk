@@ -9,7 +9,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class InstallerFactory:
+class InstallerFactory(object):
     def __init__(self):
         pass
 
@@ -26,7 +26,7 @@ class InstallerFactory:
         return installer
 
 
-class Installer:
+class Installer(object):
     def __init__(self):
         pass
 
