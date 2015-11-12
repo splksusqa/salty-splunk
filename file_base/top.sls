@@ -2,6 +2,5 @@
 
 base:
 
-  'role:indexer':
-    - match: grain
+  '*':
     - splunk.indexer
