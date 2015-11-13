@@ -4,6 +4,7 @@ import salt
 import tempfile
 import sys
 import logging
+import re
 
 
 log = logging.getLogger(__name__)
@@ -70,7 +71,42 @@ class LinuxTgzInstaller(Installer):
 INSTALLER = InstallerFactory.create_installer()
 
 
-def _get_pkg_url(version, build='', type='splunk', pkg_released=False,
+def _is_it_version_branch_build(parameter):
+
+    branch = ''
+    version = ''
+    build = ''
+
+    result = re.match(r'(^[0-9]{6}$)', parameter)
+    if result:
+        log.debug('parameter is build number')
+        build = parameter
+        return branch, version, build
+
+    result = re.match(r'(^[0-9a-z]{12}$)', parameter)
+    if result:
+        log.debug('parameter is git commit')
+        build = parameter
+        return branch, version, build
+
+    # todo, find out how to detect pkg is released
+    pkg_released = False
+
+    result = re.match(r'(^[0-9]*.[0-9]*.[0-9]*$)', parameter)
+    if result:
+        log.debug('parameter is version or branch, treat it as branch')
+        if pkg_released:
+            version = parameter
+        else:
+            branch = parameter
+        return branch, version, build
+
+    log.debug('parameter is branch')
+    branch = parameter
+    return branch, version, build
+
+
+def _get_pkg_url(version, branch, build, type='splunk',
                  fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
     '''
     Get the url for the package to install
@@ -88,13 +124,20 @@ def _get_pkg_url(version, build='', type='splunk', pkg_released=False,
     if type == 'splunkforwarder':
         params.update({'UF': '1'})
 
-    if pkg_released:
-        params.update({'VERSION': version})
-    else:
-        params.update({'BRANCH': version})
-        if build:
-            params.update({'P4CHANGE': build})
+    params.update({'BRANCH': branch})
 
+    if build:
+        params.update({'P4CHANGE': build})
+        return _fetch_url(fetcher_url, params)
+
+    if version:
+        params.update({'VERSION': version})
+        return _fetch_url(fetcher_url, params)
+
+    return _fetch_url(fetcher_url, params)
+
+
+def _fetch_url(fetcher_url, params):
     r = requests.get(fetcher_url, params=params)
     if 'Error' in r.text.strip():
         raise salt.exceptions.CommandExecutionError(
@@ -109,18 +152,16 @@ def is_installed():
     return INSTALLER.is_installed()
 
 
-def install(version,
-            splunk_home=None,
-            build='',
+def install(fetcher_arg,
             type='splunk',
-            pkg_released=False,
             fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py',
             start_after_install=True):
     '''
     install splunk
     '''
-    url = _get_pkg_url(version=version, build=build, type=type,
-                       pkg_released=pkg_released, fetcher_url=fetcher_url)
+
+    branch, version, build = _is_it_version_branch_build(fetcher_arg)
+    url = _get_pkg_url(branch=branch, version=version, build=build, type=type, fetcher_url=fetcher_url)
 
     # download the package
     dest_root = tempfile.gettempdir()

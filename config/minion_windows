@@ -1,10 +1,10 @@
 ipc_mode: tcp
-root_dir: c:\salt
+root_dir: /salt
 pki_dir: /conf/pki/minion
 file_client: local
 
 file_roots:
    base:
-     - C:\vagrant\file_base
+     - /vagrant/file_base
 
 multiprocessing: True
