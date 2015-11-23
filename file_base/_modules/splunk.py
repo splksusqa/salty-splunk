@@ -6,6 +6,12 @@ import sys
 import logging
 import re
 
+try:
+    import splunklib.client as client
+except ImportError:
+    __salt__['pip.install']('splunk-sdk')
+    import splunklib.client as client
+
 
 log = logging.getLogger(__name__)
 
