@@ -6,10 +6,16 @@ import sys
 import logging
 import re
 
+PLATFORM = sys.platform
 try:
     import splunklib.client as client
 except ImportError:
-    __salt__['pip.install']('splunk-sdk')
+    if "win" in PLATFORM:
+        __salt__['pip.install'](
+            pkgs='splunk-sdk', bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
+            cwd="C:\\salt\\bin\\scripts")
+    else:
+        __salt__['pip.install']('splunk-sdk')
     import splunklib.client as client
 
 
@@ -22,10 +28,9 @@ class InstallerFactory(object):
 
     @staticmethod
     def create_installer():
-        platform = sys.platform
-        if "linux" in platform:
+        if "linux" in PLATFORM:
             installer = LinuxTgzInstaller()
-        elif "win" in platform:
+        elif "win" in PLATFORM:
             installer = WindowsMsiInstaller()
         else:
             # to do: throw error when platform is not supported
@@ -117,10 +122,9 @@ def _get_pkg_url(version, branch, build, type='splunk',
     '''
     Get the url for the package to install
     '''
-    platform = sys.platform
-    if "linux" in platform:
+    if "linux" in PLATFORM:
         pkg = "Linux-x86_64.tgz"
-    elif "win" in platform:
+    elif "win" in PLATFORM:
         pkg = "x64-release.msi"
     else:
         # to do: throw error when platform is not supported
