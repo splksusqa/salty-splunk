@@ -7,16 +7,21 @@ import logging
 import re
 
 PLATFORM = sys.platform
-try:
-    import splunklib.client as client
-except ImportError:
-    if "win" in PLATFORM:
-        __salt__['pip.install'](
-            pkgs='splunk-sdk', bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
-            cwd="C:\\salt\\bin\\scripts")
-    else:
-        __salt__['pip.install']('splunk-sdk')
-    import splunklib.client as client
+FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
+
+def _import_sdk():
+    try:
+        import splunklib.client as client
+    except ImportError:
+        if "win" in PLATFORM:
+            __salt__['pip.install'](
+                pkgs='splunk-sdk', bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
+                cwd="C:\\salt\\bin\\scripts")
+        else:
+            __salt__['pip.install']('splunk-sdk')
+        import splunklib.client as client
+
+_import_sdk()
 
 
 log = logging.getLogger(__name__)
@@ -118,7 +123,7 @@ def _is_it_version_branch_build(parameter):
 
 
 def _get_pkg_url(version, branch, build, type='splunk',
-                 fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'):
+                 fetcher_url=FETCHER_URL):
     '''
     Get the url for the package to install
     '''
@@ -164,14 +169,16 @@ def is_installed():
 
 def install(fetcher_arg,
             type='splunk',
-            fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py',
+            fetcher_url=FETCHER_URL,
             start_after_install=True):
     '''
     install splunk
     '''
 
     branch, version, build = _is_it_version_branch_build(fetcher_arg)
-    url = _get_pkg_url(branch=branch, version=version, build=build, type=type, fetcher_url=fetcher_url)
+    url = _get_pkg_url(
+        branch=branch, version=version, build=build, type=type,
+        fetcher_url=fetcher_url)
 
     # download the package
     dest_root = tempfile.gettempdir()
