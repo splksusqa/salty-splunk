@@ -11,7 +11,7 @@ FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
 
 def _import_sdk():
     try:
-        import splunklib.client as client
+        import splunklib
     except ImportError:
         if "win" in PLATFORM:
             __salt__['pip.install'](
@@ -19,9 +19,10 @@ def _import_sdk():
                 cwd="C:\\salt\\bin\\scripts")
         else:
             __salt__['pip.install']('splunk-sdk')
-        import splunklib.client as client
+        import splunklib
+    return splunklib
 
-_import_sdk()
+
 
 
 log = logging.getLogger(__name__)
@@ -187,3 +188,26 @@ def install(fetcher_arg,
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
     return INSTALLER.install(pkg_path)
+
+def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
+    '''
+    '''
+    splunklib = _import_sdk()
+    import splunklib.client as client
+
+    splunk = client.connect(
+        username="admin", password="changeme", sharing="system", autologin=True)
+    conf = splunk.confs['server']
+    stanza = conf['clustering']
+    # choose one of update and submit
+
+    # stanza.update(**{'pass4SymmKey': pass4SymmKey,
+    #                  'replication_factor': replication_factor,
+    #                  'search_factor': search_factor,
+    #                  'mode': 'master',})
+    stanza.submit({'pass4SymmKey': pass4SymmKey,
+                     'replication_factor': replication_factor,
+                     'search_factor': search_factor,
+                     'mode': 'master',})
+    return splunk.restart()
+
