@@ -200,14 +200,9 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     conf = splunk.confs['server']
     stanza = conf['clustering']
     # choose one of update and submit
-
-    # stanza.update(**{'pass4SymmKey': pass4SymmKey,
-    #                  'replication_factor': replication_factor,
-    #                  'search_factor': search_factor,
-    #                  'mode': 'master',})
     stanza.submit({'pass4SymmKey': pass4SymmKey,
-                     'replication_factor': replication_factor,
-                     'search_factor': search_factor,
-                     'mode': 'master',})
+                   'replication_factor': replication_factor,
+                   'search_factor': search_factor,
+                   'mode': 'master',})
     return splunk.restart()
 
