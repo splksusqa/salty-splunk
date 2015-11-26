@@ -14,6 +14,7 @@ Vagrant.configure(2) do |config|
     # states file
     node.vm.synced_folder "../file_base", "/srv/salt/"
     node.vm.provision "file", source: "bash_profile", destination: ".bash_profile"
+    node.vm.network "forwarded_port", guest: 8000, host: 9000
 
     node.vm.provision :salt do |salt|
       salt.minion_config = "../config/minion"
@@ -49,7 +50,7 @@ Vagrant.configure(2) do |config|
       # iex ((new-object net.webclient).DownloadString('https://chocolatey.org/install.ps1'))
       # https://repo.saltstack.com/windows/Salt-Minion-2015.8.1-AMD64-Setup.exe
       # choco install saltminion -y
-      # sudo apt-get update 
+      # sudo apt-get update
     SHELL
   end
 end
