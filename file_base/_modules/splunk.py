@@ -204,5 +204,5 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
                    'replication_factor': replication_factor,
                    'search_factor': search_factor,
                    'mode': 'master',})
-    return splunk.restart()
+    return splunk.restart(timeout=60)
 
