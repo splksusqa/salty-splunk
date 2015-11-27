@@ -1,6 +1,7 @@
 
 import subprocess
 import os
+import vagrant
 
 def _call_salt_module(name, args=None):
     subprocess.call("C:/salt/salt-call.bat saltutil.sync_modules --local")
