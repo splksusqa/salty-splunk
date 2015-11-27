@@ -55,8 +55,7 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self):
-        self.splunk_home = (
-            __pillar__['splunk_home'] if __pillar__['splunk_home'] else None)
+        self.splunk_home = __salt__['pillar.get']('splunk_home') if __salt__['pillar.get']('splunk_home') else None
 
     def install(self, pkg_path, splunk_home=None):
         pass
@@ -66,10 +65,14 @@ class Installer(object):
 
 
 class WindowsMsiInstaller(Installer):
-    def install(self, pkg_path, splunk_home=None):
+    def __init__(self):
+        '''
+        '''
+        super(WindowsMsiInstaller, self).__init__()
         if self.splunk_home is None:
             self.splunk_home = "C:\\Program Files\\Splunk"
 
+    def install(self, pkg_path, splunk_home=None):
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
             c=pkg_path, h=self.splunk_home, q='/quiet')
         return __salt__['cmd.run_all'](cmd, python_shell=True)
@@ -81,22 +84,22 @@ class WindowsMsiInstaller(Installer):
 
 
 class LinuxTgzInstaller(Installer):
-    def install(self, pkg_path, splunk_home=None):
+    def __init__(self):
+        '''
+        '''
+        super(LinuxTgzInstaller, self).__init__()
         if self.splunk_home is None:
             self.splunk_home = "/opt/splunk"
 
-        if not os.path.exists(splunk_home):
-            os.mkdir(splunk_home)
+    def install(self, pkg_path, splunk_home=None):
+        if not os.path.exists(self.splunk_home):
+            os.mkdir(self.splunk_home)
         cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
                "start --accept-license".format(s=self.splunk_home, p=pkg_path))
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
         return os.path.exists(os.path.join(self.splunk_home, "bin", "splunk"))
-
-
-# INSTALLER = InstallerFactory.create_installer()
-
 
 def _is_it_version_branch_build(parameter):
 
