@@ -22,7 +22,16 @@ def _import_sdk():
         import splunklib
     return splunklib
 
+def _get_splunk(username="admin", password="changeme"):
+    '''
+    returns the object which represents a splunk instance
+    '''
+    splunklib = _import_sdk()
+    import splunklib.client as client
 
+    splunk = client.connect(
+        username=username, password=password, sharing="system", autologin=True)
+    return splunk
 
 
 log = logging.getLogger(__name__)
@@ -192,11 +201,8 @@ def install(fetcher_arg,
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     '''
     '''
-    splunklib = _import_sdk()
-    import splunklib.client as client
+    splunk = _get_splunk()
 
-    splunk = client.connect(
-        username="admin", password="changeme", sharing="system", autologin=True)
     conf = splunk.confs['server']
     stanza = conf['clustering']
     # choose one of update and submit
@@ -206,3 +212,16 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
                    'mode': 'master',})
     return splunk.restart(timeout=60)
 
+def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
+    '''
+    '''
+    splunk = _get_splunk()
+
+    conf = splunk.confs['server']
+    conf.create("replication_port://{p}".format(p=replication_port))
+    stanza = conf['clustering']
+    # choose one of update and submit
+    stanza.submit({'pass4SymmKey': pass4SymmKey,
+                   'master_uri': 'https://{u}'.format(u=master_uri),
+                   'mode': 'slave',})
+    return splunk.restart(timeout=60)
