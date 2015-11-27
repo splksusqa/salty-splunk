@@ -1,4 +1,4 @@
 install-splunk:
   splunk:
     - installed
-    - fetcher_arg: {{ salt['pillar.get']('version') }}
+    - fetcher_arg: {{ pillar['version'] }}
