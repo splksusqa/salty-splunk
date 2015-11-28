@@ -1,5 +1,6 @@
 include:
   - splunk.indexer
+  - splunk.pip
 
 config_master:
   splunk:
@@ -8,4 +9,4 @@ config_master:
     - replication_factor: 3
     - search_factor: 3
   require:
-    - sls: splunk.indexer
+    - sls: [splunk.indexer, splunk.pip]

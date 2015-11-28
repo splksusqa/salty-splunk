@@ -1,5 +1,6 @@
 include:
   - splunk.indexer
+  - splunk.pip
 
 config_slave:
   splunk:
@@ -8,4 +9,4 @@ config_slave:
     - master_uri: qasus-ubu1404x64-002:8089
     - replication_port: 9999
   require:
-    - sls: splunk.indexer
+    - sls: [splunk.indexer, splunk.pip]
