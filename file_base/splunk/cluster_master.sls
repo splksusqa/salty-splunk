@@ -5,8 +5,8 @@ include:
 config_master:
   splunk:
     - cluster_master_configured
-    - pass4SymmKey: 123
-    - replication_factor: 3
-    - search_factor: 3
+    - pass4SymmKey: {{ pillar['pass4SymmKey'] }}
+    - replication_factor: {{ pillar['replication_factor'] }}
+    - search_factor: {{ pillar['search_factor'] }}
   require:
     - sls: [splunk.indexer, splunk.pip]
