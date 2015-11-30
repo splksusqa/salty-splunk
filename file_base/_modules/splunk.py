@@ -235,11 +235,5 @@ def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
 def get_mgmt_uri():
     '''
     '''
-    try:
-        import netifaces
-    except ImportError:
-        __salt__['pip.install']('netifaces')
-        import netifaces
-
-    mgmt_uri = ni.ifaddresses('eth1')[2][0]['addr'] + ":8089"
-    return mgmt_uri
+    ips = __salt__['grains.item']('ipv4').values()
+    return ips[0][2] + ":8089"
