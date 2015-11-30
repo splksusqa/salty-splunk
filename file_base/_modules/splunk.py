@@ -55,7 +55,7 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self):
-        pass
+        self.splunk_home = __salt__['pillar.get']('splunk_home') if __salt__['pillar.get']('splunk_home') else None
 
     def install(self, pkg_path, splunk_home=None):
         pass
@@ -65,12 +65,16 @@ class Installer(object):
 
 
 class WindowsMsiInstaller(Installer):
-    def install(self, pkg_path, splunk_home=None):
-        if splunk_home is None:
-            splunk_home = "C:\\Program Files\\Splunk"
+    def __init__(self):
+        '''
+        '''
+        super(WindowsMsiInstaller, self).__init__()
+        if self.splunk_home is None:
+            self.splunk_home = "C:\\Program Files\\Splunk"
 
+    def install(self, pkg_path, splunk_home=None):
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
-            c=pkg_path, h=splunk_home, q='/quiet')
+            c=pkg_path, h=self.splunk_home, q='/quiet')
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
@@ -80,22 +84,22 @@ class WindowsMsiInstaller(Installer):
 
 
 class LinuxTgzInstaller(Installer):
-    def install(self, pkg_path, splunk_home=None):
-        if splunk_home is None:
-            splunk_home = "/opt/splunk"
+    def __init__(self):
+        '''
+        '''
+        super(LinuxTgzInstaller, self).__init__()
+        if self.splunk_home is None:
+            self.splunk_home = "/opt/splunk"
 
-        if not os.path.exists(splunk_home):
-            os.mkdir(splunk_home)
+    def install(self, pkg_path, splunk_home=None):
+        if not os.path.exists(self.splunk_home):
+            os.mkdir(self.splunk_home)
         cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
-               "start --accept-license".format(s=splunk_home, p=pkg_path))
+               "start --accept-license".format(s=self.splunk_home, p=pkg_path))
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
-        raise NotImplementedError
-
-
-INSTALLER = InstallerFactory.create_installer()
-
+        return os.path.exists(os.path.join(self.splunk_home, "bin", "splunk"))
 
 def _is_it_version_branch_build(parameter):
 
@@ -174,7 +178,8 @@ def _fetch_url(fetcher_url, params):
 
 
 def is_installed():
-    return INSTALLER.is_installed()
+    installer = InstallerFactory.create_installer()
+    return installer.is_installed()
 
 
 def install(fetcher_arg,
@@ -184,7 +189,7 @@ def install(fetcher_arg,
     '''
     install splunk
     '''
-
+    installer = InstallerFactory.create_installer()
     branch, version, build = _is_it_version_branch_build(fetcher_arg)
     url = _get_pkg_url(
         branch=branch, version=version, build=build, type=type,
@@ -196,7 +201,7 @@ def install(fetcher_arg,
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
-    return INSTALLER.install(pkg_path)
+    return installer.install(pkg_path)
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     '''

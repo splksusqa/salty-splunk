@@ -20,3 +20,43 @@ def installed(name, **kwargs):
         ret['result'] = False
         ret['comment'] = "Splunk was not installed: {s}".format(s=ret['stderr'])
     return ret
+
+def cluster_master_configured(name, **kwargs):
+    '''
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.config_cluster_master'](**kwargs)
+
+    if 200 == config_result['status']:
+        ret['result'] = True
+        ret['comment'] = "Splunk was configured as cluster master successfully"
+        ret['changes'] = {"new": 'configured'}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong. Reason: {r}".format(
+            r=config_result['reason'])
+    return ret
+
+def cluster_slave_configured(name, **kwargs):
+    '''
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.config_cluster_slave'](**kwargs)
+
+    if 200 == config_result['status']:
+        ret['result'] = True
+        ret['comment'] = "Splunk was configured as cluster slave successfully"
+        ret['changes'] = {"new": 'configured'}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong. Reason: {r}".format(
+            r=config_result['reason'])
+    return ret
