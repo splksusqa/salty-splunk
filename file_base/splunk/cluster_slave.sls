@@ -6,7 +6,7 @@ config_slave:
   splunk:
     - cluster_slave_configured
     - pass4SymmKey: {{ pillar['pass4SymmKey'] }}
-    - master_uri: qasus-ubu1404x64-002:8089
+    - master_uri: "{{ salt['publish.publish']('role:splunk-cluster-master', 'splunk.get_mgmt_uri', None, 'grain').values()[0] }}"
     - replication_port: {{ pillar['replication_port'] }}
   require:
     - sls: [splunk.indexer, splunk.pip]
