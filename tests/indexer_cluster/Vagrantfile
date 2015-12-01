@@ -2,65 +2,72 @@
 Vagrant.configure("2") do |config|
   config.vm.box = "puphpet/ubuntu1404-x64"
 
-  	config.vm.define "saltmaster" do |master|
-		master.vm.hostname = "salt-master"
-        master.vm.network "private_network", ip: "192.168.3.1"
+    config.vm.define "saltmaster" do |master|
+        master.vm.hostname = "salt-master"
+        master.vm.network "private_network", ip: "192.168.30.101"
+        master.vm.synced_folder "../../file_base", "/srv/salt/"
+        master.vm.synced_folder "../pillar", "/srv/salt/pillar"
+
         master.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = true
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	    end
-	end
-
-	config.vm.define "master" do |master|
-		master.vm.hostname = "cluster-master"
-        master.vm.network "private_network", ip: "192.168.3.2"
-        master.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = false
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	      salt.grains_config = "grains"
-	    end
-	end
-
-	config.vm.define "idx1" do |idx1|
-		idx1.vm.hostname = "cluster-idx1"
-		idx1.vm.network "private_network", ip: "192.168.3.3"
-		idx1.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = false
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	      salt.grains_config = "grains"
-	    end
-	end
-
-	config.vm.define "idx2" do |idx2|
-		idx2.vm.hostname = "cluster-idx2"
-        idx2.vm.network "private_network", ip: "192.168.3.4"
-
-        idx2.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = false
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	      salt.grains_config = "grains"
-	    end
+          salt.install_master = true
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.master_config = "master"
+        end
     end
 
-	config.vm.define "sh1" do |sh1|
-		sh1.vm.hostname = "cluster-sh1"
-        sh1.vm.network "private_network", ip: "192.168.3.5"
+    config.vm.define "master" do |master|
+        master.vm.hostname = "cluster-master"
+        master.vm.network "private_network", ip: "192.168.30.102"
+        master.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "cluster_master.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "idx1" do |idx1|
+        idx1.vm.hostname = "cluster-idx1"
+        idx1.vm.network "private_network", ip: "192.168.30.103"
+        idx1.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "cluster_slave.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "idx2" do |idx2|
+        idx2.vm.hostname = "cluster-idx2"
+        idx2.vm.network "private_network", ip: "192.168.30.104"
+
+        idx2.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "cluster_slave.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "sh1" do |sh1|
+        sh1.vm.hostname = "cluster-sh1"
+        sh1.vm.network "private_network", ip: "192.168.30.105"
 
         sh1.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = false
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	      salt.grains_config = "grains"
-	    end
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "grains"
+          salt.minion_config = "minion"
+        end
     end
 
     config.vm.define "sh2" do |sh2|
@@ -68,12 +75,13 @@ Vagrant.configure("2") do |config|
         sh2.vm.network "private_network", ip: "192.168.3.6"
 
         sh2.vm.provision :salt do |salt|
-	      # salt.minion_config = "../config/minion"
-	      salt.install_master = false
-	      salt.bootstrap_options = "-P -F -c /tmp"
-	      salt.run_highstate = false
-	      salt.grains_config = "grains"
-	    end
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "grains"
+          salt.minion_config = "minion"
+        end
     end
 
 end

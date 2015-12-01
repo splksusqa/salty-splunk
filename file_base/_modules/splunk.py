@@ -230,3 +230,9 @@ def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
                    'master_uri': 'https://{u}'.format(u=master_uri),
                    'mode': 'slave',})
     return splunk.restart(timeout=60)
+
+def get_mgmt_uri():
+    '''
+    '''
+    ips = __salt__['grains.item']('ipv4').values()
+    return ips[0][-1] + ":8089"
