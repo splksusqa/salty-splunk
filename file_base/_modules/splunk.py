@@ -63,6 +63,8 @@ class Installer(object):
     def is_installed(self):
         pass
 
+    def uninstall(self):
+        pass
 
 class WindowsMsiInstaller(Installer):
     def __init__(self):
@@ -82,6 +84,9 @@ class WindowsMsiInstaller(Installer):
         log.debug('service.available return : %s' % result)
         return result
 
+    def uninstall(self):
+        raise NotImplementedError
+
 
 class LinuxTgzInstaller(Installer):
     def __init__(self):
@@ -100,6 +105,16 @@ class LinuxTgzInstaller(Installer):
 
     def is_installed(self):
         return os.path.exists(os.path.join(self.splunk_home, "bin", "splunk"))
+
+    def uninstall(self):
+        if self.is_installed():
+            __salt__['cmd.run_all']("{s} stop".format(
+                s=os.path.join(self.splunk_home, "bin", "splunk")))
+            ret = __salt__['cmd.run_all']("rm -rf {h}".format(h=self.splunk_home))
+            return 0 == ret['retcode']
+        else:
+            return True
+
 
 def _is_it_version_branch_build(parameter):
 
@@ -231,8 +246,27 @@ def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
                    'mode': 'slave',})
     return splunk.restart(timeout=60)
 
+def config_cluster_searchhead(pass4SymmKey, master_uri):
+    '''
+    '''
+    splunk = _get_splunk()
+
+    conf = splunk.confs['server']
+    stanza = conf['clustering']
+    # choose one of update and submit
+    stanza.submit({'pass4SymmKey': pass4SymmKey,
+                   'master_uri': 'https://{u}'.format(u=master_uri),
+                   'mode': 'searchhead',})
+    return splunk.restart(timeout=60)
+
 def get_mgmt_uri():
     '''
     '''
     ips = __salt__['grains.item']('ipv4').values()
     return ips[0][-1] + ":8089"
+
+def uninstall():
+    '''
+    '''
+    installer = InstallerFactory.create_installer()
+    return installer.uninstall()

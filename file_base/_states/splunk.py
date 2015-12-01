@@ -60,3 +60,23 @@ def cluster_slave_configured(name, **kwargs):
         ret['comment'] = "Something went wrong. Reason: {r}".format(
             r=config_result['reason'])
     return ret
+
+def cluster_searchhead_configured(name, **kwargs):
+    '''
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.config_cluster_searchhead'](**kwargs)
+
+    if 200 == config_result['status']:
+        ret['result'] = True
+        ret['comment'] = "Splunk was configured as cluster SH successfully"
+        ret['changes'] = {"new": 'configured'}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong. Reason: {r}".format(
+            r=config_result['reason'])
+    return ret

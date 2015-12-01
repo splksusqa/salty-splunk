@@ -13,3 +13,11 @@ slave_setup:
     - sls: splunk.cluster_slave
     - require:
       - salt: master_setup
+
+searchhead_setup:
+  salt.state:
+    - tgt: 'role:splunk-cluster-searchhead'
+    - tgt_type: grain
+    - sls: splunk.cluster_searchhead
+    - require:
+      - salt: master_setup
