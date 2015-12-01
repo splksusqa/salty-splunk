@@ -235,4 +235,4 @@ def get_mgmt_uri():
     '''
     '''
     ips = __salt__['grains.item']('ipv4').values()
-    return ips[0][2] + ":8089"
+    return ips[0][-1] + ":8089"
