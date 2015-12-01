@@ -5,7 +5,6 @@ import tempfile
 import sys
 import logging
 import re
-import socket
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
