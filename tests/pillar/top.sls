@@ -8,3 +8,8 @@ base:
     - match: grain
     - splunk
     - cluster_slave
+
+  'role:splunk-cluster-searchhead':
+    - match: grain
+    - splunk
+    - cluster_slave

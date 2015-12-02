@@ -1,3 +1,3 @@
-replication_factor: 3
-search_factor: 3
+replication_factor: 2
+search_factor: 2
 pass4SymmKey: 123
