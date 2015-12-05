@@ -11,5 +11,5 @@ base:
     - match: grain
     - indexer_cluster
 
-  '*'
+  '*':
     - splunk
