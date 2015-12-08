@@ -33,7 +33,8 @@ Vagrant.configure(2) do |config|
     node.vm.box = "opentable/win-2012r2-standard-amd64-nocm"
 
     node.vm.synced_folder "../file_base", "/salt/srv/salt"
-    node.vm.synced_folder "../tests", "/vagrant/tests"
+    node.vm.synced_folder "../pillar", "/salt/srv/pillar"
+    # node.vm.synced_folder "../tests", "/vagrant/tests"
     node.vm.synced_folder ".", "/vagrant", disabled: true
     node.vm.network "forwarded_port", guest: 8000, host: 9001
     node.vm.network "forwarded_port", guest: 8887, host: 9997

@@ -10,3 +10,11 @@ config_slave:
     - replication_port: {{ pillar['replication_port'] }}
   require:
     - sls: [splunk.indexer, splunk.pip]
+
+{% if grains['os'] != 'Windows' %}
+SplunkReplicationPort:
+  win_firewall:
+    - add_rule
+    - localport: {{ pillar['replication_port'] }}
+    - protocol: tcp
+{% endif %}
