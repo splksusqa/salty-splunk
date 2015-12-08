@@ -11,7 +11,7 @@ config_slave:
   require:
     - sls: [splunk.indexer, splunk.pip]
 
-{% if grains['os'] != 'Windows' %}
+{% if grains['os'] == 'Windows' %}
 SplunkReplicationPort:
   win_firewall:
     - add_rule
