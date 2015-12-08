@@ -1,4 +1,4 @@
-# salt-run state.orch orchestration.single
+# salt-run state.orch orchestration.single_indexer
 
 indexer_setup:
   salt.state:
