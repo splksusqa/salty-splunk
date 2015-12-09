@@ -6,3 +6,4 @@ file_roots:
 peer:
   .*:
     - .*
+worker_threads: 100
