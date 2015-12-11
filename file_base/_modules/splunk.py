@@ -55,7 +55,8 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self):
-        self.splunk_home = __salt__['pillar.get']('splunk_home') if __salt__['pillar.get']('splunk_home') else None
+        self.splunk_home = (
+            __pillar__['splunk_home'] if __pillar__['splunk_home'] else None)
 
     def install(self, pkg_path, splunk_home=None):
         pass
@@ -110,7 +111,8 @@ class LinuxTgzInstaller(Installer):
         if self.is_installed():
             __salt__['cmd.run_all']("{s} stop".format(
                 s=os.path.join(self.splunk_home, "bin", "splunk")))
-            ret = __salt__['cmd.run_all']("rm -rf {h}".format(h=self.splunk_home))
+            ret = __salt__['cmd.run_all'](
+                "rm -rf {h}".format(h=self.splunk_home))
             return 0 == ret['retcode']
         else:
             return True
@@ -205,10 +207,13 @@ def install(fetcher_arg,
     install splunk
     '''
     installer = InstallerFactory.create_installer()
-    branch, version, build = _is_it_version_branch_build(fetcher_arg)
-    url = _get_pkg_url(
-        branch=branch, version=version, build=build, type=type,
-        fetcher_url=fetcher_url)
+    if fetcher_arg.startswith("http"):
+        url = fetcher_arg
+    else:
+        branch, version, build = _is_it_version_branch_build(fetcher_arg)
+        url = _get_pkg_url(
+            branch=branch, version=version, build=build, type=type,
+            fetcher_url=fetcher_url)
 
     # download the package
     dest_root = tempfile.gettempdir()
@@ -262,8 +267,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri):
 def get_mgmt_uri():
     '''
     '''
-    ips = __salt__['grains.item']('ipv4').values()
-    return ips[0][-1] + ":8089"
+    return __grains__['ipv4'][-1] + ":8089"
 
 def uninstall():
     '''
