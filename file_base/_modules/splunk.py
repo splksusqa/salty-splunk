@@ -55,8 +55,10 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self):
-        self.splunk_home = (
-            __pillar__['splunk_home'] if __pillar__['splunk_home'] else None)
+        try:
+            self.splunk_home = __pillar__['splunk_home']
+        except KeyError:
+            self.splunk_home = None
 
     def install(self, pkg_path, splunk_home=None):
         pass
