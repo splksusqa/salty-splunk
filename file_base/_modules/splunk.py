@@ -266,6 +266,56 @@ def config_cluster_searchhead(pass4SymmKey, master_uri):
                    'mode': 'searchhead',})
     return splunk.restart(timeout=60)
 
+def config_shcluster_deployer(pass4SymmKey, shcluster_label):
+    '''
+    config deployer of the shc
+    '''
+    splunk = _get_splunk()
+    conf = splunk.confs['server']
+    stanza = conf['shclustering']
+    stanza.submit({'pass4SymmKey': pass4SymmKey,
+                   'shcluster_label': shcluster_label})
+    return splunk.restart(timeout=60)
+
+def config_shcluster_member(
+        pass4SymmKey, shcluster_label, replication_factor, replication_port,
+        conf_deploy_fetch_url):
+    '''
+    config shcluster member
+    '''
+    splunk = _get_splunk()
+    if not conf_deploy_fetch_url.startswith("https://"):
+        conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
+
+    from splunklib.binding import HTTPError
+    conf = splunk.confs['server']
+    try:
+        conf.create("replication_port://{p}".format(p=replication_port))
+    except HTTPError:
+        pass  # the replication_port stanza is already there
+
+    stanza = conf['shclustering']
+    stanza.submit({'pass4SymmKey': pass4SymmKey,
+                   'shcluster_label': shcluster_label,
+                   'conf_deploy_fetch_url': conf_deploy_fetch_url,
+                   'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
+                   'disabled': 'false'})
+    return splunk.restart(timeout=60)
+
+def bootstrap_shcluster_captain(servers_list):
+    '''
+    bootstrap shcluster captain
+    '''
+    # dont like this, let's fix this later
+    try:
+        splunk_home = __pillar__['splunk_home']
+    except KeyError:
+        splunk_home = ('/opt/splunk' if 'linux' in PLATFORM
+                        else 'C:\\Program Files\\Splunk')
+    cmd = '{p} bootstrap shcluster-captain -servers_list {s} -auth admin:changeme'.format(
+        p=os.path.join(splunk_home, 'bin', 'splunk'), s=servers_list)
+    return __salt__['cmd.run_all'](cmd)
+
 def get_mgmt_uri():
     '''
     '''
@@ -276,3 +326,10 @@ def uninstall():
     '''
     installer = InstallerFactory.create_installer()
     return installer.uninstall()
+
+def get_shc_member_list():
+    '''
+    '''
+    ips = __salt__['publish.publish'](
+        'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None, 'grain')
+    return ",".join(["https://{p}".format(p=ip) for ip in ips.values()])
