@@ -287,11 +287,12 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
+    from splunklib.binding import HTTPError
     conf = splunk.confs['server']
     try:
         conf.create("replication_port://{p}".format(p=replication_port))
-    except Exception:
-        pass
+    except HTTPError:
+        pass  # the replication_port stanza is already there
 
     stanza = conf['shclustering']
     stanza.submit({'pass4SymmKey': pass4SymmKey,
