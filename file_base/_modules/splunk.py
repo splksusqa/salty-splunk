@@ -33,17 +33,19 @@ def _get_splunk(username="admin", password="changeme"):
         username=username, password=password, sharing="system", autologin=True)
     return splunk
 
-def cli(cli):
-    '''
-    run splunk cli
-    '''
-    # dont like this, let's fix this later
+def _get_splunk_home():
     try:
         splunk_home = __pillar__['splunk_home']
     except KeyError:
         splunk_home = ('/opt/splunk' if 'linux' in PLATFORM
                         else 'C:\\Program Files\\Splunk')
+    return splunk_home
 
+def cli(cli):
+    '''
+    run splunk cli
+    '''
+    splunk_home = _get_splunk_home()
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'), c=cli)
     return __salt__['cmd.run_all'](cmd)
 
@@ -321,15 +323,10 @@ def bootstrap_shcluster_captain(servers_list):
     bootstrap shcluster captain
     '''
     # dont like this, let's fix this later
-    try:
-        splunk_home = __pillar__['splunk_home']
-    except KeyError:
-        splunk_home = ('/opt/splunk' if 'linux' in PLATFORM
-                        else 'C:\\Program Files\\Splunk')
 
-    cmd = '{p} bootstrap shcluster-captain -servers_list {s} -auth admin:changeme'.format(
-        p=os.path.join(splunk_home, 'bin', 'splunk'), s=servers_list)
-    return __salt__['cmd.run_all'](cmd)
+    cmd = ('bootstrap shcluster-captain -servers_list'
+           ' {s} -auth admin:changeme'.format(s=servers_list))
+    return cli(cmd)
 
 def config_search_peer(
         servers, remote_username='admin', remote_password='changeme'):
