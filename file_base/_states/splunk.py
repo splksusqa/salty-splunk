@@ -140,3 +140,41 @@ def shcluster_captain_bootstrapped(name, **kwargs):
         ret['comment'] = "Something went wrong: {s}".format(
             s=bootstrap_result['stderr'])
     return ret
+
+def search_peer_configured(name, **kwargs):
+    '''
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.config_search_peer'](**kwargs)
+
+    if 200 == config_result['status']:
+        ret['result'] = True
+        ret['comment'] = "Search peer was configured successfully"
+        ret['changes'] = {"new": 'configured'}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong. Reason: {r}".format(
+            r=config_result['reason'])
+    return ret
+
+def remote_login_allowed(name, **kwargs):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.allow_remote_login'](**kwargs)
+
+    if 200 == config_result['status']:
+        ret['result'] = True
+        ret['comment'] = "Remote login was set to always"
+        ret['changes'] = {"new": 'configured'}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong. Reason: {r}".format(
+            r=config_result['reason'])
+    return ret

@@ -1,7 +1,16 @@
+include:
+  - splunk.pip
+
 install-splunk:
   splunk:
     - installed
     - fetcher_arg: {{ pillar['version'] }}
+
+allow-remote-login:
+  splunk:
+    - remote_login_allowed
+    - require:
+      - sls: splunk.pip
 
 {% if grains['os'] == 'Windows' %}
 SplunkWebPort:
