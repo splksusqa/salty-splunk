@@ -1,0 +1,11 @@
+auto_accept: True
+pillar_roots:
+    base:
+        - /srv/salt/pillar
+file_roots:
+        base:
+        - /srv/salt
+        - /srv/salt/formulas/nfs
+peer:
+    .*:
+        - .*
