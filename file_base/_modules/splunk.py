@@ -337,6 +337,18 @@ def config_search_peer(
                '-remoteUsername {u} -remotePassword {p}'.format(
                 h=servers, p=remote_password, u=remote_username))
 
+def config_deployment_client(server):
+    '''
+    config deploymeny client
+    '''
+    cmd = 'set deploy-poll {s} -auth admin:changeme'.format(s=server)
+    cli_result = cli(cmd)
+
+    if 0 == cli_result['retcode']:
+        return cli('restart')
+    else:
+        return cli_result
+
 def allow_remote_login():
     '''
     '''

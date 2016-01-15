@@ -1,0 +1,45 @@
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "puphpet/ubuntu1404-x64"
+
+    config.vm.define "saltmaster" do |master|
+        master.vm.hostname = "salt-master"
+        master.vm.network "private_network", ip: "192.168.30.101"
+        master.vm.synced_folder "../../file_base", "/srv/salt/"
+        master.vm.synced_folder "../../pillar", "/srv/salt/pillar"
+
+        master.vm.provision :salt do |salt|
+          salt.install_master = true
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.master_config = "master"
+        end
+    end
+
+    config.vm.define "server" do |server|
+        server.vm.hostname = "deployment-server"
+        server.vm.network "private_network", ip: "192.168.30.102"
+        server.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "deployment_server.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "client" do |client|
+        client.vm.hostname = "deployment-client"
+        client.vm.network "private_network", ip: "192.168.30.103"
+        client.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "deployment_client.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+end
