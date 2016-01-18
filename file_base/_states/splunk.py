@@ -161,6 +161,26 @@ def search_peer_configured(name, **kwargs):
             r=config_result['reason'])
     return ret
 
+def deployment_client_configured(name, **kwargs):
+    '''
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    config_result = __salt__['splunk.config_deployment_client'](**kwargs)
+
+    if 0 == config_result['retcode']:
+        ret['result'] = True
+        ret['comment'] = "deploymeny client was configured successfully"
+        ret['changes'] = {'new': "installed"}
+    else:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(
+            s=config_result['stderr'])
+    return ret
+
 def remote_login_allowed(name, **kwargs):
     ret = {'name': name,
            'changes': {},
