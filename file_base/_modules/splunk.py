@@ -85,6 +85,12 @@ class Installer(object):
     def uninstall(self):
         pass
 
+    def get_pkg_path(self):
+        return __salt__['grains.get']('pkg_path')
+
+    def set_pkg_path(self, pkg_path):
+        return __salt__['grains.set']('pkg_path', pkg_path, force=True)
+
 class WindowsMsiInstaller(Installer):
     def __init__(self):
         '''
@@ -96,6 +102,7 @@ class WindowsMsiInstaller(Installer):
     def install(self, pkg_path, splunk_home=None):
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
             c=pkg_path, h=self.splunk_home, q='/quiet')
+        self.set_pkg_path(pkg_path)
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
@@ -104,7 +111,20 @@ class WindowsMsiInstaller(Installer):
         return result
 
     def uninstall(self):
-        raise NotImplementedError
+        if not is_installed():
+            return
+
+        pkg_path = self.get_pkg_path()
+        if not pkg_path:
+            raise EnvironmentError("Can't uninstall without pkg file")
+
+        cmd = 'msiexec /x {c} /quiet SUPPRESS_SURVEY=1'.format(c=pkg_path)
+        result = __salt__['cmd.run_all'](cmd, python_shell=True)
+        if result['retcode'] == 0:
+            os.remove(pkg_path)
+            __salt__['grains.delval']('pkg_path')
+
+        return result
 
 
 class LinuxTgzInstaller(Installer):
@@ -120,6 +140,7 @@ class LinuxTgzInstaller(Installer):
             os.mkdir(self.splunk_home)
         cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
                "start --accept-license".format(s=self.splunk_home, p=pkg_path))
+        self.set_pkg_path(pkg_path)
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
@@ -225,7 +246,12 @@ def install(fetcher_arg,
     install splunk
     '''
     installer = InstallerFactory.create_installer()
-    if fetcher_arg.startswith("http"):
+
+    if installer.is_installed():
+        log.debug('splunk is installed')
+        return
+
+    if fetcher_arg.startswith("http") or fetcher_arg.startswith('salt://'):
         url = fetcher_arg
     else:
         branch, version, build = _is_it_version_branch_build(fetcher_arg)
@@ -233,9 +259,12 @@ def install(fetcher_arg,
             branch=branch, version=version, build=build, type=type,
             fetcher_url=fetcher_url)
 
+    log.debug('download pkg from: {u}'.format(u=url))
+
     # download the package
     dest_root = tempfile.gettempdir()
     pkg_path = os.path.join(dest_root, os.sep, os.path.basename(url))
+    log.debug('download pkg to: {p}'.format(p=pkg_path))
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
