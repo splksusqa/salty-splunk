@@ -9,18 +9,21 @@ import re
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
 
+
 def _import_sdk():
     try:
         import splunklib
     except ImportError:
         if "win" in PLATFORM:
             __salt__['pip.install'](
-                pkgs='splunk-sdk', bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
-                cwd="C:\\salt\\bin\\scripts")
+                    pkgs='splunk-sdk',
+                    bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
+                    cwd="C:\\salt\\bin\\scripts")
         else:
             __salt__['pip.install']('splunk-sdk')
         import splunklib
     return splunklib
+
 
 def _get_splunk(username="admin", password="changeme"):
     '''
@@ -30,16 +33,19 @@ def _get_splunk(username="admin", password="changeme"):
     import splunklib.client as client
 
     splunk = client.connect(
-        username=username, password=password, sharing="system", autologin=True)
+            username=username, password=password, sharing="system",
+            autologin=True)
     return splunk
+
 
 def _get_splunk_home():
     try:
         splunk_home = __pillar__['splunk_home']
     except KeyError:
         splunk_home = ('/opt/splunk' if 'linux' in PLATFORM
-                        else 'C:\\Program Files\\Splunk')
+                       else 'C:\\Program Files\\Splunk')
     return splunk_home
+
 
 def cli(cli):
     '''
@@ -85,6 +91,7 @@ class Installer(object):
     def uninstall(self):
         pass
 
+
 class WindowsMsiInstaller(Installer):
     def __init__(self):
         '''
@@ -95,7 +102,7 @@ class WindowsMsiInstaller(Installer):
 
     def install(self, pkg_path, splunk_home=None):
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
-            c=pkg_path, h=self.splunk_home, q='/quiet')
+                c=pkg_path, h=self.splunk_home, q='/quiet')
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
@@ -128,16 +135,15 @@ class LinuxTgzInstaller(Installer):
     def uninstall(self):
         if self.is_installed():
             __salt__['cmd.run_all']("{s} stop".format(
-                s=os.path.join(self.splunk_home, "bin", "splunk")))
+                    s=os.path.join(self.splunk_home, "bin", "splunk")))
             ret = __salt__['cmd.run_all'](
-                "rm -rf {h}".format(h=self.splunk_home))
+                    "rm -rf {h}".format(h=self.splunk_home))
             return 0 == ret['retcode']
         else:
             return True
 
 
 def _is_it_version_branch_build(parameter):
-
     branch = ''
     version = ''
     build = ''
@@ -205,9 +211,9 @@ def _fetch_url(fetcher_url, params):
     r = requests.get(fetcher_url, params=params)
     if 'Error' in r.text.strip():
         raise salt.exceptions.CommandExecutionError(
-            "Fetcher returned an error: {e}, "
-            "requested url: {u}".format(
-                e=r.text.strip(), u=r.url))
+                "Fetcher returned an error: {e}, "
+                "requested url: {u}".format(
+                        e=r.text.strip(), u=r.url))
     pkg_url = r.text.strip()
     return pkg_url
 
@@ -230,8 +236,8 @@ def install(fetcher_arg,
     else:
         branch, version, build = _is_it_version_branch_build(fetcher_arg)
         url = _get_pkg_url(
-            branch=branch, version=version, build=build, type=type,
-            fetcher_url=fetcher_url)
+                branch=branch, version=version, build=build, type=type,
+                fetcher_url=fetcher_url)
 
     # download the package
     dest_root = tempfile.gettempdir()
@@ -240,6 +246,7 @@ def install(fetcher_arg,
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
     return installer.install(pkg_path)
+
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     '''
@@ -255,8 +262,16 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
                    'mode': 'master',})
     return splunk.restart(timeout=60)
 
-def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
+
+def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     '''
+    config splunk as a peer(indexer) of a indexer cluster
+    http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
+    :param replication_port: port to replicate data
+    :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
+        if not specified, will search minion under same master with role
+        splunk-cluster-master
+    :param pass4SymmKey: is a key to communicate between indexer cluster
     '''
     splunk = _get_splunk()
 
@@ -266,13 +281,27 @@ def config_cluster_slave(pass4SymmKey, master_uri, replication_port):
     # choose one of update and submit
     stanza.submit({'pass4SymmKey': pass4SymmKey,
                    'master_uri': 'https://{u}'.format(u=master_uri),
-                   'mode': 'slave',})
-    return splunk.restart(timeout=60)
+                   'mode': 'slave',
+                   })
+    return splunk.restart(timeout=300)
 
-def config_cluster_searchhead(pass4SymmKey, master_uri):
+
+def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     '''
+    config splunk as a search head of a indexer cluster
+    http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
+    :param pass4SymmKey:  is a key to communicate between indexer cluster
+    :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
+        if not specified, will search minion under same master with role
+        splunk-cluster-master
     '''
     splunk = _get_splunk()
+
+    if not master_uri:
+        master_uri = __salt__['publish.publish']('role:splunk-cluster-master',
+                                                 'splunk.get_mgmt_uri',
+                                                 None,
+                                                 'grain')
 
     conf = splunk.confs['server']
     stanza = conf['clustering']
@@ -280,7 +309,8 @@ def config_cluster_searchhead(pass4SymmKey, master_uri):
     stanza.submit({'pass4SymmKey': pass4SymmKey,
                    'master_uri': 'https://{u}'.format(u=master_uri),
                    'mode': 'searchhead',})
-    return splunk.restart(timeout=60)
+    return splunk.restart(timeout=300)
+
 
 def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     '''
@@ -291,7 +321,8 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     stanza = conf['shclustering']
     stanza.submit({'pass4SymmKey': pass4SymmKey,
                    'shcluster_label': shcluster_label})
-    return splunk.restart(timeout=60)
+    return splunk.restart(timeout=300)
+
 
 def config_shcluster_member(
         pass4SymmKey, shcluster_label, replication_factor, replication_port,
@@ -318,6 +349,7 @@ def config_shcluster_member(
                    'disabled': 'false'})
     return splunk.restart(timeout=60)
 
+
 def bootstrap_shcluster_captain(servers_list):
     '''
     bootstrap shcluster captain
@@ -328,6 +360,7 @@ def bootstrap_shcluster_captain(servers_list):
            ' {s} -auth admin:changeme'.format(s=servers_list))
     return cli(cmd)
 
+
 def config_search_peer(
         servers, remote_username='admin', remote_password='changeme'):
     '''
@@ -335,7 +368,8 @@ def config_search_peer(
     '''
     return cli('add search-server -host {h} -auth admin:changeme '
                '-remoteUsername {u} -remotePassword {p}'.format(
-                h=servers, p=remote_password, u=remote_username))
+            h=servers, p=remote_password, u=remote_username))
+
 
 def config_deployment_client(server):
     '''
@@ -349,6 +383,7 @@ def config_deployment_client(server):
     else:
         return cli_result
 
+
 def allow_remote_login():
     '''
     '''
@@ -359,10 +394,12 @@ def allow_remote_login():
 
     return splunk.restart(timeout=60)
 
+
 def get_mgmt_uri():
     '''
     '''
     return __grains__['ipv4'][-1] + ":8089"
+
 
 def uninstall():
     '''
@@ -370,9 +407,11 @@ def uninstall():
     installer = InstallerFactory.create_installer()
     return installer.uninstall()
 
+
 def get_shc_member_list():
     '''
     '''
     ips = __salt__['publish.publish'](
-        'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None, 'grain')
+            'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
+            'grain')
     return ",".join(["https://{p}".format(p=ip) for ip in ips.values()])
