@@ -114,7 +114,9 @@ class WindowsMsiInstaller(Installer):
 
     def uninstall(self):
         if not is_installed():
-            return
+            return dict({'retcode': 9,
+                         'stdout': '',
+                         'stderr': 'is not installed'})
 
         pkg_path = self.get_pkg_path()
         if not pkg_path:
@@ -255,12 +257,26 @@ def install(fetcher_arg,
             is_upgrade=False):
     '''
     install splunk
+    :type fetcher_arg: str
+    :type type: str
+    :type fetcher_url: str
+    :type start_after_install: bool
+    :type is_upgrade: bool
+    :rtype dict
+    :return command line result in dict ['retcode', 'stdout', 'stderr']
+    :param is_upgrade: bool, if splunk exists, upgrade splunk
+    :param start_after_install:
+    :param fetcher_url: string, where you download splunk pkg from
+    :param type: string, product type, ['splunk', 'uf', 'cloud' or 'light']
+    :param fetcher_arg: string, [version, hash, build_no, url or salt://url]
     '''
     installer = InstallerFactory.create_installer()
 
     if installer.is_installed() and not is_upgrade:
         log.debug('splunk is installed')
-        return
+        return dict({'retcode': 9,
+                     'stdout': 'splunk is installed',
+                     'stderr': 'splunk is installed'})
 
     if fetcher_arg.startswith("http") or fetcher_arg.startswith('salt://'):
         url = fetcher_arg
