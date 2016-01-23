@@ -250,6 +250,11 @@ def install(fetcher_arg,
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     '''
+    config splunk as a master of a indexer cluster
+    http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
+    :param search_factor: factor of bucket be able to search
+    :param replication_factor: factor of bucket be able to replicate
+    :param pass4SymmKey: it's a key to communicate between indexer cluster
     '''
     splunk = _get_splunk()
 
@@ -259,8 +264,9 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     stanza.submit({'pass4SymmKey': pass4SymmKey,
                    'replication_factor': replication_factor,
                    'search_factor': search_factor,
-                   'mode': 'master',})
-    return splunk.restart(timeout=60)
+                   'mode': 'master',
+                   })
+    return splunk.restart(timeout=300)
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
@@ -273,8 +279,10 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
         splunk-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
     '''
-    splunk = _get_splunk()
+    if not master_uri:
+        master_uri = get_cluster_master_mgmt_uri()
 
+    splunk = _get_splunk()
     conf = splunk.confs['server']
     conf.create("replication_port://{p}".format(p=replication_port))
     stanza = conf['clustering']
@@ -295,14 +303,10 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
         if not specified, will search minion under same master with role
         splunk-cluster-master
     '''
-    splunk = _get_splunk()
-
     if not master_uri:
-        master_uri = __salt__['publish.publish']('role:splunk-cluster-master',
-                                                 'splunk.get_mgmt_uri',
-                                                 None,
-                                                 'grain')
+        master_uri = get_cluster_master_mgmt_uri()
 
+    splunk = _get_splunk()
     conf = splunk.confs['server']
     stanza = conf['clustering']
     # choose one of update and submit
@@ -312,9 +316,30 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     return splunk.restart(timeout=300)
 
 
+def get_cluster_master_mgmt_uri():
+    '''
+    get mgmt uri of splunk instance with 'role:splunk-cluster-master'
+    :return: uri of 'role:splunk-cluster-master' in <ip>:<port> form
+    '''
+    target = 'role:splunk-cluster-master'
+    func_name = 'splunk.get_mgmt_uri'
+    expr = 'grain'
+    # return type is dict
+    minions = __salt__['publish.publish'](target, func_name, expr_form=expr)
+
+    if not minions or len(minions.values()) != 1:
+        raise EnvironmentError(
+                "should be one %s under master, count %d" %
+                (target, len(minions.values())))
+
+    uri = minions.values()[0]
+    return uri
+
+
 def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     '''
-    config deployer of the shc
+    config splunk as a deployer of the search head cluster
+    :return result of splunk restart
     '''
     splunk = _get_splunk()
     conf = splunk.confs['server']
@@ -324,13 +349,38 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     return splunk.restart(timeout=300)
 
 
+def get_deployer_uri():
+    target = 'role:splunk-shcluster-deployer'
+    func_name = 'splunk.get_mgmt_uri'
+    exp = 'grain'
+    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+
+    if not minions or len(minions.values()) != 1:
+        raise EnvironmentError(
+                "should be one %s under master, count %d" %
+                (target, len(minions.values())))
+
+    uri = minions.values()[0]
+
+    return uri
+
+
 def config_shcluster_member(
         pass4SymmKey, shcluster_label, replication_factor, replication_port,
-        conf_deploy_fetch_url):
+        conf_deploy_fetch_url=None):
     '''
-    config shcluster member
+    config splunk as a member of a search head cluster
+    :param conf_deploy_fetch_url:
+    :param replication_port:
+    :param replication_factor:
+    :param shcluster_label:
+    :param pass4SymmKey:
     '''
     splunk = _get_splunk()
+
+    if not conf_deploy_fetch_url:
+        conf_deploy_fetch_url = get_deployer_uri()
+
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
@@ -347,25 +397,61 @@ def config_shcluster_member(
                    'conf_deploy_fetch_url': conf_deploy_fetch_url,
                    'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
                    'disabled': 'false'})
-    return splunk.restart(timeout=60)
+    return splunk.restart(timeout=300)
 
 
-def bootstrap_shcluster_captain(servers_list):
+def bootstrap_shcluster_captain(servers_list=None):
     '''
-    bootstrap shcluster captain
+    bootstrap a splunk instance as a captain of a search head cluster captain
+    :param servers_list: list of shc members,
+        ex. https://192.168.0.2:8089,https://192.168.0.3:8089
     '''
     # dont like this, let's fix this later
+
+    servers_list = servers_list if servers_list else get_shc_member_list()
 
     cmd = ('bootstrap shcluster-captain -servers_list'
            ' {s} -auth admin:changeme'.format(s=servers_list))
     return cli(cmd)
 
 
+def get_indexer_list():
+    '''
+    :rtype: list
+    :return: [<ip>:<port>, <ip>:<port>]
+    '''
+    target = 'role:splunk-shcluster-indexer'
+    func_name = 'splunk.get_mgmt_uri'
+    exp = 'grain'
+    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+
+    if not minions:
+        raise EnvironmentError(
+                "should be at least %s under master, count %d" %
+                (target, len(minions.values())))
+
+    return minions.values()
+
+
 def config_search_peer(
-        servers, remote_username='admin', remote_password='changeme'):
+        servers=None, remote_username='admin', remote_password='changeme'):
     '''
-    config search peer
+    config splunk as a peer of a distributed search environment
+    http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf
+    :param remote_password:
+    :param remote_username:
+    :param servers: <ip>:<port>,<ip>:<port>
     '''
+    if not servers:
+        servers = get_indexer_list()
+
+    splunk = _get_splunk()
+    conf = splunk.confs['distsearch']
+    stanza = conf['distributedSearch']
+    stanza.submit({'servers': servers})
+
+    splunk.restart(timeout=300)
+
     return cli('add search-server -host {h} -auth admin:changeme '
                '-remoteUsername {u} -remotePassword {p}'.format(
             h=servers, p=remote_password, u=remote_username))
@@ -386,6 +472,7 @@ def config_deployment_client(server):
 
 def allow_remote_login():
     '''
+    config allowRemoteLogin under server.conf
     '''
     splunk = _get_splunk()
     conf = splunk.confs['server']
