@@ -5,6 +5,7 @@ import tempfile
 import sys
 import logging
 import re
+from splunklib.binding import HTTPError
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
@@ -25,15 +26,15 @@ def _import_sdk():
     return splunklib
 
 
-def _get_splunk(username="admin", password="changeme"):
-    '''
+def _get_splunk(username="admin", password="changeme", namespace='system'):
+    """
     returns the object which represents a splunk instance
-    '''
+    """
     splunklib = _import_sdk()
     import splunklib.client as client
 
     splunk = client.connect(
-            username=username, password=password, sharing="system",
+            username=username, password=password, sharing=namespace,
             autologin=True)
     return splunk
 
@@ -231,7 +232,7 @@ def install(fetcher_arg,
     install splunk
     '''
     installer = InstallerFactory.create_installer()
-    if fetcher_arg.startswith("http"):
+    if fetcher_arg.startswith("http") or fetcher_arg.startswith("salt://"):
         url = fetcher_arg
     else:
         branch, version, build = _is_it_version_branch_build(fetcher_arg)
@@ -248,6 +249,85 @@ def install(fetcher_arg,
     return installer.install(pkg_path)
 
 
+def config_conf(conf_name, stanza_name, data=None, is_restart=True, namespace='system'):
+    '''
+    config conf file by REST, if a data is existed, it will skip
+    :param conf_name: name of config file
+    :param stanza_name: stanza need to config
+    :param data: data under stanza
+    :param is_restart: restart after configuration
+    :rtype: bool
+    :return: True if success, False if not
+    '''
+    # if is_conf_configured(conf_name, stanza_name, data, namespace=namespace):
+    #     log.debug('data is configured')
+    #     return False
+
+    splunk = _get_splunk(namespace=namespace)
+    conf = splunk.confs[conf_name]
+
+    try:
+        if not data:
+            conf.create(stanza_name)
+        else:
+            stanza = conf[stanza_name]
+            stanza.submit(data)
+        if is_restart:
+            result = splunk.restart(timeout=300)
+            log.debug('splunk restart result: %s' % result)
+            if 200 == result['status']:
+                return True
+            else:
+                log.debug('restart fail after config')
+                return False
+        return True
+    except HTTPError as err:
+        log.debug('%s is existed' % str(data))
+        log.debug(err)
+        return False
+    except KeyError as err:
+        log.critical(err)
+        return False
+
+
+def is_conf_configured(conf_name, stanza_name, data=None, namespace='system'):
+    '''
+    right now the function not working because bool value may return 0 instead of False
+    need double check
+    :param conf_name:
+    :param stanza_name:
+    :param data:
+    :param namespace:
+    :return:
+    '''
+    pass
+    # splunk = _get_splunk(namespace=namespace)
+    #
+    # if conf_name not in splunk.confs:
+    #     log.debug('%s is not exist' % conf_name)
+    #     return False
+    #
+    # conf = splunk.confs[conf_name]
+    # if stanza_name not in conf:
+    #     log.debug('%s is not exist' % stanza_name)
+    #     return False
+    #
+    # stanza = conf[stanza_name]
+    #
+    # if not data:
+    #     return True
+    #
+    # for key, value in data.iteritems():
+    #     if key not in stanza.content:
+    #         log.debug('%s is not exist' % key)
+    #         return False
+    #     if stanza.content[key] != value:
+    #         log.debug('%s, %s is not matched, actual value is %s' % (key, value, stanza.content[key]))
+    #
+    # return True
+
+
+
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     '''
     config splunk as a master of a indexer cluster
@@ -256,17 +336,14 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
     '''
-    splunk = _get_splunk()
 
-    conf = splunk.confs['server']
-    stanza = conf['clustering']
-    # choose one of update and submit
-    stanza.submit({'pass4SymmKey': pass4SymmKey,
-                   'replication_factor': replication_factor,
-                   'search_factor': search_factor,
-                   'mode': 'master',
-                   })
-    return splunk.restart(timeout=300)
+    data = {'pass4SymmKey': pass4SymmKey,
+            'replication_factor': replication_factor,
+            'search_factor': search_factor,
+            'mode': 'master',
+            }
+
+    return config_conf('server', 'clustering', data)
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
@@ -279,19 +356,18 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
         splunk-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
     '''
+    config_conf('server', "replication_port://{p}".format(p=replication_port),
+                is_restart=False)
+
     if not master_uri:
         master_uri = get_cluster_master_mgmt_uri()
 
-    splunk = _get_splunk()
-    conf = splunk.confs['server']
-    conf.create("replication_port://{p}".format(p=replication_port))
-    stanza = conf['clustering']
-    # choose one of update and submit
-    stanza.submit({'pass4SymmKey': pass4SymmKey,
-                   'master_uri': 'https://{u}'.format(u=master_uri),
-                   'mode': 'slave',
-                   })
-    return splunk.restart(timeout=300)
+    data = {'pass4SymmKey': pass4SymmKey,
+            'master_uri': 'https://{u}'.format(u=master_uri),
+            'mode': 'slave',
+            }
+
+    config_conf('server', 'clustering', data)
 
 
 def config_cluster_searchhead(pass4SymmKey, master_uri=None):
@@ -306,24 +382,24 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     if not master_uri:
         master_uri = get_cluster_master_mgmt_uri()
 
-    splunk = _get_splunk()
-    conf = splunk.confs['server']
-    stanza = conf['clustering']
-    # choose one of update and submit
-    stanza.submit({'pass4SymmKey': pass4SymmKey,
-                   'master_uri': 'https://{u}'.format(u=master_uri),
-                   'mode': 'searchhead',})
-    return splunk.restart(timeout=300)
+    data = {'pass4SymmKey': pass4SymmKey,
+            'master_uri': 'https://{u}'.format(u=master_uri),
+            'mode': 'searchhead',
+            }
+
+    config_conf('server', 'clustering', data)
 
 
-def get_cluster_master_mgmt_uri():
+def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
+                                expr='grain'):
     '''
     get mgmt uri of splunk instance with 'role:splunk-cluster-master'
+    :param expr:
+    :param target:
     :return: uri of 'role:splunk-cluster-master' in <ip>:<port> form
     '''
-    target = 'role:splunk-cluster-master'
     func_name = 'splunk.get_mgmt_uri'
-    expr = 'grain'
+
     # return type is dict
     minions = __salt__['publish.publish'](target, func_name, expr_form=expr)
 
@@ -341,12 +417,10 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     config splunk as a deployer of the search head cluster
     :return result of splunk restart
     '''
-    splunk = _get_splunk()
-    conf = splunk.confs['server']
-    stanza = conf['shclustering']
-    stanza.submit({'pass4SymmKey': pass4SymmKey,
-                   'shcluster_label': shcluster_label})
-    return splunk.restart(timeout=300)
+    data = {'pass4SymmKey': pass4SymmKey,
+            'shcluster_label': shcluster_label}
+
+    config_conf('server', 'shclustering', data=data)
 
 
 def get_deployer_uri():
@@ -384,20 +458,16 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    from splunklib.binding import HTTPError
-    conf = splunk.confs['server']
-    try:
-        conf.create("replication_port://{p}".format(p=replication_port))
-    except HTTPError:
-        pass  # the replication_port stanza is already there
+    stanza = "replication_port://{p}".format(p=replication_port)
+    
+    config_conf('server', stanza, is_restart=False)
+    data = {'pass4SymmKey': pass4SymmKey,
+            'shcluster_label': shcluster_label,
+            'conf_deploy_fetch_url': conf_deploy_fetch_url,
+            'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
+            'disabled': 'false'}
 
-    stanza = conf['shclustering']
-    stanza.submit({'pass4SymmKey': pass4SymmKey,
-                   'shcluster_label': shcluster_label,
-                   'conf_deploy_fetch_url': conf_deploy_fetch_url,
-                   'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
-                   'disabled': 'false'})
-    return splunk.restart(timeout=300)
+    config_conf('server', 'shclustering', data)
 
 
 def bootstrap_shcluster_captain(servers_list=None):
@@ -406,7 +476,6 @@ def bootstrap_shcluster_captain(servers_list=None):
     :param servers_list: list of shc members,
         ex. https://192.168.0.2:8089,https://192.168.0.3:8089
     '''
-    # dont like this, let's fix this later
 
     servers_list = servers_list if servers_list else get_shc_member_list()
 
@@ -445,16 +514,16 @@ def config_search_peer(
     if not servers:
         servers = get_indexer_list()
 
-    splunk = _get_splunk()
-    conf = splunk.confs['distsearch']
-    stanza = conf['distributedSearch']
-    stanza.submit({'servers': servers})
+    # use cli to config is more simple than config by conf file
 
-    splunk.restart(timeout=300)
+    result_list = []
+    for s in servers:
+        result = cli('add search-server -host {h} -auth admin:changeme '
+                     '-remoteUsername {u} -remotePassword {p}'
+                     .format(h=s, p=remote_password, u=remote_username))
+        result_list.append(result)
 
-    return cli('add search-server -host {h} -auth admin:changeme '
-               '-remoteUsername {u} -remotePassword {p}'.format(
-            h=servers, p=remote_password, u=remote_username))
+    return result_list
 
 
 def config_deployment_client(server):
@@ -479,7 +548,7 @@ def allow_remote_login():
     stanza = conf['general']
     stanza.submit({'allowRemoteLogin': 'always'})
 
-    return splunk.restart(timeout=60)
+    return splunk.restart(timeout=300)
 
 
 def get_mgmt_uri():
@@ -490,6 +559,7 @@ def get_mgmt_uri():
 
 def uninstall():
     '''
+    uninstall splunk
     '''
     installer = InstallerFactory.create_installer()
     return installer.uninstall()
