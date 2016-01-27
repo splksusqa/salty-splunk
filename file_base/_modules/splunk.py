@@ -5,7 +5,7 @@ import tempfile
 import sys
 import logging
 import re
-from splunklib.binding import HTTPError
+from distutils import util
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
@@ -249,9 +249,11 @@ def install(fetcher_arg,
     return installer.install(pkg_path)
 
 
-def config_conf(conf_name, stanza_name, data=None, is_restart=True, namespace='system'):
+def config_conf(conf_name, stanza_name, data=None, is_restart=True,
+                namespace='system'):
     '''
     config conf file by REST, if a data is existed, it will skip
+    :param namespace:
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
@@ -259,13 +261,15 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True, namespace='s
     :rtype: bool
     :return: True if success, False if not
     '''
-    # if is_conf_configured(conf_name, stanza_name, data, namespace=namespace):
-    #     log.debug('data is configured')
-    #     return False
+    if is_conf_configured(conf_name, stanza_name, data, namespace):
+        log.debug('data is configured')
+        return True
 
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
 
+    # lazy load here since splunk sdk is install at run time
+    from splunklib.binding import HTTPError
     try:
         if not data:
             conf.create(stanza_name)
@@ -282,12 +286,21 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True, namespace='s
                 return False
         return True
     except HTTPError as err:
-        log.debug('%s is existed' % str(data))
+        log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
         return False
     except KeyError as err:
         log.critical(err)
         return False
+
+
+def _convert_rest_value_type(target_type, data):
+    log.debug('type of data %s ' % type(data).__name__)
+    log.debug('target type is %s ' % target_type.__name__)
+    if target_type is bool:
+        return util.strtobool(str(data))
+    else:
+        return target_type(str(data))
 
 
 def is_conf_configured(conf_name, stanza_name, data=None, namespace='system'):
@@ -300,32 +313,35 @@ def is_conf_configured(conf_name, stanza_name, data=None, namespace='system'):
     :param namespace:
     :return:
     '''
-    pass
-    # splunk = _get_splunk(namespace=namespace)
-    #
-    # if conf_name not in splunk.confs:
-    #     log.debug('%s is not exist' % conf_name)
-    #     return False
-    #
-    # conf = splunk.confs[conf_name]
-    # if stanza_name not in conf:
-    #     log.debug('%s is not exist' % stanza_name)
-    #     return False
-    #
-    # stanza = conf[stanza_name]
-    #
-    # if not data:
-    #     return True
-    #
-    # for key, value in data.iteritems():
-    #     if key not in stanza.content:
-    #         log.debug('%s is not exist' % key)
-    #         return False
-    #     if stanza.content[key] != value:
-    #         log.debug('%s, %s is not matched, actual value is %s' % (key, value, stanza.content[key]))
-    #
-    # return True
+    splunk = _get_splunk(namespace=namespace)
 
+    if conf_name not in splunk.confs:
+        log.debug('%s is not exist' % conf_name)
+        return False
+
+    conf = splunk.confs[conf_name]
+    if stanza_name not in conf:
+        log.debug('%s is not exist' % stanza_name)
+        return False
+
+    stanza = conf[stanza_name]
+
+    if not data:
+        return True
+
+    for key, value in data.iteritems():
+        if key not in stanza.content:
+            log.debug('%s is not exist' % key)
+            return False
+
+        actual_data = stanza.content[key]
+        actual_data = _convert_rest_value_type(type(value), actual_data)
+        if actual_data != value:
+            log.debug('%s, %s is not matched, '
+                      'actual value is %s' % (key, value, actual_data))
+            return False
+
+    return True
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
@@ -367,7 +383,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
             'mode': 'slave',
             }
 
-    config_conf('server', 'clustering', data)
+    return config_conf('server', 'clustering', data)
 
 
 def config_cluster_searchhead(pass4SymmKey, master_uri=None):
@@ -387,7 +403,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
             'mode': 'searchhead',
             }
 
-    config_conf('server', 'clustering', data)
+    return config_conf('server', 'clustering', data)
 
 
 def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
@@ -420,7 +436,7 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
 
-    config_conf('server', 'shclustering', data=data)
+    return config_conf('server', 'shclustering', data=data)
 
 
 def get_deployer_uri():
@@ -450,7 +466,10 @@ def config_shcluster_member(
     :param shcluster_label:
     :param pass4SymmKey:
     '''
-    splunk = _get_splunk()
+    stanza = "replication_port://{p}".format(p=replication_port)
+    result = config_conf('server', stanza, is_restart=False)
+    if not result:
+        return False
 
     if not conf_deploy_fetch_url:
         conf_deploy_fetch_url = get_deployer_uri()
@@ -458,16 +477,13 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    stanza = "replication_port://{p}".format(p=replication_port)
-    
-    config_conf('server', stanza, is_restart=False)
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label,
             'conf_deploy_fetch_url': conf_deploy_fetch_url,
             'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
             'disabled': 'false'}
 
-    config_conf('server', 'shclustering', data)
+    return config_conf('server', 'shclustering', data)
 
 
 def bootstrap_shcluster_captain(servers_list=None):
@@ -526,10 +542,31 @@ def config_search_peer(
     return result_list
 
 
-def config_deployment_client(server):
+def get_deployment_server_mgmt_url():
+    target = 'role:splunk-deployment-server'
+    func_name = 'splunk.get_mgmt_uri'
+    expr = 'grain'
+
+    # return type is dict
+    minions = __salt__['publish.publish'](target, func_name, expr_form=expr)
+
+    if not minions or len(minions.values()) != 1:
+        raise EnvironmentError(
+                "should be one %s under master, count %d" %
+                (target, len(minions.values())))
+
+    uri = minions.values()[0]
+    return uri
+
+
+def config_deployment_client(server=None):
     '''
     config deploymeny client
+    :param server: mgmt uri of deployment server
     '''
+    if not server:
+        server = get_deployment_server_mgmt_url()
+
     cmd = 'set deploy-poll {s} -auth admin:changeme'.format(s=server)
     cli_result = cli(cmd)
 
@@ -543,12 +580,7 @@ def allow_remote_login():
     '''
     config allowRemoteLogin under server.conf
     '''
-    splunk = _get_splunk()
-    conf = splunk.confs['server']
-    stanza = conf['general']
-    stanza.submit({'allowRemoteLogin': 'always'})
-
-    return splunk.restart(timeout=300)
+    return config_conf('server', 'general', {'allowRemoteLogin': 'always'})
 
 
 def get_mgmt_uri():
