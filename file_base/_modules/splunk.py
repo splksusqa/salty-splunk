@@ -97,10 +97,7 @@ class Installer(object):
         if grains_value:
             return grains_value
 
-        try:
-            return __pillar__['splunk_home']
-        except KeyError:
-            return None
+        return None
 
     @splunk_home.setter
     def splunk_home(self, value):
