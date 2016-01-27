@@ -361,9 +361,12 @@ def allow_remote_login():
 
 def add_license(license_path):
     '''
+    @type license_path: string
+    @param license_path: where the license is. It should be start with 'salt://'
     '''
     name = os.path.basename(license_path)
-    license = __salt__['cp.get_file'](license_path, '/opt/{n}'.format(n=name))
+    license = __salt__['cp.get_file'](
+        license_path, os.path.join(tempfile.gettempdir(), name))
 
     if license is not None:
         cli_result = cli(
@@ -383,7 +386,7 @@ def config_license_slave(master_uri):
         master_uri = 'https://{u}'.format(u=master_uri)
     stanza = conf['license']
     stanza.submit({'master_uri': master_uri})
-    return splunk.restart(timeout=60)
+    return splunk.restart(timeout=300)
 
 def get_mgmt_uri():
     '''
