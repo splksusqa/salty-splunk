@@ -9,6 +9,8 @@ config_member:
     - replication_factor: {{ pillar['replication_factor'] }}
     - replication_port: {{ pillar['replication_port'] }}
     # - conf_deploy_fetch_url:
+  require:
+    - sls: splunk.indexer
 
 config_searchhead:
   splunk:

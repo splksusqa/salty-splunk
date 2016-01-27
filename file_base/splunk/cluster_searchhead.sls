@@ -1,6 +1,5 @@
 include:
   - splunk.indexer
-  - splunk.pip
 
 config_searchhead:
   splunk:
@@ -8,4 +7,4 @@ config_searchhead:
     - pass4SymmKey: {{ pillar['pass4SymmKey'] }}
     # - master_uri:
   require:
-    - sls: [splunk.indexer, splunk.pip]
+    - sls: splunk.indexer

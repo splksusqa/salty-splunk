@@ -92,11 +92,15 @@ class Installer(object):
     def uninstall(self):
         pass
 
-    def get_pkg_path(self):
+    @property
+    def pkg_path(self):
+        """ where the package file is stored"""
         return __salt__['grains.get']('pkg_path')
 
-    def set_pkg_path(self, pkg_path):
-        return __salt__['grains.set']('pkg_path', pkg_path, force=True)
+    @pkg_path.setter
+    def pkg_path(self, value):
+        __salt__['grains.set']('pkg_path', value, force=True)
+
 
 class WindowsMsiInstaller(Installer):
     def __init__(self):
@@ -111,7 +115,8 @@ class WindowsMsiInstaller(Installer):
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
             c=pkg_path, h=splunk_home, q='/quiet')
-        self.set_pkg_path(pkg_path)
+        self.pkg_path = pkg_path
+
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
@@ -121,11 +126,9 @@ class WindowsMsiInstaller(Installer):
 
     def uninstall(self):
         if not is_installed():
-            return dict({'retcode': 9,
-                         'stdout': '',
-                         'stderr': 'is not installed'})
+            return
 
-        pkg_path = self.get_pkg_path()
+        pkg_path = self.pkg_path
         if not pkg_path:
             raise EnvironmentError("Can't uninstall without pkg file")
 
@@ -134,8 +137,6 @@ class WindowsMsiInstaller(Installer):
         if result['retcode'] == 0:
             os.remove(pkg_path)
             __salt__['grains.delval']('pkg_path')
-
-        return result
 
 
 class LinuxTgzInstaller(Installer):
@@ -159,21 +160,24 @@ class LinuxTgzInstaller(Installer):
         cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
                "start --accept-license --answer-yes"
                .format(s=self.splunk_home, p=pkg_path))
-        self.set_pkg_path(pkg_path)
+        self.pkg_path = pkg_path
+
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
         return os.path.exists(os.path.join(self.splunk_home, "bin", "splunk"))
 
     def uninstall(self):
-        if self.is_installed():
-            __salt__['cmd.run_all']("{s} stop".format(
-                    s=os.path.join(self.splunk_home, "bin", "splunk")))
-            ret = __salt__['cmd.run_all'](
-                    "rm -rf {h}".format(h=self.splunk_home))
-            return 0 == ret['retcode']
-        else:
-            return True
+        if not self.is_installed():
+            return
+
+        __salt__['cmd.run_all']("{s} stop".format(
+                s=os.path.join(self.splunk_home, "bin", "splunk")))
+        ret = __salt__['cmd.run_all'](
+                "rm -rf {h}".format(h=self.splunk_home))
+        if 0 == ret['retcode']:
+            os.remove(self.pkg_path)
+            __salt__['grains.delval']('pkg_path')
 
 
 def _is_it_version_branch_build(parameter):
@@ -313,8 +317,8 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     :param stanza_name: stanza need to config
     :param data: data under stanza
     :param is_restart: restart after configuration
-    :rtype: bool
-    :return: True if success, False if not
+    :return: no return value
+    :raise EnvironmentError: if restart fail
     '''
 
     splunk = _get_splunk(namespace=namespace)
@@ -332,18 +336,14 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
             result = splunk.restart(timeout=300)
             log.debug('splunk restart result: %s' % result)
             if 200 == result['status']:
-                return True
+                return
             else:
-                log.debug('restart fail after config')
-                return False
-        return True
+                restart_fail_msg = 'restart fail after config'
+                log.critical(restart_fail_msg)
+                raise EnvironmentError(restart_fail_msg)
     except HTTPError as err:
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
-        return True
-    except KeyError as err:
-        log.critical(err)
-        return False
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
@@ -361,7 +361,7 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
             'mode': 'master',
             }
 
-    return config_conf('server', 'clustering', data)
+    config_conf('server', 'clustering', data)
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
@@ -385,7 +385,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
             'mode': 'slave',
             }
 
-    return config_conf('server', 'clustering', data)
+    config_conf('server', 'clustering', data)
 
 
 def config_cluster_searchhead(pass4SymmKey, master_uri=None):
@@ -405,7 +405,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
             'mode': 'searchhead',
             }
 
-    return config_conf('server', 'clustering', data)
+    config_conf('server', 'clustering', data)
 
 
 def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
@@ -438,7 +438,7 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
 
-    return config_conf('server', 'shclustering', data=data)
+    config_conf('server', 'shclustering', data=data)
 
 
 def get_deployer_uri():
@@ -460,18 +460,16 @@ def get_deployer_uri():
 def config_shcluster_member(
         pass4SymmKey, shcluster_label, replication_factor, replication_port,
         conf_deploy_fetch_url=None):
-    '''
+    """
     config splunk as a member of a search head cluster
     :param conf_deploy_fetch_url:
     :param replication_port:
     :param replication_factor:
     :param shcluster_label:
     :param pass4SymmKey:
-    '''
+    """
     stanza = "replication_port://{p}".format(p=replication_port)
-    result = config_conf('server', stanza, is_restart=False)
-    if not result:
-        return False
+    config_conf('server', stanza, is_restart=False)
 
     if not conf_deploy_fetch_url:
         conf_deploy_fetch_url = get_deployer_uri()
@@ -485,15 +483,15 @@ def config_shcluster_member(
             'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
             'disabled': 'false'}
 
-    return config_conf('server', 'shclustering', data)
+    config_conf('server', 'shclustering', data)
 
 
 def bootstrap_shcluster_captain(servers_list=None):
-    '''
+    """
     bootstrap a splunk instance as a captain of a search head cluster captain
     :param servers_list: list of shc members,
         ex. https://192.168.0.2:8089,https://192.168.0.3:8089
-    '''
+    """
 
     servers_list = servers_list if servers_list else get_shc_member_list()
 
@@ -503,10 +501,10 @@ def bootstrap_shcluster_captain(servers_list=None):
 
 
 def get_indexer_list():
-    '''
+    """
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
-    '''
+    """
     target = 'role:splunk-shcluster-indexer'
     func_name = 'splunk.get_mgmt_uri'
     exp = 'grain'
@@ -522,13 +520,13 @@ def get_indexer_list():
 
 def config_search_peer(
         servers=None, remote_username='admin', remote_password='changeme'):
-    '''
+    """
     config splunk as a peer of a distributed search environment
     http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf
     :param remote_password:
     :param remote_username:
     :param servers: <ip>:<port>,<ip>:<port>
-    '''
+    """
     if not servers:
         servers = get_indexer_list()
 
@@ -562,10 +560,10 @@ def get_deployment_server_mgmt_url():
 
 
 def config_deployment_client(server=None):
-    '''
+    """
     config deploymeny client
     :param server: mgmt uri of deployment server
-    '''
+    """
     if not server:
         server = get_deployment_server_mgmt_url()
 
@@ -582,21 +580,23 @@ def allow_remote_login():
     '''
     config allowRemoteLogin under server.conf
     '''
-    return config_conf('server', 'general', {'allowRemoteLogin': 'always'})
+    config_conf('server', 'general', {'allowRemoteLogin': 'always'})
 
 
 def get_mgmt_uri():
-    '''
-    '''
+    """
+    get mgmt uri of splunk
+    """
+    # todo, get real port instead of 8089
     return __grains__['ipv4'][-1] + ":8089"
 
 
 def uninstall():
-    '''
+    """
     uninstall splunk
-    '''
+    """
     installer = InstallerFactory.create_installer()
-    return installer.uninstall()
+    installer.uninstall()
 
 
 def get_shc_member_list():

@@ -31,16 +31,15 @@ def cluster_master_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_cluster_master'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_cluster_master'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster master successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+                r=str(err))
     return ret
 
 
@@ -188,23 +187,4 @@ def deployment_client_configured(name, **kwargs):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(
                 s=config_result['stderr'])
-    return ret
-
-
-def remote_login_allowed(name, **kwargs):
-    ret = {'name': name,
-           'changes': {},
-           'result': True,
-           'comment': ''}
-
-    config_result = __salt__['splunk.allow_remote_login'](**kwargs)
-
-    if config_result:
-        ret['result'] = True
-        ret['comment'] = "Remote login was set to always"
-        ret['changes'] = {"new": 'configured'}
-    else:
-        ret['result'] = False
-        ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
     return ret
