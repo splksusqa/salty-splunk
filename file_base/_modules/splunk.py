@@ -316,9 +316,6 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     :rtype: bool
     :return: True if success, False if not
     '''
-    # if is_conf_configured(conf_name, stanza_name, data, namespace):
-    #     log.debug('data is configured')
-    #     return True
 
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
@@ -347,15 +344,6 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     except KeyError as err:
         log.critical(err)
         return False
-
-
-def _convert_rest_value_type_to_input_value_type(target_type, data):
-    log.debug('type of REST return data is %s ' % type(data).__name__)
-    log.debug('type of input data is %s ' % target_type.__name__)
-    if target_type is bool:
-        return util.strtobool(str(data))
-    else:
-        return target_type(str(data))
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
