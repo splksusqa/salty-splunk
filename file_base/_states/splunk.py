@@ -18,7 +18,8 @@ def installed(name, **kwargs):
         ret['changes'] = {'new': "installed"}
     else:
         ret['result'] = False
-        ret['comment'] = "Splunk was not installed: {s}".format(s=ret['stderr'])
+        ret['comment'] = "Splunk was not installed: {s}".format(
+                s=installed_result['stderr'])
     return ret
 
 

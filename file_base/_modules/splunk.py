@@ -261,9 +261,9 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     :rtype: bool
     :return: True if success, False if not
     '''
-    if is_conf_configured(conf_name, stanza_name, data, namespace):
-        log.debug('data is configured')
-        return True
+    # if is_conf_configured(conf_name, stanza_name, data, namespace):
+    #     log.debug('data is configured')
+    #     return True
 
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
@@ -288,60 +288,19 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     except HTTPError as err:
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
-        return False
+        return True
     except KeyError as err:
         log.critical(err)
         return False
 
 
-def _convert_rest_value_type(target_type, data):
-    log.debug('type of data %s ' % type(data).__name__)
-    log.debug('target type is %s ' % target_type.__name__)
+def _convert_rest_value_type_to_input_value_type(target_type, data):
+    log.debug('type of REST return data is %s ' % type(data).__name__)
+    log.debug('type of input data is %s ' % target_type.__name__)
     if target_type is bool:
         return util.strtobool(str(data))
     else:
         return target_type(str(data))
-
-
-def is_conf_configured(conf_name, stanza_name, data=None, namespace='system'):
-    '''
-    right now the function not working because bool value may return 0 instead of False
-    need double check
-    :param conf_name:
-    :param stanza_name:
-    :param data:
-    :param namespace:
-    :return:
-    '''
-    splunk = _get_splunk(namespace=namespace)
-
-    if conf_name not in splunk.confs:
-        log.debug('%s is not exist' % conf_name)
-        return False
-
-    conf = splunk.confs[conf_name]
-    if stanza_name not in conf:
-        log.debug('%s is not exist' % stanza_name)
-        return False
-
-    stanza = conf[stanza_name]
-
-    if not data:
-        return True
-
-    for key, value in data.iteritems():
-        if key not in stanza.content:
-            log.debug('%s is not exist' % key)
-            return False
-
-        actual_data = stanza.content[key]
-        actual_data = _convert_rest_value_type(type(value), actual_data)
-        if actual_data != value:
-            log.debug('%s, %s is not matched, '
-                      'actual value is %s' % (key, value, actual_data))
-            return False
-
-    return True
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
