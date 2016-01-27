@@ -1,10 +1,10 @@
 import requests
 import os
-import salt
 import tempfile
 import sys
 import logging
 import re
+from salt.exceptions import CommandExecutionError
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
@@ -38,13 +38,15 @@ def _get_splunk(username="admin", password="changeme", namespace='system'):
     return splunk
 
 
-def cli(cli):
+def cli(command):
     """
     run splunk cli
+    :param command: splunk cli command, ex. 'add listen 9997'
     """
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
-    cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'), c=cli)
+    cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
+                           c=command)
     return __salt__['cmd.run_all'](cmd)
 
 
@@ -217,9 +219,9 @@ def _is_it_version_branch_build(parameter):
 
 def _get_pkg_url(version, branch, build, type='splunk',
                  fetcher_url=FETCHER_URL):
-    '''
+    """
     Get the url for the package to install
-    '''
+    """
     if "linux" in PLATFORM:
         pkg = "Linux-x86_64.tgz"
     elif "win" in PLATFORM:
@@ -248,7 +250,7 @@ def _get_pkg_url(version, branch, build, type='splunk',
 def _fetch_url(fetcher_url, params):
     r = requests.get(fetcher_url, params=params)
     if 'Error' in r.text.strip():
-        raise salt.exceptions.CommandExecutionError(
+        raise CommandExecutionError(
                 "Fetcher returned an error: {e}, "
                 "requested url: {u}".format(
                         e=r.text.strip(), u=r.url))
@@ -266,8 +268,8 @@ def install(fetcher_arg,
             fetcher_url=FETCHER_URL,
             start_after_install=True,
             is_upgrade=False):
-    '''
-    install splunk
+    """
+    install Splunk
     :type fetcher_arg: str
     :type type: str
     :type fetcher_url: str
@@ -280,7 +282,7 @@ def install(fetcher_arg,
     :param fetcher_url: string, where you download splunk pkg from
     :param type: string, product type, ['splunk', 'uf', 'cloud' or 'light']
     :param fetcher_arg: string, [version, hash, build_no, url or salt://url]
-    '''
+    """
     installer = InstallerFactory.create_installer()
 
     if installer.is_installed() and not is_upgrade:
@@ -311,7 +313,7 @@ def install(fetcher_arg,
 
 def config_conf(conf_name, stanza_name, data=None, is_restart=True,
                 namespace='system'):
-    '''
+    """
     config conf file by REST, if a data is existed, it will skip
     :param namespace:
     :param conf_name: name of config file
@@ -320,7 +322,7 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     :param is_restart: restart after configuration
     :return: no return value
     :raise EnvironmentError: if restart fail
-    '''
+    """
 
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
@@ -348,13 +350,13 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
-    '''
+    """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
     :param search_factor: factor of bucket be able to search
     :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
-    '''
+    """
 
     data = {'pass4SymmKey': pass4SymmKey,
             'replication_factor': replication_factor,
@@ -366,7 +368,7 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
-    '''
+    """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
     :param replication_port: port to replicate data
@@ -374,7 +376,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
         if not specified, will search minion under same master with role
         splunk-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
-    '''
+    """
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 is_restart=False)
 
@@ -390,14 +392,14 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
 
 
 def config_cluster_searchhead(pass4SymmKey, master_uri=None):
-    '''
+    """
     config splunk as a search head of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
     :param pass4SymmKey:  is a key to communicate between indexer cluster
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
-    '''
+    """
     if not master_uri:
         master_uri = get_cluster_master_mgmt_uri()
 
@@ -411,12 +413,12 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
 
 def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
                                 expr='grain'):
-    '''
+    """
     get mgmt uri of splunk instance with 'role:splunk-cluster-master'
     :param expr:
     :param target:
     :return: uri of 'role:splunk-cluster-master' in <ip>:<port> form
-    '''
+    """
     func_name = 'splunk.get_mgmt_uri'
 
     # return type is dict
@@ -578,9 +580,9 @@ def config_deployment_client(server=None):
 
 
 def allow_remote_login():
-    '''
+    """
     config allowRemoteLogin under server.conf
-    '''
+    """
     config_conf('server', 'general', {'allowRemoteLogin': 'always'})
 
 
@@ -601,8 +603,9 @@ def uninstall():
 
 
 def get_shc_member_list():
-    '''
-    '''
+    """
+    :return <ip>:<port>, <ip>:<port>
+    """
     ips = __salt__['publish.publish'](
             'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
             'grain')
