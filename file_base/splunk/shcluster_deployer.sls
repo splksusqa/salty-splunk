@@ -1,6 +1,5 @@
 include:
   - splunk.indexer
-  - splunk.pip
 
 config_deployer:
   splunk:
@@ -8,4 +7,4 @@ config_deployer:
     - pass4SymmKey: {{ pillar['pass4SymmKey'] }}
     - shcluster_label: {{ pillar['shcluster_label'] }}
   require:
-    - sls: [splunk.indexer, splunk.pip]
+    - sls: splunk.indexer
