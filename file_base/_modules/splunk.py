@@ -266,7 +266,8 @@ def install(fetcher_arg,
             type='splunk',
             fetcher_url=FETCHER_URL,
             start_after_install=True,
-            is_upgrade=False):
+            is_upgrade=False,
+            splunk_home=None):
     """
     install Splunk
     :type fetcher_arg: str
@@ -307,7 +308,7 @@ def install(fetcher_arg,
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
-    return installer.install(pkg_path)
+    return installer.install(pkg_path, splunk_home)
 
 
 def config_conf(conf_name, stanza_name, data=None, is_restart=True,
