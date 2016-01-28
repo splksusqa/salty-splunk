@@ -115,7 +115,7 @@ class WindowsMsiInstaller(Installer):
             self.splunk_home = splunk_home
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
-            c=pkg_path, h=self.splunk_home, q='/quiet')
+                c=pkg_path, h=self.splunk_home, q='/quiet')
         self.pkg_path = pkg_path
 
         return __salt__['cmd.run_all'](cmd, python_shell=True)
@@ -591,15 +591,16 @@ def add_license(license_path):
     '''
     name = os.path.basename(license_path)
     license = __salt__['cp.get_file'](
-        license_path, os.path.join(tempfile.gettempdir(), name))
+            license_path, os.path.join(tempfile.gettempdir(), name))
 
     if license is not None:
         cli_result = cli(
-            "add license {l} -auth admin:changeme".format(l=license))
+                "add license {l} -auth admin:changeme".format(l=license))
         if 0 == cli_result['retcode']:
             return cli("restart")
         else:
             return cli_result
+
 
 def config_license_slave(master_uri):
     '''
@@ -612,6 +613,7 @@ def config_license_slave(master_uri):
     stanza = conf['license']
     stanza.submit({'master_uri': master_uri})
     return splunk.restart(timeout=300)
+
 
 def get_mgmt_uri():
     """
@@ -637,3 +639,24 @@ def get_shc_member_list():
             'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
             'grain')
     return ",".join(["https://{p}".format(p=ip) for ip in ips.values()])
+
+
+def add_batch_of_user(username_prefix, user_count, roles):
+    """
+    Create a large group of user on splunk, user and password are the same
+    :param username_prefix: username_prefix, the username will be in form of
+        <prefix><number>
+    :param user_count: number of user to be created
+    :param roles: role of user add to, could be a list or a single role
+    """
+    splunk = _get_splunk()
+    if not isinstance(roles, list):
+        roles = [roles]
+
+    for u in range(user_count):
+        user = '{p}{n}'.format(p=username_prefix, n=u)
+        splunk.users.create(
+                username=user,
+                password=user,
+                roles=roles
+        )
