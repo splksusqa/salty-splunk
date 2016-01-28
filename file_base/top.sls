@@ -13,3 +13,23 @@ base:
     - match: grain
     - splunk.cluster_searchhead
 
+  'role:splunk-shcluster-captain':
+    - match: grain
+    - splunk.shcluster_captain
+
+  'role:splunk-shcluster-deployer':
+    - match: grain
+    - splunk.shcluster_deployer
+
+  role:splunk-shcluster-member:
+    - match: grain
+    - splunk.shcluster_member
+
+  role:splunk-deployment-server:
+    - match: grain
+    - splunk.indexer
+
+  role:splunk-deployment-client:
+    - match: grain
+    - splunk.deployment_client
+
