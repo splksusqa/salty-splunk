@@ -653,7 +653,7 @@ def add_batch_of_user(username_prefix, user_count, roles):
     if not isinstance(roles, list):
         roles = [roles]
 
-    for u in range(0, user_count):
+    for u in range(user_count):
         user = '{p}{n}'.format(p=username_prefix, n=u)
         splunk.users.create(
                 username=user,
