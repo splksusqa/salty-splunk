@@ -178,6 +178,8 @@ class LinuxTgzInstaller(Installer):
         if 0 == ret['retcode']:
             os.remove(self.pkg_path)
             __salt__['grains.delval']('pkg_path')
+        else:
+            raise CommandExecutionError(ret['stdout'] + ret['stderr'])
 
 
 def _is_it_version_branch_build(parameter):
