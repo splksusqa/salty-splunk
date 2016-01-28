@@ -51,16 +51,15 @@ def cluster_slave_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_cluster_slave'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_cluster_slave'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster slave successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+                r=str(err))
     return ret
 
 
@@ -72,16 +71,15 @@ def cluster_searchhead_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_cluster_searchhead'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_cluster_searchhead'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster SH successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+                r=str(err))
     return ret
 
 
@@ -93,16 +91,14 @@ def shcluster_deployer_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_shcluster_deployer'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_shcluster_deployer'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as SHC deployer successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
-        ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+        ret['comment'] = "Something went wrong. Reason: {r}".format(r=str(err))
     return ret
 
 
@@ -114,16 +110,14 @@ def shcluster_member_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_shcluster_member'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_shcluster_member'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as SHC member successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
-        ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+        ret['comment'] = "Something went wrong. Reason: {r}".format(r=str(err))
     return ret
 
 
@@ -156,16 +150,14 @@ def search_peer_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_search_peer'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_search_peer'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Search peer was configured successfully"
         ret['changes'] = {"new": 'configured'}
-    else:
+    except Exception as err:
         ret['result'] = False
-        ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=config_result['reason'])
+        ret['comment'] = "Something went wrong. Reason: {r}".format(r=str(err))
     return ret
 
 
@@ -177,14 +169,12 @@ def deployment_client_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    config_result = __salt__['splunk.config_deployment_client'](**kwargs)
-
-    if config_result:
+    try:
+        __salt__['splunk.config_deployment_client'](**kwargs)
         ret['result'] = True
         ret['comment'] = "deploymeny client was configured successfully"
         ret['changes'] = {'new': "installed"}
-    else:
+    except Exception as err:
         ret['result'] = False
-        ret['comment'] = "Something went wrong: {s}".format(
-                s=config_result['stderr'])
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret

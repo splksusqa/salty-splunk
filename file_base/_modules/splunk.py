@@ -531,15 +531,12 @@ def config_search_peer(
         servers = get_indexer_list()
 
     # use cli to config is more simple than config by conf file
-
-    result_list = []
     for s in servers:
         result = cli('add search-server -host {h} -auth admin:changeme '
                      '-remoteUsername {u} -remotePassword {p}'
                      .format(h=s, p=remote_password, u=remote_username))
-        result_list.append(result)
-
-    return result_list
+        if result['retcode'] != 0:
+            raise CommandExecutionError(result['stderr'] + result['stdout'])
 
 
 def get_deployment_server_mgmt_url():
@@ -569,11 +566,12 @@ def config_deployment_client(server=None):
 
     cmd = 'set deploy-poll {s} -auth admin:changeme'.format(s=server)
     cli_result = cli(cmd)
+    if cli_result['retcode'] != 0:
+        raise CommandExecutionError(str(cli_result))
 
-    if 0 == cli_result['retcode']:
-        return cli('restart')
-    else:
-        return cli_result
+    restart_result = cli('restart')
+    if restart_result['retcode'] != 0:
+        raise CommandExecutionError(str(restart_result))
 
 
 def allow_remote_login():
