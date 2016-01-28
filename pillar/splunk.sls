@@ -1,2 +1,2 @@
-version: "6.2.7"
+version: "ember_sustain"
 # splunk_home: 'splunk_home'

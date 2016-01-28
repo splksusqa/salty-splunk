@@ -415,6 +415,35 @@ def allow_remote_login():
 
     return splunk.restart(timeout=60)
 
+def add_license(license_path):
+    '''
+    @type license_path: string
+    @param license_path: where the license is. It should be start with 'salt://'
+    '''
+    name = os.path.basename(license_path)
+    license = __salt__['cp.get_file'](
+        license_path, os.path.join(tempfile.gettempdir(), name))
+
+    if license is not None:
+        cli_result = cli(
+            "add license {l} -auth admin:changeme".format(l=license))
+        if 0 == cli_result['retcode']:
+            return cli("restart")
+        else:
+            return cli_result
+
+def config_license_slave(master_uri):
+    '''
+    '''
+    splunk = _get_splunk()
+    conf = splunk.confs['server']
+
+    if not master_uri.startswith("https://"):
+        master_uri = 'https://{u}'.format(u=master_uri)
+    stanza = conf['license']
+    stanza.submit({'master_uri': master_uri})
+    return splunk.restart(timeout=300)
+
 def get_mgmt_uri():
     '''
     '''
