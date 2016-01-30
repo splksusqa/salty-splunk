@@ -327,26 +327,36 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
 
+    # since data from salt kwargs potentially will come with __pub_* data
+    # filter them off here
+    data = {key: data[key] for key in data if not key.startswith('__pub_')}
+
     # lazy load here since splunk sdk is install at run time
     from splunklib.binding import HTTPError
     try:
-        if not data:
-            conf.create(stanza_name)
-        else:
+        try:
             stanza = conf[stanza_name]
+        except KeyError:
+            log.debug('possible stanza not configured')
+            conf.create(stanza_name)
+            stanza = conf[stanza_name]
+
+        if data:
             stanza.submit(data)
-        if is_restart:
-            result = splunk.restart(timeout=300)
-            log.debug('splunk restart result: %s' % result)
-            if 200 == result['status']:
-                return
-            else:
-                restart_fail_msg = 'restart fail after config'
-                log.critical(restart_fail_msg)
-                raise EnvironmentError(restart_fail_msg)
+
     except HTTPError as err:
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
+
+    if is_restart:
+        result = splunk.restart(timeout=300)
+        log.debug('splunk restart result: %s' % result)
+        if 200 == result['status']:
+            return
+        else:
+            restart_fail_msg = 'restart fail after config'
+            log.critical(restart_fail_msg)
+            raise EnvironmentError(restart_fail_msg)
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
@@ -674,7 +684,6 @@ def add_batch_of_saved_search(name_prefix, count, **kwargs):
 
     for s in range(count):
         search_name = '{p}{c}'.format(p=name_prefix, c=s)
-        config_conf('savedsearches', search_name, kwargs, is_restart=False)
-
-    splunk = _get_splunk()
-    splunk.restart(timeout=300)
+        # restart at the final one
+        is_restart = True if s == count - 1 else False
+        config_conf('savedsearches', search_name, kwargs, is_restart=is_restart)
