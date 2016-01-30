@@ -660,3 +660,21 @@ def add_batch_of_user(username_prefix, user_count, roles):
                 password=user,
                 roles=roles
         )
+
+
+def add_batch_of_saved_search(name_prefix, count, **kwargs):
+    """
+    Create a batch of saved search/report/alert
+    http://docs.splunk.com/Documentation/Splunk/latest/admin/Savedsearchesconf
+    :param name_prefix: prefix name of saved search
+    :param count: number of search is going to create
+    :param kwargs: any data under a saved search stanza, ex. search="*"
+    :return: None
+    """
+
+    for s in range(count):
+        search_name = '{p}{c}'.format(p=name_prefix, c=s)
+        config_conf('savedsearches', search_name, kwargs, is_restart=False)
+
+    splunk = _get_splunk()
+    splunk.restart(timeout=300)
