@@ -630,8 +630,14 @@ def get_mgmt_uri():
     """
     get mgmt uri of splunk
     """
-    # todo, get real port instead of 8089
-    return __grains__['ipv4'][-1] + ":8089"
+    cli_result = cli("show splunkd-port -auth admin:changeme")
+
+    if 0 == cli_result['retcode']:
+        port = cli_result['stdout'].replace("Splunkd port: ", "")
+        return __grains__['ipv4'][-1] + ":" + port
+    else:
+        raise CommandExecutionError(str(cli_result))
+
 
 
 def uninstall():
