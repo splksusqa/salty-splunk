@@ -311,7 +311,7 @@ def install(fetcher_arg,
     return installer.install(pkg_path, splunk_home)
 
 
-def config_conf(conf_name, stanza_name, data=None, is_restart=True,
+def config_conf(conf_name, stanza_name, data=None, do_restart=True,
                 namespace='system'):
     """
     config conf file by REST, if a data is existed, it will skip
@@ -319,7 +319,7 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
-    :param is_restart: restart after configuration
+    :param do_restart: restart after configuration
     :return: no return value
     :raise EnvironmentError: if restart fail
     """
@@ -327,26 +327,37 @@ def config_conf(conf_name, stanza_name, data=None, is_restart=True,
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
 
+    # since data from salt kwargs potentially will come with __pub_* data
+    # filter them off here
+    data = {key: data[key] for key in data.keys()
+            if not key.startswith('__pub_')}
+
     # lazy load here since splunk sdk is install at run time
     from splunklib.binding import HTTPError
     try:
-        if not data:
-            conf.create(stanza_name)
-        else:
+        try:
             stanza = conf[stanza_name]
+        except KeyError:
+            log.debug('possible stanza not configured')
+            conf.create(stanza_name)
+            stanza = conf[stanza_name]
+
+        if data:
             stanza.submit(data)
-        if is_restart:
-            result = splunk.restart(timeout=300)
-            log.debug('splunk restart result: %s' % result)
-            if 200 == result['status']:
-                return
-            else:
-                restart_fail_msg = 'restart fail after config'
-                log.critical(restart_fail_msg)
-                raise EnvironmentError(restart_fail_msg)
+
     except HTTPError as err:
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
+
+    if do_restart:
+        result = splunk.restart(timeout=300)
+        log.debug('splunk restart result: %s' % result)
+        if 200 == result['status']:
+            return
+        else:
+            restart_fail_msg = 'restart fail after config'
+            log.critical(restart_fail_msg)
+            raise EnvironmentError(restart_fail_msg)
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
@@ -378,7 +389,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     :param pass4SymmKey: is a key to communicate between indexer cluster
     """
     config_conf('server', "replication_port://{p}".format(p=replication_port),
-                is_restart=False)
+                do_restart=False)
 
     if not master_uri:
         master_uri = get_cluster_master_mgmt_uri()
@@ -472,7 +483,7 @@ def config_shcluster_member(
     :param pass4SymmKey:
     """
     stanza = "replication_port://{p}".format(p=replication_port)
-    config_conf('server', stanza, is_restart=False)
+    config_conf('server', stanza, do_restart=False)
 
     if not conf_deploy_fetch_url:
         conf_deploy_fetch_url = get_deployer_uri()
@@ -660,3 +671,20 @@ def add_batch_of_user(username_prefix, user_count, roles):
                 password=user,
                 roles=roles
         )
+
+
+def add_batch_of_saved_search(name_prefix, count, **kwargs):
+    """
+    Create a batch of saved search/report/alert
+    http://docs.splunk.com/Documentation/Splunk/latest/admin/Savedsearchesconf
+    :param name_prefix: prefix name of saved search
+    :param count: number of search is going to create
+    :param kwargs: any data under a saved search stanza, ex. search="*"
+    :return: None
+    """
+
+    for s in range(count):
+        search_name = '{p}{c}'.format(p=name_prefix, c=s)
+        # restart at the final one
+        is_restart = True if s == count - 1 else False
+        config_conf('savedsearches', search_name, kwargs, do_restart=is_restart)
