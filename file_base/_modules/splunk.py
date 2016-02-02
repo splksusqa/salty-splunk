@@ -633,7 +633,7 @@ def get_mgmt_uri():
     cli_result = cli("show splunkd-port -auth admin:changeme")
 
     if 0 == cli_result['retcode']:
-        port = cli_result['stdout'].replace("Splunkd port: ", "")
+        port = cli_result['stdout'].replace("Splunkd port: ", "").strip()
         return __grains__['ipv4'][-1] + ":" + port
     else:
         raise CommandExecutionError(str(cli_result))
