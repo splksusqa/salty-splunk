@@ -73,7 +73,7 @@ class Installer(object):
     def __init__(self):
         pass
 
-    def install(self, pkg_path, splunk_home=None):
+    def install(self, pkg_path, splunk_home=None, **kwargs):
         pass
 
     def is_installed(self):
@@ -110,12 +110,17 @@ class WindowsMsiInstaller(Installer):
         if not self.splunk_home:
             self.splunk_home = "C:\\Program Files\\Splunk"
 
-    def install(self, pkg_path, splunk_home=None):
+    def install(self, pkg_path, splunk_home=None, **kwargs):
         if splunk_home:
             self.splunk_home = splunk_home
 
-        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {q}'.format(
-                c=pkg_path, h=self.splunk_home, q='/quiet')
+        install_flags = ''
+        for key, value in kwargs.iteritems():
+            install_flags = ' '.join('{k}={v}'.format(k=key, v=value))
+
+        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.\
+            format(c=pkg_path, h=self.splunk_home, q='/quiet', f=install_flags)
+
         self.pkg_path = pkg_path
 
         return __salt__['cmd.run_all'](cmd, python_shell=True)
@@ -146,7 +151,7 @@ class LinuxTgzInstaller(Installer):
         if not self.splunk_home:
             self.splunk_home = "/opt/splunk"
 
-    def install(self, pkg_path, splunk_home=None):
+    def install(self, pkg_path, splunk_home=None, **kwargs):
         if splunk_home:
             self.splunk_home = splunk_home
 
@@ -267,9 +272,11 @@ def install(fetcher_arg,
             fetcher_url=FETCHER_URL,
             start_after_install=True,
             is_upgrade=False,
-            splunk_home=None):
+            splunk_home=None,
+            **kwargs):
     """
     install Splunk
+    :param splunk_home: path for splunk install to
     :type fetcher_arg: str
     :type type: str
     :type fetcher_url: str
