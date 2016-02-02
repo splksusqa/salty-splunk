@@ -16,9 +16,9 @@ def _import_sdk():
     except ImportError:
         if "win" in PLATFORM:
             __salt__['pip.install'](
-                    pkgs='splunk-sdk',
-                    bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
-                    cwd="C:\\salt\\bin\\scripts")
+                pkgs='splunk-sdk',
+                bin_env='C:\\salt\\bin\\Scripts\\pip.exe',
+                cwd="C:\\salt\\bin\\scripts")
         else:
             __salt__['pip.install']('splunk-sdk')
         import splunklib
@@ -33,8 +33,8 @@ def _get_splunk(username="admin", password="changeme", namespace='system'):
     import splunklib.client as client
 
     splunk = client.connect(
-            username=username, password=password, sharing=namespace,
-            autologin=True)
+        username=username, password=password, sharing=namespace,
+        autologin=True)
     return splunk
 
 
@@ -177,9 +177,9 @@ class LinuxTgzInstaller(Installer):
             return
 
         __salt__['cmd.run_all']("{s} stop".format(
-                s=os.path.join(self.splunk_home, "bin", "splunk")))
+            s=os.path.join(self.splunk_home, "bin", "splunk")))
         ret = __salt__['cmd.run_all'](
-                "rm -rf {h}".format(h=self.splunk_home))
+            "rm -rf {h}".format(h=self.splunk_home))
         if 0 == ret['retcode']:
             os.remove(self.pkg_path)
             __salt__['grains.delval']('pkg_path')
@@ -255,9 +255,9 @@ def _fetch_url(fetcher_url, params):
     r = requests.get(fetcher_url, params=params)
     if 'Error' in r.text.strip():
         raise CommandExecutionError(
-                "Fetcher returned an error: {e}, "
-                "requested url: {u}".format(
-                        e=r.text.strip(), u=r.url))
+            "Fetcher returned an error: {e}, "
+            "requested url: {u}".format(
+                e=r.text.strip(), u=r.url))
     pkg_url = r.text.strip()
     return pkg_url
 
@@ -303,8 +303,8 @@ def install(fetcher_arg,
     else:
         branch, version, build = _is_it_version_branch_build(fetcher_arg)
         url = _get_pkg_url(
-                branch=branch, version=version, build=build, type=type,
-                fetcher_url=fetcher_url)
+            branch=branch, version=version, build=build, type=type,
+            fetcher_url=fetcher_url)
 
     log.debug('download pkg from: {u}'.format(u=url))
 
@@ -444,8 +444,8 @@ def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
 
     if not minions or len(minions.values()) != 1:
         raise EnvironmentError(
-                "should be one %s under master, count %d" %
-                (target, len(minions.values())))
+            "should be one %s under master, count %d" %
+            (target, len(minions.values())))
 
     uri = minions.values()[0]
     return uri
@@ -470,8 +470,8 @@ def get_deployer_uri():
 
     if not minions or len(minions.values()) != 1:
         raise EnvironmentError(
-                "should be one %s under master, count %d" %
-                (target, len(minions.values())))
+            "should be one %s under master, count %d" %
+            (target, len(minions.values())))
 
     uri = minions.values()[0]
 
@@ -533,8 +533,8 @@ def get_indexer_list():
 
     if not minions:
         raise EnvironmentError(
-                "should be at least %s under master, count %d" %
-                (target, len(minions.values())))
+            "should be at least %s under master, count %d" %
+            (target, len(minions.values())))
 
     return minions.values()
 
@@ -570,8 +570,8 @@ def get_deployment_server_mgmt_url():
 
     if not minions or len(minions.values()) != 1:
         raise EnvironmentError(
-                "should be one %s under master, count %d" %
-                (target, len(minions.values())))
+            "should be one %s under master, count %d" %
+            (target, len(minions.values())))
 
     uri = minions.values()[0]
     return uri
@@ -609,11 +609,11 @@ def add_license(license_path):
     '''
     name = os.path.basename(license_path)
     license = __salt__['cp.get_file'](
-            license_path, os.path.join(tempfile.gettempdir(), name))
+        license_path, os.path.join(tempfile.gettempdir(), name))
 
     if license is not None:
         cli_result = cli(
-                "add license {l} -auth admin:changeme".format(l=license))
+            "add license {l} -auth admin:changeme".format(l=license))
         if 0 == cli_result['retcode']:
             return cli("restart")
         else:
@@ -637,8 +637,13 @@ def get_mgmt_uri():
     """
     get mgmt uri of splunk
     """
-    # todo, get real port instead of 8089
-    return __grains__['ipv4'][-1] + ":8089"
+    cli_result = cli("show splunkd-port -auth admin:changeme")
+
+    if 0 == cli_result['retcode']:
+        port = cli_result['stdout'].replace("Splunkd port: ", "").strip()
+        return __grains__['ipv4'][-1] + ":" + port
+    else:
+        raise CommandExecutionError(str(cli_result))
 
 
 def uninstall():
@@ -654,8 +659,8 @@ def get_shc_member_list():
     :return <ip>:<port>, <ip>:<port>
     """
     ips = __salt__['publish.publish'](
-            'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
-            'grain')
+        'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
+        'grain')
     return ",".join(["https://{p}".format(p=ip) for ip in ips.values()])
 
 
@@ -674,9 +679,9 @@ def add_batch_of_user(username_prefix, user_count, roles):
     for u in range(user_count):
         user = '{p}{n}'.format(p=username_prefix, n=u)
         splunk.users.create(
-                username=user,
-                password=user,
-                roles=roles
+            username=user,
+            password=user,
+            roles=roles
         )
 
 
