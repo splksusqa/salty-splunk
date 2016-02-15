@@ -1,7 +1,7 @@
 auto_accept: True
 file_roots:
   base:
-    - /srv/salt
+    - /srv/salt/file_base
     - /srv/salt/formulas/nfs
 peer:
   .*:
