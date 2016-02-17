@@ -9,6 +9,7 @@ from salt.exceptions import CommandExecutionError
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
 
+# this is for testing
 
 def _import_sdk():
     try:
