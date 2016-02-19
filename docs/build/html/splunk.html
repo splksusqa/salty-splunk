@@ -1,0 +1,510 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Execution Modules &mdash; salt 1.0.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="salt 1.0.0 documentation" href="index.html" />
+    <link rel="prev" title="Welcome to salt’s documentation!" href="index.html" />
+   
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-splunk">
+<span id="execution-modules"></span><h1>Execution Modules<a class="headerlink" href="#module-splunk" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="splunk.add_batch_of_saved_search">
+<code class="descclassname">splunk.</code><code class="descname">add_batch_of_saved_search</code><span class="sig-paren">(</span><em>name_prefix</em>, <em>count</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.add_batch_of_saved_search" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a batch of saved search/report/alert
+<a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/admin/Savedsearchesconf">http://docs.splunk.com/Documentation/Splunk/latest/admin/Savedsearchesconf</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>name_prefix</strong> &#8211; prefix name of saved search</li>
+<li><strong>count</strong> &#8211; number of search is going to create</li>
+<li><strong>kwargs</strong> &#8211; any data under a saved search stanza, ex. search=&#8221;*&#8221;</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">None</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.add_batch_of_user">
+<code class="descclassname">splunk.</code><code class="descname">add_batch_of_user</code><span class="sig-paren">(</span><em>username_prefix</em>, <em>user_count</em>, <em>roles</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.add_batch_of_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a large group of user on splunk, user and password are the same</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>username_prefix</strong> &#8211; username_prefix, the username will be in form of
+&lt;prefix&gt;&lt;number&gt;</li>
+<li><strong>user_count</strong> &#8211; number of user to be created</li>
+<li><strong>roles</strong> &#8211; role of user add to, could be a list or a single role</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.add_license">
+<code class="descclassname">splunk.</code><code class="descname">add_license</code><span class="sig-paren">(</span><em>license_path</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.add_license" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>license_path</strong> (<em>string</em>) &#8211; where the license is. It should be start with &#8216;salt://&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.allow_remote_login">
+<code class="descclassname">splunk.</code><code class="descname">allow_remote_login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.allow_remote_login" title="Permalink to this definition">¶</a></dt>
+<dd><p>config allowRemoteLogin under server.conf</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.bootstrap_shcluster_captain">
+<code class="descclassname">splunk.</code><code class="descname">bootstrap_shcluster_captain</code><span class="sig-paren">(</span><em>servers_list=None</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.bootstrap_shcluster_captain" title="Permalink to this definition">¶</a></dt>
+<dd><p>bootstrap a splunk instance as a captain of a search head cluster captain</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>servers_list</strong> &#8211; list of shc members,
+ex. <a class="reference external" href="https://192.168.0.2:8089,https://192.168.0.3:8089">https://192.168.0.2:8089,https://192.168.0.3:8089</a></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.cli">
+<code class="descclassname">splunk.</code><code class="descname">cli</code><span class="sig-paren">(</span><em>command</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.cli" title="Permalink to this definition">¶</a></dt>
+<dd><p>run splunk cli</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>command</strong> &#8211; splunk cli command, ex. &#8216;add listen 9997&#8217;</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_cluster_master">
+<code class="descclassname">splunk.</code><code class="descname">config_cluster_master</code><span class="sig-paren">(</span><em>pass4SymmKey</em>, <em>replication_factor=2</em>, <em>search_factor=2</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_cluster_master" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a master of a indexer cluster
+<a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster">http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>search_factor</strong> &#8211; factor of bucket be able to search</li>
+<li><strong>replication_factor</strong> &#8211; factor of bucket be able to replicate</li>
+<li><strong>pass4SymmKey</strong> &#8211; it&#8217;s a key to communicate between indexer cluster</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_cluster_searchhead">
+<code class="descclassname">splunk.</code><code class="descname">config_cluster_searchhead</code><span class="sig-paren">(</span><em>pass4SymmKey</em>, <em>master_uri=None</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_cluster_searchhead" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a search head of a indexer cluster
+<a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail">http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>pass4SymmKey</strong> &#8211; is a key to communicate between indexer cluster</li>
+<li><strong>master_uri</strong> &#8211; &lt;ip&gt;:&lt;port&gt; of mgmt_uri, ex 127.0.0.1:8089,
+if not specified, will search minion under same master with role
+splunk-cluster-master</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_cluster_slave">
+<code class="descclassname">splunk.</code><code class="descname">config_cluster_slave</code><span class="sig-paren">(</span><em>pass4SymmKey</em>, <em>master_uri=None</em>, <em>replication_port=9887</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_cluster_slave" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a peer(indexer) of a indexer cluster
+<a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers">http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>replication_port</strong> &#8211; port to replicate data</li>
+<li><strong>master_uri</strong> &#8211; &lt;ip&gt;:&lt;port&gt; of mgmt_uri, ex 127.0.0.1:8089,
+if not specified, will search minion under same master with role
+splunk-cluster-master</li>
+<li><strong>pass4SymmKey</strong> &#8211; is a key to communicate between indexer cluster</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_conf">
+<code class="descclassname">splunk.</code><code class="descname">config_conf</code><span class="sig-paren">(</span><em>conf_name</em>, <em>stanza_name</em>, <em>data=None</em>, <em>do_restart=True</em>, <em>namespace='system'</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_conf" title="Permalink to this definition">¶</a></dt>
+<dd><p>config conf file by REST, if a data is existed, it will skip</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>namespace</strong> &#8211; </li>
+<li><strong>conf_name</strong> &#8211; name of config file</li>
+<li><strong>stanza_name</strong> &#8211; stanza need to config</li>
+<li><strong>data</strong> &#8211; data under stanza</li>
+<li><strong>do_restart</strong> &#8211; restart after configuration</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first">no return value</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Raises:</th><td class="field-body"><p class="first last"><strong>EnvironmentError</strong> &#8211; if restart fail</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_deployment_client">
+<code class="descclassname">splunk.</code><code class="descname">config_deployment_client</code><span class="sig-paren">(</span><em>server=None</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_deployment_client" title="Permalink to this definition">¶</a></dt>
+<dd><p>config deploymeny client</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>server</strong> &#8211; mgmt uri of deployment server</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_license_slave">
+<code class="descclassname">splunk.</code><code class="descname">config_license_slave</code><span class="sig-paren">(</span><em>master_uri</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_license_slave" title="Permalink to this definition">¶</a></dt>
+<dd><p>config license slave</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>master_uri</strong> (<em>string</em>) &#8211; uri of the license master</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_search_peer">
+<code class="descclassname">splunk.</code><code class="descname">config_search_peer</code><span class="sig-paren">(</span><em>servers=None</em>, <em>remote_username='admin'</em>, <em>remote_password='changeme'</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_search_peer" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a peer of a distributed search environment
+<a class="reference external" href="http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf">http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf</a></p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>remote_username</strong> &#8211; splunk username of the search peer</li>
+<li><strong>remote_password</strong> &#8211; splunk password of the search peer</li>
+<li><strong>servers</strong> &#8211; &lt;ip&gt;:&lt;port&gt;,&lt;ip&gt;:&lt;port&gt;</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_shcluster_deployer">
+<code class="descclassname">splunk.</code><code class="descname">config_shcluster_deployer</code><span class="sig-paren">(</span><em>pass4SymmKey</em>, <em>shcluster_label</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_shcluster_deployer" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a deployer of the search head cluster</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">result of splunk restart</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.config_shcluster_member">
+<code class="descclassname">splunk.</code><code class="descname">config_shcluster_member</code><span class="sig-paren">(</span><em>pass4SymmKey</em>, <em>shcluster_label</em>, <em>replication_factor</em>, <em>replication_port</em>, <em>conf_deploy_fetch_url=None</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.config_shcluster_member" title="Permalink to this definition">¶</a></dt>
+<dd><p>config splunk as a member of a search head cluster</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>conf_deploy_fetch_url</strong> &#8211; deployer&#8217;s mgmt uri</li>
+<li><strong>replication_port</strong> &#8211; replication port for SHC</li>
+<li><strong>replication_factor</strong> &#8211; replication factor for SHC</li>
+<li><strong>shcluster_label</strong> &#8211; shcluster&#8217;s label</li>
+<li><strong>pass4SymmKey</strong> &#8211; pass4SymmKey for SHC</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_cluster_master_mgmt_uri">
+<code class="descclassname">splunk.</code><code class="descname">get_cluster_master_mgmt_uri</code><span class="sig-paren">(</span><em>target='role:splunk-cluster-master'</em>, <em>expr='grain'</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_cluster_master_mgmt_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>get mgmt uri of splunk instance with &#8216;role:splunk-cluster-master&#8217;</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>expr</strong> &#8211; how would you like to target your cluster master</li>
+<li><strong>target</strong> &#8211; the value to target the cluster master</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">uri of &#8216;role:splunk-cluster-master&#8217; in &lt;ip&gt;:&lt;port&gt; form</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_deployer_uri">
+<code class="descclassname">splunk.</code><code class="descname">get_deployer_uri</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_deployer_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>get SHC deployer&#8217;s mgmt uri</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">SHC deployer&#8217;s mgmt uri</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_deployment_server_mgmt_url">
+<code class="descclassname">splunk.</code><code class="descname">get_deployment_server_mgmt_url</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_deployment_server_mgmt_url" title="Permalink to this definition">¶</a></dt>
+<dd><p>get SHC deployer&#8217;s mgmt uri</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">SHC deployer&#8217;s mgmt uri</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_indexer_list">
+<code class="descclassname">splunk.</code><code class="descname">get_indexer_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_indexer_list" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Return type:</th><td class="field-body">list</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">[&lt;ip&gt;:&lt;port&gt;, &lt;ip&gt;:&lt;port&gt;]</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_mgmt_uri">
+<code class="descclassname">splunk.</code><code class="descname">get_mgmt_uri</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_mgmt_uri" title="Permalink to this definition">¶</a></dt>
+<dd><p>get mgmt uri of splunk</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">The mgmt uri of splunk</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">string</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.get_shc_member_list">
+<code class="descclassname">splunk.</code><code class="descname">get_shc_member_list</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.get_shc_member_list" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">&lt;ip&gt;:&lt;port&gt;, &lt;ip&gt;:&lt;port&gt;</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">list of strings</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.install">
+<code class="descclassname">splunk.</code><code class="descname">install</code><span class="sig-paren">(</span><em>fetcher_arg</em>, <em>type='splunk'</em>, <em>fetcher_url='http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'</em>, <em>start_after_install=True</em>, <em>is_upgrade=False</em>, <em>splunk_home=None</em>, <em>**kwargs</em><span class="sig-paren">)</span><a class="headerlink" href="#splunk.install" title="Permalink to this definition">¶</a></dt>
+<dd><p>install Splunk</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>splunk_home</strong> (<em>string</em>) &#8211; path for splunk install to</li>
+<li><strong>fetcher_arg</strong> (<em>string</em>) &#8211; arguments which you want to pass the release fetcher</li>
+<li><strong>type</strong> (<em>string</em>) &#8211; splunk, splunkforwarder or splunklite</li>
+<li><strong>fetcher_url</strong> (<em>string</em>) &#8211; url of the release fetcher</li>
+<li><strong>start_after_install</strong> (<em>boolean</em>) &#8211; True if you want to start splunk right after installation</li>
+<li><strong>is_upgrade</strong> (<em>bool</em>) &#8211; True if you want to upgrade splunk</li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body"><p class="first">dict</p>
+</td>
+</tr>
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">command line result in dict [&#8216;retcode&#8217;, &#8216;stdout&#8217;, &#8216;stderr&#8217;]</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.is_installed">
+<code class="descclassname">splunk.</code><code class="descname">is_installed</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.is_installed" title="Permalink to this definition">¶</a></dt>
+<dd><p>check if splunk is installed or not</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body">True if splunk is installed, else False</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return type:</th><td class="field-body">Boolean</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="splunk.uninstall">
+<code class="descclassname">splunk.</code><code class="descname">uninstall</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#splunk.uninstall" title="Permalink to this definition">¶</a></dt>
+<dd><p>uninstall splunk</p>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to salt&#8217;s documentation!</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/splunk.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2016, Wythe Lin, Fredy Tan.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.3.5</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.7</a>
+      
+      |
+      <a href="_sources/splunk.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
