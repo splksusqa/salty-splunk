@@ -26,9 +26,9 @@ def _import_sdk():
 
 
 def _get_splunk(username="admin", password="changeme", namespace='system'):
-    """
+    '''
     returns the object which represents a splunk instance
-    """
+    '''
     splunklib = _import_sdk()
     import splunklib.client as client
 
@@ -39,10 +39,11 @@ def _get_splunk(username="admin", password="changeme", namespace='system'):
 
 
 def cli(command):
-    """
+    '''
     run splunk cli
+
     :param command: splunk cli command, ex. 'add listen 9997'
-    """
+    '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
@@ -84,7 +85,7 @@ class Installer(object):
 
     @property
     def pkg_path(self):
-        """ where the package file is stored"""
+        ''' where the package file is stored'''
         return __salt__['grains.get']('pkg_path')
 
     @pkg_path.setter
@@ -263,6 +264,12 @@ def _fetch_url(fetcher_url, params):
 
 
 def is_installed():
+    '''
+    check if splunk is installed or not
+
+    :return: True if splunk is installed, else False
+    :rtype: Boolean
+    '''
     installer = InstallerFactory.create_installer()
     return installer.is_installed()
 
@@ -276,19 +283,21 @@ def install(fetcher_arg,
             **kwargs):
     """
     install Splunk
+
     :param splunk_home: path for splunk install to
-    :type fetcher_arg: str
-    :type type: str
-    :type fetcher_url: str
-    :type start_after_install: bool
+    :type splunk_home: string
+    :param fetcher_arg: arguments which you want to pass the release fetcher
+    :type fetcher_arg: string
+    :param type: splunk, splunkforwarder or splunklite
+    :type type: string
+    :param fetcher_url: url of the release fetcher
+    :type fetcher_url: string
+    :param start_after_install: True if you want to start splunk right after installation
+    :type start_after_install: boolean
+    :param is_upgrade: True if you want to upgrade splunk
     :type is_upgrade: bool
-    :rtype dict
-    :return command line result in dict ['retcode', 'stdout', 'stderr']
-    :param is_upgrade: bool, if splunk exists, upgrade splunk
-    :param start_after_install:
-    :param fetcher_url: string, where you download splunk pkg from
-    :param type: string, product type, ['splunk', 'uf', 'cloud' or 'light']
-    :param fetcher_arg: string, [version, hash, build_no, url or salt://url]
+    :rtype: dict
+    :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
     installer = InstallerFactory.create_installer()
 
@@ -322,6 +331,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
                 namespace='system'):
     """
     config conf file by REST, if a data is existed, it will skip
+
     :param namespace:
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
@@ -371,6 +381,7 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
+
     :param search_factor: factor of bucket be able to search
     :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
@@ -389,6 +400,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
+
     :param replication_port: port to replicate data
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
@@ -413,6 +425,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     """
     config splunk as a search head of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
+
     :param pass4SymmKey:  is a key to communicate between indexer cluster
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
@@ -431,12 +444,13 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
 
 def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
                                 expr='grain'):
-    """
+    '''
     get mgmt uri of splunk instance with 'role:splunk-cluster-master'
-    :param expr:
-    :param target:
+
+    :param expr: how would you like to target your cluster master
+    :param target: the value to target the cluster master
     :return: uri of 'role:splunk-cluster-master' in <ip>:<port> form
-    """
+    '''
     func_name = 'splunk.get_mgmt_uri'
 
     # return type is dict
@@ -454,7 +468,8 @@ def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
 def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     '''
     config splunk as a deployer of the search head cluster
-    :return result of splunk restart
+
+    :return: result of splunk restart
     '''
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
@@ -463,6 +478,12 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
 
 
 def get_deployer_uri():
+    '''
+    get SHC deployer's mgmt uri
+
+    :return: SHC deployer's mgmt uri
+    :rtype: string
+    '''
     target = 'role:splunk-shcluster-deployer'
     func_name = 'splunk.get_mgmt_uri'
     exp = 'grain'
@@ -481,14 +502,15 @@ def get_deployer_uri():
 def config_shcluster_member(
         pass4SymmKey, shcluster_label, replication_factor, replication_port,
         conf_deploy_fetch_url=None):
-    """
+    '''
     config splunk as a member of a search head cluster
-    :param conf_deploy_fetch_url:
-    :param replication_port:
-    :param replication_factor:
-    :param shcluster_label:
-    :param pass4SymmKey:
-    """
+
+    :param conf_deploy_fetch_url: deployer's mgmt uri
+    :param replication_port: replication port for SHC
+    :param replication_factor: replication factor for SHC
+    :param shcluster_label: shcluster's label
+    :param pass4SymmKey: pass4SymmKey for SHC
+    '''
     stanza = "replication_port://{p}".format(p=replication_port)
     config_conf('server', stanza, do_restart=False)
 
@@ -508,11 +530,12 @@ def config_shcluster_member(
 
 
 def bootstrap_shcluster_captain(servers_list=None):
-    """
+    '''
     bootstrap a splunk instance as a captain of a search head cluster captain
+
     :param servers_list: list of shc members,
         ex. https://192.168.0.2:8089,https://192.168.0.3:8089
-    """
+    '''
 
     servers_list = servers_list if servers_list else get_shc_member_list()
 
@@ -522,10 +545,10 @@ def bootstrap_shcluster_captain(servers_list=None):
 
 
 def get_indexer_list():
-    """
+    '''
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
-    """
+    '''
     target = 'role:splunk-shcluster-indexer'
     func_name = 'splunk.get_mgmt_uri'
     exp = 'grain'
@@ -541,13 +564,14 @@ def get_indexer_list():
 
 def config_search_peer(
         servers=None, remote_username='admin', remote_password='changeme'):
-    """
+    '''
     config splunk as a peer of a distributed search environment
     http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf
-    :param remote_password:
-    :param remote_username:
+
+    :param remote_username: splunk username of the search peer
+    :param remote_password: splunk password of the search peer
     :param servers: <ip>:<port>,<ip>:<port>
-    """
+    '''
     if not servers:
         servers = get_indexer_list()
 
@@ -561,6 +585,12 @@ def config_search_peer(
 
 
 def get_deployment_server_mgmt_url():
+    '''
+    get SHC deployer's mgmt uri
+
+    :return: SHC deployer's mgmt uri
+    :rtype: string
+    '''
     target = 'role:splunk-deployment-server'
     func_name = 'splunk.get_mgmt_uri'
     expr = 'grain'
@@ -578,10 +608,11 @@ def get_deployment_server_mgmt_url():
 
 
 def config_deployment_client(server=None):
-    """
+    '''
     config deploymeny client
+
     :param server: mgmt uri of deployment server
-    """
+    '''
     if not server:
         server = get_deployment_server_mgmt_url()
 
@@ -596,16 +627,16 @@ def config_deployment_client(server=None):
 
 
 def allow_remote_login():
-    """
+    '''
     config allowRemoteLogin under server.conf
-    """
+    '''
     config_conf('server', 'general', {'allowRemoteLogin': 'always'})
 
 
 def add_license(license_path):
     '''
-    @type license_path: string
-    @param license_path: where the license is. It should be start with 'salt://'
+    :type license_path: string
+    :param license_path: where the license is. It should be start with 'salt://'
     '''
     name = os.path.basename(license_path)
     license = __salt__['cp.get_file'](
@@ -622,6 +653,10 @@ def add_license(license_path):
 
 def config_license_slave(master_uri):
     '''
+    config license slave
+
+    :param master_uri: uri of the license master
+    :type master_uri: string
     '''
     splunk = _get_splunk()
     conf = splunk.confs['server']
@@ -634,9 +669,12 @@ def config_license_slave(master_uri):
 
 
 def get_mgmt_uri():
-    """
+    '''
     get mgmt uri of splunk
-    """
+
+    :return: The mgmt uri of splunk
+    :rtype: string
+    '''
     cli_result = cli("show splunkd-port -auth admin:changeme")
 
     if 0 == cli_result['retcode']:
@@ -647,17 +685,18 @@ def get_mgmt_uri():
 
 
 def uninstall():
-    """
+    '''
     uninstall splunk
-    """
+    '''
     installer = InstallerFactory.create_installer()
     installer.uninstall()
 
 
 def get_shc_member_list():
-    """
-    :return <ip>:<port>, <ip>:<port>
-    """
+    '''
+    :return: <ip>:<port>, <ip>:<port>
+    :rtype: list of strings
+    '''
     ips = __salt__['publish.publish'](
         'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
         'grain')
@@ -665,13 +704,14 @@ def get_shc_member_list():
 
 
 def add_batch_of_user(username_prefix, user_count, roles):
-    """
+    '''
     Create a large group of user on splunk, user and password are the same
+
     :param username_prefix: username_prefix, the username will be in form of
         <prefix><number>
     :param user_count: number of user to be created
     :param roles: role of user add to, could be a list or a single role
-    """
+    '''
     splunk = _get_splunk()
     if not isinstance(roles, list):
         roles = [roles]
@@ -686,14 +726,15 @@ def add_batch_of_user(username_prefix, user_count, roles):
 
 
 def add_batch_of_saved_search(name_prefix, count, **kwargs):
-    """
+    '''
     Create a batch of saved search/report/alert
     http://docs.splunk.com/Documentation/Splunk/latest/admin/Savedsearchesconf
+
     :param name_prefix: prefix name of saved search
     :param count: number of search is going to create
     :param kwargs: any data under a saved search stanza, ex. search="*"
     :return: None
-    """
+    '''
 
     for s in range(count):
         search_name = '{p}{c}'.format(p=name_prefix, c=s)
