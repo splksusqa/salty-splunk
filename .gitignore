@@ -1,0 +1,4 @@
+.idea
+*.pyc
+tests/**/.vagrant
+tests/.cache

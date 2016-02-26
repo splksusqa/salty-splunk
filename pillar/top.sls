@@ -1,108 +1,27 @@
 base:
-
-  '*':
-    - schedule
-    - system
-    - s3
-
   'role:splunk-cluster-master':
     - match: grain
-    - splunk.common
-    - splunk.app
-
-  'role:splunk-cluster-searchhead':
-    - match: grain
-    - splunk.common
-    - splunk.app
+    - indexer_cluster
 
   'role:splunk-cluster-slave':
     - match: grain
-    - splunk.common
-    - splunk.listen
-    - splunk.dataset
-    - splunk.app
-    - splunk.retention
-    - splunk.idx-replication
+    - indexer_cluster
 
-  'role:splunk-shc-member':
+  'role:splunk-cluster-searchhead':
     - match: grain
-    - splunk.common
-    - splunk.app
-    - splunk.shc-replication
+    - indexer_cluster
 
-  'role:splunk-shc-deployer':
+  'role:splunk-shcluster-deployer':
     - match: grain
-    - splunk.common
-    - splunk.app
+    - searchhead_cluster
 
-  'role:splunk-indexer':
+  'role:splunk-shcluster-member':
     - match: grain
-    - splunk.common
-    - splunk.listen
-    - splunk.dataset
-    - splunk.app
-    - splunk.retention
+    - searchhead_cluster
 
-  'role:splunk-searchhead':
+  'role:splunk-shcluster-captain':
     - match: grain
-    - splunk.common
-    - splunk.app
+    - searchhead_cluster
 
-  'role:splunk-universal-fwd':
-    - match: grain
-    - splunk.common
-    - splunk.listen
-    - splunk.dataset
-    - splunk.app
-
-  'role:splunk-heavy-fwd':
-    - match: grain
-    - splunk.common
-    - splunk.retention
-    - splunk.listen
-    - splunk.dataset
-    - splunk.app
-
-  'role:splunk-light-fwd':
-    - match: grain
-    - splunk.common
-    - splunk.listen
-    - splunk.dataset
-    - splunk.app
-
-  'role:splunk-dmc':
-    - match: grain
-    - splunk.common
-    - splunk.app
-
-  'role:splunk-lic-master':
-    - match: grain
-    - splunk.common
-    - splunk.app
-
-  'role:splunk-deployment-server':
-    - match: grain
-    - splunk.common
-    - splunk.app
-
-  'role:splunk-ember-indexer':
-    - match: grain
-    - splunk.common
-    - splunk.listen
-    - splunk.dataset
-    - splunk.retention
-
-  'role:splunk-ember-shc-deployer':
-    - match: grain
-    - splunk.common
-
-  'role:splunk-ember-searchhead':
-    - match: grain
-    - splunk.common
-
-  'role:splunk-ember-heavy-fwd':
-    - match: grain
-    - splunk.common
-    - splunk.retention
-    - splunk.listen
-    - splunk.dataset
+  '*':
+    - splunk

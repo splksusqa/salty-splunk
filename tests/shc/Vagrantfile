@@ -1,0 +1,87 @@
+
+Vagrant.configure("2") do |config|
+  config.vm.box = "puphpet/ubuntu1404-x64"
+
+    config.vm.define "saltmaster" do |master|
+        master.vm.hostname = "salt-master"
+        master.vm.network "private_network", ip: "192.168.30.101"
+        master.vm.synced_folder "../../file_base", "/srv/salt/"
+        master.vm.synced_folder "../../pillar", "/srv/salt/pillar"
+
+        master.vm.provision :salt do |salt|
+          salt.install_master = true
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.master_config = "master"
+        end
+    end
+
+    config.vm.define "deployer" do |deployer|
+        deployer.vm.hostname = "shcluster-deployer"
+        deployer.vm.network "private_network", ip: "192.168.30.102"
+        deployer.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "shcluster_deployer.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "member1" do |member1|
+        member1.vm.hostname = "shcluster-member1"
+        member1.vm.network "private_network", ip: "192.168.30.103"
+        member1.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "shcluster_member.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "member2" do |member2|
+        member2.vm.hostname = "shcluster-member2"
+        member2.vm.network "private_network", ip: "192.168.30.104"
+
+        member2.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "shcluster_member.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "captain" do |captain|
+        captain.vm.hostname = "shcluster-captain"
+        captain.vm.network "private_network", ip: "192.168.30.105"
+
+        captain.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "shcluster_captain.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+    config.vm.define "indexer" do |indexer|
+        indexer.vm.hostname = "shcluster-indexer"
+        indexer.vm.network "private_network", ip: "192.168.30.106"
+
+        indexer.vm.provision :salt do |salt|
+          # salt.minion_config = "../config/minion"
+          salt.install_master = false
+          salt.bootstrap_options = "-P -F -c /tmp"
+          salt.run_highstate = false
+          salt.grains_config = "shcluster_indexer.grain"
+          salt.minion_config = "minion"
+        end
+    end
+
+end

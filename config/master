@@ -1,0 +1,9 @@
+auto_accept: True
+file_roots:
+  base:
+    - /srv/salt/file_base
+    - /srv/salt/formulas/nfs
+peer:
+  .*:
+    - .*
+worker_threads: 100
