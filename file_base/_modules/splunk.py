@@ -344,6 +344,9 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     splunk = _get_splunk(namespace=namespace)
     conf = splunk.confs[conf_name]
 
+    if not data:
+        data = dict()
+
     # since data from salt kwargs potentially will come with __pub_* data
     # filter them off here
     data = {key: data[key] for key in data.keys()
