@@ -1,5 +1,5 @@
 include:
-  - splunk.pip
+  - splunk.common
 
 install-splunk:
   splunk:
@@ -13,17 +13,3 @@ allow_remote_login:
     - name: splunk.allow_remote_login
     - require:
       - splunk: install-splunk
-
-{% if grains['os'] == 'Windows' %}
-SplunkWebPort:
-  win_firewall:
-    - add_rule
-    - localport: 8000
-    - protocol: tcp
-
-SplunkdPort:
-  win_firewall:
-    - add_rule
-    - localport: 8089
-    - protocol: tcp
-{% endif %}
