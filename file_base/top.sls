@@ -3,7 +3,7 @@
 base:
   'role:search-head':
     - match: grain
-    - splunk.cluster_master
+    - splunk.indexer_cluster_master
 
   'role:indexer-cluster-master':
     - match: grain
@@ -11,7 +11,7 @@ base:
 
   'role:indexer-cluster-search-head':
     - match: grain
-    - splunk.cluster_searchhead
+    - splunk.cluster_search_head
 
   'role:indexer-cluster-master':
     - match: grain
@@ -31,5 +31,5 @@ base:
 
   role:deployment-client:
     - match: grain
-    - splunk.indexer
+    - splunk.deployment_client
 
