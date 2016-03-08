@@ -8,7 +8,8 @@ from salt.exceptions import CommandExecutionError
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
-
+log = logging.getLogger(__name__)
+__salt__ = __salt__
 
 def _import_sdk():
     try:
@@ -49,9 +50,6 @@ def cli(command):
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                            c=command)
     return __salt__['cmd.run_all'](cmd)
-
-
-log = logging.getLogger(__name__)
 
 
 class InstallerFactory(object):
@@ -119,7 +117,7 @@ class WindowsMsiInstaller(Installer):
         for key, value in kwargs.iteritems():
             install_flags = ' '.join('{k}={v}'.format(k=key, v=value))
 
-        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'.\
+        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'. \
             format(c=pkg_path, h=self.splunk_home, q='/quiet', f=install_flags)
 
         self.pkg_path = pkg_path
@@ -407,7 +405,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     :param replication_port: port to replicate data
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
-        splunk-cluster-master
+        indexer-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
     """
     config_conf('server', "replication_port://{p}".format(p=replication_port),
@@ -445,10 +443,10 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     config_conf('server', 'clustering', data)
 
 
-def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
+def get_cluster_master_mgmt_uri(target='role:indexer-cluster-master',
                                 expr='grain'):
     '''
-    get mgmt uri of splunk instance with 'role:splunk-cluster-master'
+    get mgmt uri of splunk instance with 'role:indexer-cluster-master'
 
     :param expr: how would you like to target your cluster master
     :param target: the value to target the cluster master
@@ -470,36 +468,17 @@ def get_cluster_master_mgmt_uri(target='role:splunk-cluster-master',
 
 def config_shcluster_deployer(pass4SymmKey, shcluster_label):
     '''
-    config splunk as a deployer of the search head cluster
+    config a splunk as a deployer of a search head cluster
+    refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/PropagateSHCconfigurationchanges#Choose_an_instance_to_be_the_deployer
 
+    :param shcluster_label: refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DMC/Setclusterlabels
+    :param pass4SymmKey: is a key to communicate between cluster
     :return: result of splunk restart
     '''
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
 
     config_conf('server', 'shclustering', data=data)
-
-
-def get_deployer_uri():
-    '''
-    get SHC deployer's mgmt uri
-
-    :return: SHC deployer's mgmt uri
-    :rtype: string
-    '''
-    target = 'role:splunk-shcluster-deployer'
-    func_name = 'splunk.get_mgmt_uri'
-    exp = 'grain'
-    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
-
-    if not minions or len(minions.values()) != 1:
-        raise EnvironmentError(
-            "should be one %s under master, count %d" %
-            (target, len(minions.values())))
-
-    uri = minions.values()[0]
-
-    return uri
 
 
 def config_shcluster_member(
@@ -518,16 +497,20 @@ def config_shcluster_member(
     config_conf('server', stanza, do_restart=False)
 
     if not conf_deploy_fetch_url:
-        conf_deploy_fetch_url = get_deployer_uri()
+        conf_deploy_fetch_url = \
+            _get_list_of_mgmt_uri('search-head-cluster-deployer')[0]
 
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    data = {'pass4SymmKey': pass4SymmKey,
-            'shcluster_label': shcluster_label,
-            'conf_deploy_fetch_url': conf_deploy_fetch_url,
-            'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
-            'disabled': 'false'}
+    data = {
+        'pass4SymmKey': pass4SymmKey,
+        'shcluster_label': shcluster_label,
+        'conf_deploy_fetch_url': conf_deploy_fetch_url,
+        'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
+        'replication_factor': replication_factor,
+        'disabled': 'false',
+    }
 
     config_conf('server', 'shclustering', data)
 
@@ -544,25 +527,37 @@ def bootstrap_shcluster_captain(servers_list=None):
 
     cmd = ('bootstrap shcluster-captain -servers_list'
            ' {s} -auth admin:changeme'.format(s=servers_list))
-    return cli(cmd)
+
+    result = cli(cmd)
+
+    if result['ret_code'] != 0:
+        return result
+
+    # remove role after bootstrap
+    if 'search-head-cluster-first-captain' in __salt__['grains.get']('role'):
+        __salt__['grains.remove']('role', 'search-head-cluster-first-captain')
+
+    return result
 
 
-def get_indexer_list():
-    '''
-    :rtype: list
-    :return: [<ip>:<port>, <ip>:<port>]
-    '''
-    target = 'role:splunk-shcluster-indexer'
-    func_name = 'splunk.get_mgmt_uri'
-    exp = 'grain'
-    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
-
-    if not minions:
-        raise EnvironmentError(
-            "should be at least %s under master, count %d" %
-            (target, len(minions.values())))
-
-    return minions.values()
+# def get_indexer_list():
+#     '''
+#     get a list of indexer's mgmt uri, indexer with role:indexer
+#
+#     :rtype: list
+#     :return: [<ip>:<port>, <ip>:<port>]
+#     '''
+#     target = 'role:indexer'
+#     func_name = 'splunk.get_mgmt_uri'
+#     exp = 'grain'
+#     minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+#
+#     if not minions:
+#         raise EnvironmentError(
+#             "should be at least %s under master, count %d" %
+#             (target, len(minions.values())))
+#
+#     return minions.values()
 
 
 def config_search_peer(
@@ -575,8 +570,17 @@ def config_search_peer(
     :param remote_password: splunk password of the search peer
     :param servers: <ip>:<port>,<ip>:<port>
     '''
+    # if a search head is part of indexer cluster search head
+    # skip configuration part
+    # please refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/Connectclustersearchheadstosearchpeers#Search_head_cluster_with_indexer_cluster
+
+    role = __salt__['grains.get']('role')
+    if role == 'indexer-cluster-search-head':
+        raise EnvironmentError('indexer cluster search head cant '
+                               'config as distributed search head')
+
     if not servers:
-        servers = get_indexer_list()
+        servers = _get_list_of_mgmt_uri('indexer')
 
     # use cli to config is more simple than config by conf file
     for s in servers:
@@ -587,37 +591,26 @@ def config_search_peer(
             raise CommandExecutionError(result['stderr'] + result['stdout'])
 
 
-def get_deployment_server_mgmt_url():
-    '''
-    get SHC deployer's mgmt uri
-
-    :return: SHC deployer's mgmt uri
-    :rtype: string
-    '''
-    target = 'role:splunk-deployment-server'
-    func_name = 'splunk.get_mgmt_uri'
-    expr = 'grain'
-
-    # return type is dict
-    minions = __salt__['publish.publish'](target, func_name, expr_form=expr)
-
-    if not minions or len(minions.values()) != 1:
-        raise EnvironmentError(
-            "should be one %s under master, count %d" %
-            (target, len(minions.values())))
-
-    uri = minions.values()[0]
-    return uri
-
-
 def config_deployment_client(server=None):
     '''
     config deploymeny client
 
     :param server: mgmt uri of deployment server
     '''
+    # deployment client is not compatable if a splunk is
+    # 1. member of idx cluster
+    # 2. member of search head cluster
+    # refer to http://docs.splunk.com/Documentation/Splunk/latest/Updating/Aboutdeploymentserver#Deployment_server_and_clusters
+    roles = __salt__['grains.get']('role')
+
+    for role in roles:
+        if role == 'indexer-cluster-peer' or \
+                        role == 'search-head-cluster-member':
+            raise EnvironmentError(
+                'Cant config deployment client for this instance')
+
     if not server:
-        server = get_deployment_server_mgmt_url()
+        server = _get_list_of_mgmt_uri('deployment-server')[0]
 
     cmd = 'set deploy-poll {s} -auth admin:changeme'.format(s=server)
     cli_result = cli(cmd)
@@ -687,9 +680,28 @@ def get_mgmt_uri():
         raise CommandExecutionError(str(cli_result))
 
 
+def _get_list_of_mgmt_uri(role):
+    '''
+    :param role:
+    :rtype: list
+    :return: [<ip>:<port>, <ip>:<port>]
+    '''
+    target = 'role:{r}'.format(r=role)
+    func_name = 'splunk.get_mgmt_uri'
+    exp = 'grain'
+    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+
+    if not minions:
+        raise EnvironmentError(
+            "should be at least %s under master, count %d" %
+            (target, len(minions.values())))
+
+    return minions.values()
+
+
 def uninstall():
     '''
-    uninstall splunk
+    uninstall splunk if splunk is installed
     '''
     installer = InstallerFactory.create_installer()
     installer.uninstall()
@@ -697,11 +709,14 @@ def uninstall():
 
 def get_shc_member_list():
     '''
+    return all minion with role:search-head-cluster-member
     :return: <ip>:<port>, <ip>:<port>
     :rtype: list of strings
     '''
+    role_name = 'search-head-cluster-member'
+
     ips = __salt__['publish.publish'](
-        'role:splunk-shcluster-member', 'splunk.get_mgmt_uri', None,
+        'role:{n}'.format(n=role_name), 'splunk.get_mgmt_uri', None,
         'grain')
     return ",".join(["https://{p}".format(p=ip) for ip in ips.values()])
 

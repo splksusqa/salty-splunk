@@ -1,35 +1,35 @@
 # Using 'id' for now, but better way of specifying nodes is by its 'role'
 
 base:
-  'role:splunk-cluster-master':
+  'role:search-head':
     - match: grain
     - splunk.cluster_master
 
-  'role:splunk-cluster-slave':
+  'role:indexer-cluster-master':
     - match: grain
     - splunk.cluster_slave
 
-  'role:splunk-cluster-searchhead':
+  'role:indexer-cluster-search-head':
     - match: grain
     - splunk.cluster_searchhead
 
-  'role:splunk-shcluster-captain':
+  'role:indexer-cluster-master':
+    - match: grain
+    - splunk.cluster_searchhead
+
+  'role:search-head-cluster-member':
     - match: grain
     - splunk.shcluster_captain
 
-  'role:splunk-shcluster-deployer':
+  'role:search-head-cluster-deployer':
     - match: grain
     - splunk.shcluster_deployer
 
-  role:splunk-shcluster-member:
+  role:search-head-cluster-first-captain:
     - match: grain
     - splunk.shcluster_member
 
-  role:splunk-deployment-server:
+  role:deployment-client:
     - match: grain
     - splunk.indexer
-
-  role:splunk-deployment-client:
-    - match: grain
-    - splunk.deployment_client
 
