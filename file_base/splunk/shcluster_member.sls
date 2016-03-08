@@ -12,10 +12,11 @@ config_member:
   require:
     - sls: splunk.indexer
 
-
+{% if 'indexer-cluster-search-head' not in salt.grains.get('role') %}
 config_search_peer:
   splunk:
     - search_peer_configured
     # - servers:
   require:
     - sls: splunk.indexer
+{% endif %}
