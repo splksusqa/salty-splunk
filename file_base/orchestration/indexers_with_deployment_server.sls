@@ -2,13 +2,13 @@
 
 server_setup:
   salt.state:
-    - tgt: 'role:splunk-deployment-server'
+    - tgt: 'role:deployment-server'
     - tgt_type: grain
     - sls: splunk.indexer
 
 client_setup:
   salt.state:
-    - tgt: 'role:splunk-deployment-client'
+    - tgt: 'role:deployment-client'
     - tgt_type: grain
     - sls: splunk.deployment_client
     - require:

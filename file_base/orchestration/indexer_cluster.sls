@@ -2,13 +2,13 @@
 
 master_setup:
   salt.state:
-    - tgt: 'role:splunk-cluster-master'
+    - tgt: 'role:indexer-cluster-master'
     - tgt_type: grain
     - sls: splunk.cluster_master
 
 slave_setup:
   salt.state:
-    - tgt: 'role:splunk-cluster-slave'
+    - tgt: 'role:indexer-cluster-slave'
     - tgt_type: grain
     - sls: splunk.cluster_slave
     - require:
@@ -16,7 +16,7 @@ slave_setup:
 
 searchhead_setup:
   salt.state:
-    - tgt: 'role:splunk-cluster-searchhead'
+    - tgt: 'role:indexer-cluster-search-head'
     - tgt_type: grain
     - sls: splunk.cluster_searchhead
     - require:
