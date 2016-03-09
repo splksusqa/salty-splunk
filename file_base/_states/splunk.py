@@ -178,3 +178,43 @@ def deployment_client_configured(name, **kwargs):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
+
+
+def license_client_configured(name, **kwargs):
+    '''
+
+    :param name:
+    :param kwargs:
+    :return:
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    try:
+        __salt__['splunk.config_license_slave'](**kwargs)
+        ret['result'] = True
+        ret['comment'] = "configured as a license slave"
+        ret['changes'] = {'new': "configured as a license slave"}
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
+
+
+def license_added(name, **kwargs):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    try:
+        __salt__['splunk.add_license'](**kwargs)
+        ret['result'] = True
+        ret['comment'] = "configured as a license master"
+        ret['changes'] = {'new': "license added"}
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret

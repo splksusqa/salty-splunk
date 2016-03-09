@@ -647,18 +647,22 @@ def add_license(license_path):
             return cli_result
 
 
-def config_license_slave(master_uri):
+def config_license_slave(master_uri=None):
     '''
-    config license slave
+    config splunk as a license slave
 
     :param master_uri: uri of the license master
     :type master_uri: string
     '''
     splunk = _get_splunk()
-    conf = splunk.confs['server']
+
+    if not master_uri:
+        master_uri = _get_list_of_mgmt_uri('central-license-master')[0]
 
     if not master_uri.startswith("https://"):
         master_uri = 'https://{u}'.format(u=master_uri)
+
+    conf = splunk.confs['server']
     stanza = conf['license']
     stanza.submit({'master_uri': master_uri})
     return splunk.restart(timeout=300)
