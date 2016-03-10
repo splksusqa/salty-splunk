@@ -89,3 +89,12 @@ deployment_client_setup:
     - tgt_type: grain
     - sls: splunk.deployment_client
     - order: 6
+
+# 7 Universal forwarder
+
+universal_forwarder_setup:
+  salt.state:
+    - tgt: 'role:universal-forwarder'
+    - tgt_type: grain
+    - sls: splunk.uf
+    - order: 7
