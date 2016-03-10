@@ -1,25 +1,25 @@
 base:
-  'role:splunk-cluster-master':
+  'role:indexer-cluster-master':
     - match: grain
     - indexer_cluster
 
-  'role:splunk-cluster-slave':
+  'role:indexer-cluster-peer':
     - match: grain
     - indexer_cluster
 
-  'role:splunk-cluster-searchhead':
+  'role:indexer-cluster-search-head':
     - match: grain
     - indexer_cluster
 
-  'role:splunk-shcluster-deployer':
+  'role:search-head-cluster-deployer':
     - match: grain
     - searchhead_cluster
 
-  'role:splunk-shcluster-member':
+  'role:search-head-cluster-member':
     - match: grain
     - searchhead_cluster
 
-  'role:splunk-shcluster-captain':
+  'role:search-head-cluster-first-captain':
     - match: grain
     - searchhead_cluster
 
