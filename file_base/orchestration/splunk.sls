@@ -50,7 +50,7 @@ indexer_cluster_peer_setup:
 
 indexer_cluster_search_head_setup:
   salt.state:
-    - tgt: 'role:indexer_cluster_search_head'
+    - tgt: 'role:indexer-cluster-search-head'
     - tgt_type: grain
     - sls: splunk.indexer_cluster_search_head
     - require:
@@ -59,7 +59,7 @@ indexer_cluster_search_head_setup:
 # 4 Simple search head
 distributed_search_head_setup:
   salt.state:
-    - tgt: 'role:search_head'
+    - tgt: 'role:search-head'
     - tgt_type: grain
     - sls: splunk.search_head
     - order: 4
