@@ -500,8 +500,10 @@ def bootstrap_shcluster_captain(servers_list=None):
         ex. https://192.168.0.2:8089,https://192.168.0.3:8089
     '''
 
-    servers_list = servers_list if servers_list else \
-        _get_list_of_mgmt_uri('search-head-cluster-member')
+    if not servers_list:
+        servers_list = _get_list_of_mgmt_uri('search-head-cluster-member')
+        servers_list = ['https://{u}'.format(u=e) for e in servers_list]
+        servers_list = ','.join(servers_list)
 
     cmd = ('bootstrap shcluster-captain -servers_list'
            ' {s} -auth admin:changeme'.format(s=servers_list))
