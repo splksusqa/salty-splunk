@@ -20,7 +20,7 @@ search_head_member_setup:
   salt.state:
     - tgt: 'role:search-head-cluster-member'
     - tgt_type: grain
-    - sls: splunk.cluster_shcluster_member
+    - sls: splunk.shcluster_member
     - require:
       - salt: search_head_deployer_setup
 
