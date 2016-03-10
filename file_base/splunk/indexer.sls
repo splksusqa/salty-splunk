@@ -6,7 +6,7 @@ install-splunk:
     - installed
     - fetcher_arg: {{ pillar['version'] }}
     - require:
-      - sls: splunk.pip
+      - sls: splunk.common
 
 allow_remote_login:
   module.run:
