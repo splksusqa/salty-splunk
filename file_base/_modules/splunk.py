@@ -508,7 +508,7 @@ def bootstrap_shcluster_captain(servers_list=None):
 
     result = cli(cmd)
 
-    if result['ret_code'] != 0:
+    if result['retcode'] != 0:
         return result
 
     # remove role after bootstrap
