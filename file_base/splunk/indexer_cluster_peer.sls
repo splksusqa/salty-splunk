@@ -1,6 +1,5 @@
 include:
   - splunk.indexer
-  - splunk.pip
 
 config_slave:
   splunk:

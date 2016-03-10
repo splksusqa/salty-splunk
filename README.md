@@ -41,3 +41,5 @@ multi-site-#-member (not implemented)
 multi-site-master (not implemented)
 
 universal-forwarder
+
+distributed-management-console
