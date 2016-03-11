@@ -526,14 +526,17 @@ def config_search_peer(
     config splunk as a peer of a distributed search environment
     http://docs.splunk.com/Documentation/Splunk/latest/DistSearch/Configuredistributedsearch#Edit_distsearch.conf
 
+    if a search head is part of indexer cluster search head,
+    will raise EnvironmentError
+    refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/Connectclustersearchheadstosearchpeers#Search_head_cluster_with_indexer_cluster
+
     :param remote_username: splunk username of the search peer
     :param remote_password: splunk password of the search peer
     :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
     '''
+
     # if a search head is part of indexer cluster search head
     # skip configuration part
-    # please refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/Connectclustersearchheadstosearchpeers#Search_head_cluster_with_indexer_cluster
-
     role = __salt__['grains.get']('role')
     if role == 'indexer-cluster-search-head':
         raise EnvironmentError('indexer cluster search head cant '
@@ -554,13 +557,15 @@ def config_search_peer(
 def config_deployment_client(server=None):
     '''
     config deploymeny client
+    refer to http://docs.splunk.com/Documentation/Splunk/latest/Updating/Aboutdeploymentserver#Deployment_server_and_clusters
 
+    deployment client is not compatible if a splunk is
+    1. member of idx cluster
+    2. member of search head cluster
+    if role contains these will raise EnvironmentError
     :param server: mgmt uri of deployment server
     '''
-    # deployment client is not compatable if a splunk is
-    # 1. member of idx cluster
-    # 2. member of search head cluster
-    # refer to http://docs.splunk.com/Documentation/Splunk/latest/Updating/Aboutdeploymentserver#Deployment_server_and_clusters
+
     roles = __salt__['grains.get']('role')
 
     for role in roles:
