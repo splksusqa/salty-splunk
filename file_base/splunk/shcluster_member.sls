@@ -18,5 +18,5 @@ config_search_peer:
     - search_peer_configured
     # - servers:
   require:
-    - sls: splunk.indexer
+    - splunk: config_member
 {% endif %}
