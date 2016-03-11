@@ -49,3 +49,6 @@ base:
     - match: grain
     - splunk.uf
 
+  role:deployment-server:
+    - match: grain
+    - splunk.indexer

@@ -82,13 +82,20 @@ central_license_slave_setup:
 
 # 6 Deployment server
 # deployment sever don't need configuration
+deployment_server_setup:
+  salt.state:
+    - tgt: 'role:deployment-server'
+    - tgt_type: grain
+    - sls: splunk.indexer
+    - order: 6
 
 deployment_client_setup:
   salt.state:
     - tgt: 'role:deployment-client'
     - tgt_type: grain
     - sls: splunk.deployment_client
-    - order: 6
+    - require:
+      - salt: deployment_server_setup
 
 # 7 Universal forwarder
 
