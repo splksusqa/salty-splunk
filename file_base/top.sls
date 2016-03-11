@@ -33,11 +33,11 @@ base:
     - match: grain
     - splunk.shcluster_captain
 
-  role:central-license-master:
+  'role:central-license-master':
     - match: grain
     - splunk.central_license_master
 
-  role:central-license-slave:
+  'role:central-license-slave':
     - match: grain
     - splunk.central_license_slave
 
