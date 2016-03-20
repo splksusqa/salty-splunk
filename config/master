@@ -7,3 +7,6 @@ peer:
   .*:
     - .*
 worker_threads: 100
+pillar_roots:
+  base:
+    - /srv/salt/pillar

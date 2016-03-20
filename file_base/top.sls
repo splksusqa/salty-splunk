@@ -1,35 +1,54 @@
 # Using 'id' for now, but better way of specifying nodes is by its 'role'
 
 base:
-  'role:splunk-cluster-master':
+  'role:search-head':
     - match: grain
-    - splunk.cluster_master
+    - splunk.search_head
 
-  'role:splunk-cluster-slave':
-    - match: grain
-    - splunk.cluster_slave
-
-  'role:splunk-cluster-searchhead':
-    - match: grain
-    - splunk.cluster_searchhead
-
-  'role:splunk-shcluster-captain':
-    - match: grain
-    - splunk.shcluster_captain
-
-  'role:splunk-shcluster-deployer':
-    - match: grain
-    - splunk.shcluster_deployer
-
-  role:splunk-shcluster-member:
-    - match: grain
-    - splunk.shcluster_member
-
-  role:splunk-deployment-server:
+  'role:indexer':
     - match: grain
     - splunk.indexer
 
-  role:splunk-deployment-client:
+  'role:indexer-cluster-master':
+    - match: grain
+    - splunk.indexer_cluster_master
+
+  'role:indexer-cluster-peer':
+    - match: grain
+    - splunk.indexer_cluster_peer
+
+  'role:indexer-cluster-search-head':
+    - match: grain
+    - splunk.indexer_cluster_search_head
+
+  'role:search-head-cluster-deployer':
+    - match: grain
+    - splunk.shcluster_deployer
+
+  'role:search-head-cluster-member':
+    - match: grain
+    - splunk.shcluster_member
+
+  role:search-head-cluster-first-captain:
+    - match: grain
+    - splunk.shcluster_captain
+
+  'role:central-license-master':
+    - match: grain
+    - splunk.central_license_master
+
+  'role:central-license-slave':
+    - match: grain
+    - splunk.central_license_slave
+
+  role:deployment-client:
     - match: grain
     - splunk.deployment_client
 
+  role:universal-forwarder:
+    - match: grain
+    - splunk.uf
+
+  role:deployment-server:
+    - match: grain
+    - splunk.indexer
