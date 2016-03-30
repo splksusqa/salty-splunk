@@ -385,7 +385,7 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
     try:
         conf = splunk.confs[conf_name]
     except KeyError:
-        raise Exception('no such conf file')
+        return None
 
     try:
         stanza = conf[stanza_name]
@@ -570,8 +570,31 @@ def config_search_peer(
     if not servers:
         servers = _get_list_of_mgmt_uri('indexer')
 
+    # read current servers is configured
+    current_servers = read_conf('distsearch', 'distributedSearch',
+                                key_name='servers')
+
+    servers_need_to_be_removed = []
+    servers_need_to_be_added = []
+    if current_servers:
+        current_servers = current_servers.split(',')
+        servers_need_to_be_removed = set(current_servers) - set(servers)
+        servers_need_to_be_added = set(servers) - set(current_servers)
+    else:
+        servers_need_to_be_added = servers
+
+    log.debug('servers need to be removed %s' % str(servers_need_to_be_removed))
+    log.debug('sever need to be added %s' % str(servers_need_to_be_added))
+
+    # try to remove servers not in list
+    for s in servers_need_to_be_removed:
+        result = cli('remove search-server -auth admin:password -url {h}'
+                     .format(h=s))
+        if result['retcode'] != 0:
+            raise CommandExecutionError(result['stderr'] + result['stdout'])
+
     # use cli to config is more simple than config by conf file
-    for s in servers:
+    for s in servers_need_to_be_added:
         result = cli('add search-server -host {h} -auth admin:changeme '
                      '-remoteUsername {u} -remotePassword {p}'
                      .format(h=s, p=remote_password, u=remote_username))
