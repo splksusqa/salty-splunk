@@ -378,26 +378,26 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
-def read_conf(conf_name, stanza_name=None, key_name=None, namespace='system'):
+def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
     splunk = _get_splunk(namespace=namespace)
 
-    if conf_name not in splunk.confs:
+    log.debug('splunk data is: ')
+    try:
+        conf = splunk.confs[conf_name]
+    except KeyError:
+        raise Exception('no such conf file')
+
+    try:
+        stanza = conf[stanza_name]
+    except KeyError:
+        log.warn('no such stanza, %s' % stanza_name)
         return None
-
-    conf = splunk.confs[conf_name]
-
-    if not stanza_name:
-        return conf
-
-    if stanza_name not in conf:
-        return None
-
-    stanza = conf[stanza_name]
 
     if not key_name:
-        return stanza
+        return stanza.content
 
-    if key_name not in stanza:
+    if key_name not in stanza.content:
+        log.warn('no such key name, %s' % key_name)
         return None
 
     return stanza[key_name]
