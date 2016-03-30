@@ -12,11 +12,12 @@ install-splunk:
 sleep_after_install_splunk:
   module.run:
     - name: test.sleep
-    - kwargs:
-        length: 30
+    - length: 30
+    - require:
+      - splunk: install-splunk
 
 allow_remote_login:
   module.run:
     - name: splunk.allow_remote_login
     - require:
-      - splunk: install-splunk
+      - module: sleep_after_install_splunk
