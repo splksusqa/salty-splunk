@@ -1,7 +1,7 @@
 include:
   - splunk.indexer
 
-config_member:
+search_head_cluster_config_member:
   splunk:
     - shcluster_member_configured
     - pass4SymmKey: {{ pillar['search_head_cluster']['pass4SymmKey'] }}
@@ -13,7 +13,7 @@ config_member:
     - sls: splunk.indexer
 
 {% if 'indexer-cluster-search-head' not in salt.grains.get('role') %}
-config_search_peer:
+search_head_cluster_config_search_peer:
   splunk:
     - search_peer_configured
     # - servers:
