@@ -13,7 +13,7 @@ sleep_after_install_splunk:
   module.run:
     - name: test.sleep
     - length: 30
-    - require:
+    - onchanges:
       - splunk: install-splunk
 
 allow_remote_login:
