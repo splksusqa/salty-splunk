@@ -587,13 +587,15 @@ def config_search_peer(
     log.debug('sever need to be added %s' % str(servers_need_to_be_added))
 
     # try to remove servers not in list
+    # todo fix username and password
     for s in servers_need_to_be_removed:
-        result = cli('remove search-server -auth admin:password -url {h}'
+        result = cli('remove search-server -auth admin:changeme -url {h}'
                      .format(h=s))
         if result['retcode'] != 0:
             raise CommandExecutionError(result['stderr'] + result['stdout'])
 
     # use cli to config is more simple than config by conf file
+    # todo fix username and password
     for s in servers_need_to_be_added:
         result = cli('add search-server -host {h} -auth admin:changeme '
                      '-remoteUsername {u} -remotePassword {p}'
