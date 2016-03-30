@@ -378,6 +378,31 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
+def read_conf(conf_name, stanza_name=None, key_name=None, namespace='system'):
+    splunk = _get_splunk(namespace=namespace)
+
+    if conf_name not in splunk.confs:
+        return None
+
+    conf = splunk.confs[conf_name]
+
+    if not stanza_name:
+        return conf
+
+    if stanza_name not in conf:
+        return None
+
+    stanza = conf[stanza_name]
+
+    if not key_name:
+        return stanza
+
+    if key_name not in stanza:
+        return None
+
+    return stanza[key_name]
+
+
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     """
     config splunk as a master of a indexer cluster
