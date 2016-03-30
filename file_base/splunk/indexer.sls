@@ -19,5 +19,5 @@ sleep_after_install_splunk:
 allow_remote_login:
   module.run:
     - name: splunk.allow_remote_login
-    - require:
+    - onchanges:
       - module: sleep_after_install_splunk
