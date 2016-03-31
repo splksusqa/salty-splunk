@@ -1,3 +1,7 @@
+import logging
+log = logging.getLogger(__name__)
+
+
 def installed(name, **kwargs):
     '''
     '''
@@ -150,11 +154,34 @@ def search_peer_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
+    servers_need_to_be_added = __salt__['splunk.get_list_of_mgmt_uri']('indexer')
+
+    # read current servers is configured
+    current_servers = __salt__['splunk.read_conf'](
+        'distsearch', 'distributedSearch', key_name='servers')
+    servers_need_to_be_removed = []
+    if current_servers:
+        current_servers = current_servers.split(',')
+        servers_need_to_be_removed = \
+            set(current_servers) - set(servers_need_to_be_added)
+        servers_need_to_be_added = \
+            set(servers_need_to_be_added) - set(current_servers)
+
+    log.debug('servers need to be removed %s' % str(servers_need_to_be_removed))
+    log.debug('sever need to be added %s' % str(servers_need_to_be_added))
+
+    if not servers_need_to_be_added and not servers_need_to_be_removed:
+        ret['result'] = True
+        ret['comment'] = "Search peer is already configured"
+        return ret
+
     try:
-        __salt__['splunk.config_search_peer'](**kwargs)
+        __salt__['splunk.remove_search_peer'](servers_need_to_be_removed)
+        __salt__['splunk.config_search_peer'](servers_need_to_be_added)
         ret['result'] = True
         ret['comment'] = "Search peer was configured successfully"
-        ret['changes'] = {"new": 'configured'}
+        ret['changes'] = {"new": 'added: %s removed: %s' % (
+            str(servers_need_to_be_added), str(servers_need_to_be_added))}
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(r=str(err))
