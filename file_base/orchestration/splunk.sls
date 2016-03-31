@@ -1,10 +1,11 @@
 # salt-run state.orch orchestration.searchhead_and_indexer_cluster
 
-# 1 simple indexer
+# 1 simple indexer, every role except uf is simple indexer at first
+#TODO non Enterprise role should be take care in the other way
 indexer_setup:
   salt.state:
-    - tgt: 'role:indexer'
-    - tgt_type: grain
+    - tgt: 'not G@role:universal-forwarder'
+    - tgt_type: compound
     - sls: splunk.indexer
     - order: 1
 

@@ -378,6 +378,31 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
+def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
+    splunk = _get_splunk(namespace=namespace)
+
+    try:
+        conf = splunk.confs[conf_name]
+    except KeyError:
+        log.warn("no such conf file %s" % conf_name)
+        return None
+
+    try:
+        stanza = conf[stanza_name]
+    except KeyError:
+        log.warn('no such stanza, %s' % stanza_name)
+        return None
+
+    if not key_name:
+        return stanza.content
+
+    if key_name not in stanza.content:
+        log.warn('no such key name, %s' % key_name)
+        return None
+
+    return stanza[key_name]
+
+
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     """
     config splunk as a master of a indexer cluster
@@ -412,7 +437,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
                 do_restart=False)
 
     if not master_uri:
-        master_uri = _get_list_of_mgmt_uri('indexer-cluster-master')[0]
+        master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
 
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
@@ -433,7 +458,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
         splunk-cluster-master
     """
     if not master_uri:
-        master_uri = _get_list_of_mgmt_uri('indexer-cluster-master')[0]
+        master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
 
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
@@ -475,7 +500,7 @@ def config_shcluster_member(
 
     if not conf_deploy_fetch_url:
         conf_deploy_fetch_url = \
-            _get_list_of_mgmt_uri('search-head-cluster-deployer')[0]
+            get_list_of_mgmt_uri('search-head-cluster-deployer')[0]
 
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
@@ -501,7 +526,7 @@ def bootstrap_shcluster_captain(servers_list=None):
     '''
 
     if not servers_list:
-        servers_list = _get_list_of_mgmt_uri('search-head-cluster-member')
+        servers_list = get_list_of_mgmt_uri('search-head-cluster-member')
         servers_list = ['https://{u}'.format(u=e) for e in servers_list]
         servers_list = ','.join(servers_list)
 
@@ -518,6 +543,21 @@ def bootstrap_shcluster_captain(servers_list=None):
         __salt__['grains.remove']('role', 'search-head-cluster-first-captain')
 
     return result
+
+
+def remove_search_peer(servers):
+    '''
+    remove search peer from a search head
+    :type servers: list
+    :param servers: ex, ['<ip>:<port>','<ip>:<port>', ...]
+    '''
+    # try to remove servers not in list
+    # todo fix username and password
+    for s in servers:
+        result = cli('remove search-server -auth admin:changeme -url {h}'
+                     .format(h=s))
+        if result['retcode'] != 0:
+            raise CommandExecutionError(result['stderr'] + result['stdout'])
 
 
 def config_search_peer(
@@ -543,9 +583,10 @@ def config_search_peer(
                                'config as distributed search head')
 
     if not servers:
-        servers = _get_list_of_mgmt_uri('indexer')
+        servers = get_list_of_mgmt_uri('indexer')
 
     # use cli to config is more simple than config by conf file
+    # todo fix username and password
     for s in servers:
         result = cli('add search-server -host {h} -auth admin:changeme '
                      '-remoteUsername {u} -remotePassword {p}'
@@ -575,7 +616,7 @@ def config_deployment_client(server=None):
                 'Cant config deployment client for this instance')
 
     if not server:
-        server = _get_list_of_mgmt_uri('deployment-server')[0]
+        server = get_list_of_mgmt_uri('deployment-server')[0]
 
     cmd = 'set deploy-poll {s} -auth admin:changeme'.format(s=server)
     cli_result = cli(cmd)
@@ -622,7 +663,7 @@ def config_license_slave(master_uri=None):
     splunk = _get_splunk()
 
     if not master_uri:
-        master_uri = _get_list_of_mgmt_uri('central-license-master')[0]
+        master_uri = get_list_of_mgmt_uri('central-license-master')[0]
 
     if not master_uri.startswith("https://"):
         master_uri = 'https://{u}'.format(u=master_uri)
@@ -649,9 +690,10 @@ def get_mgmt_uri():
         raise CommandExecutionError(str(cli_result))
 
 
-def _get_list_of_mgmt_uri(role):
+def get_list_of_mgmt_uri(role):
     '''
-    :param role:
+    :param role: grains role matched
+    :type role: str
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
     '''
