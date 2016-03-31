@@ -495,8 +495,6 @@ def config_shcluster_member(
     :param shcluster_label: shcluster's label
     :param pass4SymmKey: pass4SymmKey for SHC
     '''
-    stanza = "replication_port://{p}".format(p=replication_port)
-    config_conf('server', stanza, do_restart=False)
 
     if not conf_deploy_fetch_url:
         conf_deploy_fetch_url = \
@@ -505,16 +503,38 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    data = {
-        'pass4SymmKey': pass4SymmKey,
-        'shcluster_label': shcluster_label,
-        'conf_deploy_fetch_url': conf_deploy_fetch_url,
-        'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
-        'replication_factor': replication_factor,
-        'disabled': 'false',
-    }
+    # data = {
+    #     'pass4SymmKey': pass4SymmKey,
+    #     'shcluster_label': shcluster_label,
+    #     'conf_deploy_fetch_url': conf_deploy_fetch_url,
+    #     'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
+    #     'replication_factor': replication_factor,
+    #     'disabled': 'false',
+    # }
 
-    config_conf('server', 'shclustering', data)
+    cmd = 'init shcluster-config -auth {username}:{password} ' \
+          '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
+          '-replication_factor {n} ' \
+          '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
+          '-secret {security_key} -shcluster_label {label}'\
+        .format(username='admin', password='changeme',
+                mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
+                replication_port=replication_port,
+                n=replication_factor,
+                conf_deploy_fetch_url=conf_deploy_fetch_url,
+                security_key=pass4SymmKey,
+                label=shcluster_label
+                )
+    result = cli(cmd)
+    if result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])
+
+    result = cli('restart')
+    if result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])
+
+    # config_conf('server', 'shclustering', data)
+
 
 
 def bootstrap_shcluster_captain(servers_list=None):
