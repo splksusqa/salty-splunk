@@ -7,7 +7,7 @@ install-splunk:
     - fetcher_arg: {{ pillar['universal-forwarder']['version'] }}
     - type: splunkforwarder
     - require:
-      - sls: splunk.pip
+      - sls: splunk.common
 
 
 
