@@ -175,7 +175,7 @@ class LinuxTgzInstaller(Installer):
         if not self.is_installed():
             return
 
-        __salt__['cmd.run_all']("{s} stop".format(
+        __salt__['cmd.run_all']("{s} stop -f".format(
             s=os.path.join(self.splunk_home, "bin", "splunk")))
         ret = __salt__['cmd.run_all'](
             "rm -rf {h}".format(h=self.splunk_home))
