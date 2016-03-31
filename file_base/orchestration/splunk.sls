@@ -22,6 +22,7 @@ search_head_member_setup:
     - tgt: 'role:search-head-cluster-member'
     - tgt_type: grain
     - sls: splunk.shcluster_member
+    - order: 2
     - require:
       - salt: search_head_deployer_setup
 
@@ -30,6 +31,7 @@ search_head_captain_setup:
     - tgt: 'role:search-head-cluster-first-captain'
     - tgt_type: grain
     - sls: splunk.shcluster_captain
+    - order: 2
     - require:
       - salt: search_head_member_setup
 
@@ -46,6 +48,7 @@ indexer_cluster_peer_setup:
     - tgt: 'role:indexer-cluster-peer'
     - tgt_type: grain
     - sls: splunk.indexer_cluster_peer
+    - order: 3
     - require:
       - salt: indexer_cluster_master_setup
 
@@ -54,6 +57,7 @@ indexer_cluster_search_head_setup:
     - tgt: 'role:indexer-cluster-search-head'
     - tgt_type: grain
     - sls: splunk.indexer_cluster_search_head
+    - order: 3
     - require:
       - salt: indexer_cluster_master_setup
 
@@ -78,6 +82,7 @@ central_license_slave_setup:
     - tgt: 'role:central-license-slave'
     - tgt_type: grain
     - sls: splunk.central_license_slave
+    - order: 5
     - require:
       - salt: central_license_master_setup
 
@@ -95,6 +100,7 @@ deployment_client_setup:
     - tgt: 'role:deployment-client'
     - tgt_type: grain
     - sls: splunk.deployment_client
+    - order: 6
     - require:
       - salt: deployment_server_setup
 
