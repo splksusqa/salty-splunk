@@ -180,7 +180,7 @@ def search_peer_configured(name, **kwargs):
         __salt__['splunk.config_search_peer'](servers_need_to_be_added)
         ret['result'] = True
         ret['comment'] = "Search peer was configured successfully"
-        ret['changes'] = {"new": 'added: %s removed: %s' % (
+        ret['changes'] = {"new": 'indexer added %s \n indexer removed %s' % (
             str(servers_need_to_be_added), str(servers_need_to_be_added))}
     except Exception as err:
         ret['result'] = False
