@@ -717,10 +717,16 @@ def get_list_of_mgmt_uri(role):
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
     '''
-    target = 'role:{r}'.format(r=role)
-    func_name = 'splunk.get_mgmt_uri'
-    exp = 'grain'
-    minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+    # todo avoiding using publish.publish since there's sometimes return nothing
+    # refer to https://github.com/saltstack/salt/issues/19784
+    #
+    # ==========
+    # target = 'role:{r}'.format(r=role)
+    # func_name = 'splunk.get_mgmt_uri'
+    # exp = 'grain'
+    # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
+
+
 
     if not minions:
         raise EnvironmentError(
