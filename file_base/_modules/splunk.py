@@ -726,7 +726,7 @@ def get_list_of_mgmt_uri(role):
     # exp = 'grain'
     # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
-    minions = __salt__['publish.runner'](role)
+    minions = __salt__['publish.runner']('splunk.management_uri_list', arg=role)
 
     if not minions:
         raise EnvironmentError(
