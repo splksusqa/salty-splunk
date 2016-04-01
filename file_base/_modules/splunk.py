@@ -726,14 +726,18 @@ def get_list_of_mgmt_uri(role):
     # exp = 'grain'
     # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
-
+    minions = __salt__['publish.runner'](role)
 
     if not minions:
         raise EnvironmentError(
             "should be at least %s under master, count %d" %
-            (target, len(minions.values())))
+            (role, len(minions.values())))
 
-    return minions.values()
+    ret = []
+    for key, value in minions.iteritems():
+        ret.append(value)
+
+    return ret
 
 
 def uninstall():

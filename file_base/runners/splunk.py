@@ -10,7 +10,7 @@ def management_uri_list(role=None):
         role_str = 'G@role:%s' % role
     else:
         role_str = '*'
-    minions = client.cmd('-C', role_str, 'splunk.get_mgmt_uri',
+    minions = client.cmd(role_str, 'splunk.get_mgmt_uri', expr_form='compound',
                          timeout=60)
-    for minion in sorted(minions):
-        print minion
+
+    return minions
