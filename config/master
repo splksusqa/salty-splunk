@@ -10,3 +10,8 @@ worker_threads: 100
 pillar_roots:
   base:
     - /srv/salt/pillar
+runner_dirs:
+  - /srv/salt/file_base/runners
+peer_run:
+  .*:
+    - splunk.management_uri_list
