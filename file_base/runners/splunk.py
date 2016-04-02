@@ -11,6 +11,6 @@ def management_uri_list(role=None):
     else:
         role_str = '*'
     minions = client.cmd(role_str, 'splunk.get_mgmt_uri', expr_form='compound',
-                         timeout=60)
+                         timeout=300)
 
     return minions

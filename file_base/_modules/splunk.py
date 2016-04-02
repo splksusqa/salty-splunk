@@ -143,6 +143,10 @@ class WindowsMsiInstaller(Installer):
             os.remove(pkg_path)
             __salt__['grains.delval']('pkg_path')
 
+        # remove mgmt_uri
+        if __salt__['grains.has_value']('splunk_mgmt_uri'):
+            __salt__['grains.delval']('splunk_mgmt_uri')
+
 
 class LinuxTgzInstaller(Installer):
     def __init__(self):
@@ -184,6 +188,9 @@ class LinuxTgzInstaller(Installer):
             __salt__['grains.delval']('pkg_path')
         else:
             raise CommandExecutionError(ret['stdout'] + ret['stderr'])
+
+        if __salt__['grains.has_value']('splunk_mgmt_uri'):
+            __salt__['grains.delval']('splunk_mgmt_uri')
 
 
 def _is_it_version_branch_build(parameter):
@@ -701,11 +708,24 @@ def get_mgmt_uri():
     :return: The mgmt uri of splunk
     :rtype: string
     '''
+    # todo merge this to Splunk Object
+    # todo deal with command line parsing
+    # todo when a large traffic, to avoid revisit splunk to get port
+    # use grains system to deal with that.
+    # try to figure out other solution for this since when a port is changed
+    # the grains value won't reflect it
+    # and we have to remove this grains value when uninstall splunk
+    grains_value = __salt__['grains.get']('splunk_mgmt_uri')
+    if grains_value:
+        return grains_value
+
     cli_result = cli("show splunkd-port -auth admin:changeme")
 
     if 0 == cli_result['retcode']:
         port = cli_result['stdout'].replace("Splunkd port: ", "").strip()
-        return __grains__['ipv4'][-1] + ":" + port
+        mgmt_uri = __grains__['ipv4'][-1] + ":" + port
+        __salt__['grains.set']('splunk_mgmt_uri', mgmt_uri, force=True)
+        return mgmt_uri
     else:
         raise CommandExecutionError(str(cli_result))
 
