@@ -16,6 +16,8 @@ search_head_deployer_setup:
     - tgt_type: grain
     - sls: splunk.shcluster_deployer
     - order: 2
+    - require:
+      - salt: indexer_setup
 
 search_head_member_setup:
   salt.state:
@@ -42,6 +44,9 @@ indexer_cluster_master_setup:
     - tgt_type: grain
     - sls: splunk.indexer_cluster_master
     - order: 3
+    - require:
+      - salt: indexer_setup
+      - salt: search_head_deployer_setup
 
 indexer_cluster_peer_setup:
   salt.state:
@@ -68,6 +73,11 @@ distributed_search_head_setup:
     - tgt_type: grain
     - sls: splunk.search_head
     - order: 4
+    - require:
+      - salt: indexer_setup
+      - salt: indexer_cluster_master_setup
+      - salt: indexer_cluster_peer_setup
+      - salt: indexer_cluster_search_head_setup
 
 # 5 Central license master and slave
 central_license_master_setup:
@@ -76,6 +86,9 @@ central_license_master_setup:
     - tgt_type: grain
     - sls: splunk.central_license_master
     - order: 5
+    - require:
+      - salt: indexer_setup
+      - salt: distributed_search_head_setup
 
 central_license_slave_setup:
   salt.state:
@@ -94,6 +107,10 @@ deployment_server_setup:
     - tgt_type: grain
     - sls: splunk.indexer
     - order: 6
+    - require:
+      - salt: indexer_setup
+      - salt: central_license_master_setup
+      - salt: central_license_slave_setup
 
 deployment_client_setup:
   salt.state:
