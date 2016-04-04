@@ -1,10 +1,11 @@
 # salt-run state.orch orchestration.searchhead_and_indexer_cluster
 
-# 1 simple indexer
+# 1 simple indexer, every role except uf is simple indexer at first
+#TODO non Enterprise role should be take care in the other way
 indexer_setup:
   salt.state:
-    - tgt: 'role:indexer'
-    - tgt_type: grain
+    - tgt: 'not G@role:universal-forwarder'
+    - tgt_type: compound
     - sls: splunk.indexer
     - order: 1
 
@@ -15,12 +16,15 @@ search_head_deployer_setup:
     - tgt_type: grain
     - sls: splunk.shcluster_deployer
     - order: 2
+    - require:
+      - salt: indexer_setup
 
 search_head_member_setup:
   salt.state:
     - tgt: 'role:search-head-cluster-member'
     - tgt_type: grain
     - sls: splunk.shcluster_member
+    - order: 2
     - require:
       - salt: search_head_deployer_setup
 
@@ -29,6 +33,7 @@ search_head_captain_setup:
     - tgt: 'role:search-head-cluster-first-captain'
     - tgt_type: grain
     - sls: splunk.shcluster_captain
+    - order: 2
     - require:
       - salt: search_head_member_setup
 
@@ -39,12 +44,16 @@ indexer_cluster_master_setup:
     - tgt_type: grain
     - sls: splunk.indexer_cluster_master
     - order: 3
+    - require:
+      - salt: indexer_setup
+      - salt: search_head_deployer_setup
 
 indexer_cluster_peer_setup:
   salt.state:
     - tgt: 'role:indexer-cluster-peer'
     - tgt_type: grain
     - sls: splunk.indexer_cluster_peer
+    - order: 3
     - require:
       - salt: indexer_cluster_master_setup
 
@@ -53,6 +62,7 @@ indexer_cluster_search_head_setup:
     - tgt: 'role:indexer-cluster-search-head'
     - tgt_type: grain
     - sls: splunk.indexer_cluster_search_head
+    - order: 3
     - require:
       - salt: indexer_cluster_master_setup
 
@@ -63,6 +73,11 @@ distributed_search_head_setup:
     - tgt_type: grain
     - sls: splunk.search_head
     - order: 4
+    - require:
+      - salt: indexer_setup
+      - salt: indexer_cluster_master_setup
+      - salt: indexer_cluster_peer_setup
+      - salt: indexer_cluster_search_head_setup
 
 # 5 Central license master and slave
 central_license_master_setup:
@@ -71,12 +86,16 @@ central_license_master_setup:
     - tgt_type: grain
     - sls: splunk.central_license_master
     - order: 5
+    - require:
+      - salt: indexer_setup
+      - salt: distributed_search_head_setup
 
 central_license_slave_setup:
   salt.state:
     - tgt: 'role:central-license-slave'
     - tgt_type: grain
     - sls: splunk.central_license_slave
+    - order: 5
     - require:
       - salt: central_license_master_setup
 
@@ -88,12 +107,17 @@ deployment_server_setup:
     - tgt_type: grain
     - sls: splunk.indexer
     - order: 6
+    - require:
+      - salt: indexer_setup
+      - salt: central_license_master_setup
+      - salt: central_license_slave_setup
 
 deployment_client_setup:
   salt.state:
     - tgt: 'role:deployment-client'
     - tgt_type: grain
     - sls: splunk.deployment_client
+    - order: 6
     - require:
       - salt: deployment_server_setup
 
