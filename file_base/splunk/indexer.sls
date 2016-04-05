@@ -12,7 +12,7 @@ install-splunk:
 sleep_after_install_splunk:
   module.run:
     - name: test.sleep
-    - length: 10
+    - length: 30
     - onchanges:
       - splunk: install-splunk
 
