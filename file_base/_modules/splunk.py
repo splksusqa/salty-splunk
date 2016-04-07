@@ -69,8 +69,9 @@ class InstallerFactory(object):
 
 
 class Installer(object):
-    def __init__(self, splunk_type):
-        self.splunk_type = splunk_type
+    def __init__(self, splunk_type=None):
+        if not self.splunk_type:
+            self.splunk_type = splunk_type
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
         pass
