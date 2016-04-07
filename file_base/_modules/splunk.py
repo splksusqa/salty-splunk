@@ -57,7 +57,7 @@ class InstallerFactory(object):
         pass
 
     @staticmethod
-    def create_installer(splunk_type):
+    def create_installer(splunk_type=None):
         if "linux" in PLATFORM:
             installer = LinuxTgzInstaller(splunk_type)
         elif "win" in PLATFORM:
@@ -70,7 +70,7 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self, splunk_type=None):
-        if not self.splunk_type:
+        if self.splunk_type is None:
             self.splunk_type = splunk_type
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
@@ -158,6 +158,7 @@ class WindowsMsiInstaller(Installer):
         if result['retcode'] == 0:
             os.remove(pkg_path)
             __salt__['grains.delval']('pkg_path')
+            __salt__['grains.delval']('splunk_type')
 
         # remove mgmt_uri
         if __salt__['grains.has_value']('splunk_mgmt_uri'):
@@ -194,14 +195,13 @@ class LinuxTgzInstaller(Installer):
     def uninstall(self):
         if not self.is_installed():
             return
-
-        __salt__['cmd.run_all']("{s} stop -f".format(
-            s=os.path.join(self.splunk_home, "bin", "splunk")))
+        cli("stop -f")
         ret = __salt__['cmd.run_all'](
             "rm -rf {h}".format(h=self.splunk_home))
         if 0 == ret['retcode']:
             os.remove(self.pkg_path)
             __salt__['grains.delval']('pkg_path')
+            __salt__['grains.delval']('splunk_type')
         else:
             raise CommandExecutionError(ret['stdout'] + ret['stderr'])
 
