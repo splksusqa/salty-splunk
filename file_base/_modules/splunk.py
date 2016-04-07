@@ -70,7 +70,7 @@ class InstallerFactory(object):
 
 class Installer(object):
     def __init__(self, splunk_type=None):
-        if self.splunk_type is None:
+        if not self.splunk_type:
             self.splunk_type = splunk_type
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
@@ -106,7 +106,8 @@ class Installer(object):
     @property
     def splunk_type(self):
         ''' splunk types are: splunk, splunkforwarder, or splunklight'''
-        return __salt__['grains.get']('splunk_type')
+        splunk_type = __salt__['grains.get']('splunk_type')
+        return splunk_type if splunk_type else None
 
     @splunk_type.setter
     def splunk_type(self, value):
