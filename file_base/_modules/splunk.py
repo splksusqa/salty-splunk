@@ -140,6 +140,8 @@ class WindowsMsiInstaller(Installer):
             result = __salt__['service.available']('Splunkd')
         elif "splunkforwarder" == self.splunk_type:
             result = __salt__['service.available']('SplunkForwarder')
+        elif self.splunk_type is None:
+            result = False
         else:
             raise Exception, "Unexpected splunk_type: {s}".format(s=self.splunk_type)
 
