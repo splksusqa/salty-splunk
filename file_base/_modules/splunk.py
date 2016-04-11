@@ -854,13 +854,7 @@ def add_forward_server(server):
     :type server: string
     :return: None
     '''
-    result = cli("add forward-server {s} -auth admin:changme".format(s=server))
-    ok_msg = "In handler 'tcpout-server': {s} forwarded-server\
-             already present".format(s=server)
+    result = cli("add forward-server {s} -auth admin:changeme".format(s=server))
 
-    if result['retcode'] == 22 and ok_msg in result['stderr']:
-        pass
-    elif result['retcode'] != 0:
+    if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
-    else:
-        pass

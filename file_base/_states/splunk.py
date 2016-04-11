@@ -245,3 +245,27 @@ def license_added(name, **kwargs):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
+
+def forward_servers_added(servers, **kwargs):
+    ret = {'name': servers,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+    servers = [servers, ] if type(servers) is not list else servers
+
+    try:
+        for server in servers:
+            # if the server is added already, skip
+            stanza = "tcpout-server://{s}".format(s=server)
+            if not __salt__['splunk.is_stanza_existed']('outputs', stanza):
+                __salt__['splunk.add_forward_server'](server)
+
+        ret['result'] = True
+        ret['comment'] = "{s} have been added as forward-server"\
+            .format(s=str(servers))
+        ret['changes'] = {'new': servers}
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
+
