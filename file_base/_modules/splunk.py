@@ -410,6 +410,32 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
     return stanza[key_name]
 
 
+def is_stanza_existed(conf_name, stanza_name, namespace='system'):
+    '''
+    check if a stanza is existed in the given conf file
+    :param conf_name: name of the conf file
+    :type conf_name: string
+    :param stanza_name: name of the stanza to check
+    :type stanza_name: string
+    :param namespace: namespace of the conf file
+    :type namespace: string
+    :return: boolean
+    '''
+    splunk = _get_splunk(namespace=namespace)
+
+    try:
+        conf = splunk.confs[conf_name]
+    except KeyError:
+        log.warn("no such conf file %s" % conf_name)
+        return None
+
+    try:
+        stanza = conf[stanza_name]
+        return True
+    except KeyError:
+        return False
+
+
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     """
     config splunk as a master of a indexer cluster
@@ -806,3 +832,35 @@ def add_batch_of_saved_search(name_prefix, count, **kwargs):
         # restart at the final one
         is_restart = True if s == count - 1 else False
         config_conf('savedsearches', search_name, kwargs, do_restart=is_restart)
+
+
+def enable_listen(port):
+    '''
+    enable listening on the splunk instance
+    :param port: the port number to enable listening
+    :type port: integer
+    :return: None
+    '''
+    result = cli("enable listen {p} -auth admin:changeme".format(p=port))
+
+    if result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])
+
+
+def add_forward_server(server):
+    '''
+    add forward server to the splunk instance
+    :param server: server to add to the splunk instance
+    :type server: string
+    :return: None
+    '''
+    result = cli("add forward-server {s} -auth admin:changme".format(s=server))
+    ok_msg = "In handler 'tcpout-server': {s} forwarded-server\
+             already present".format(s=server)
+
+    if result['retcode'] == 22 and ok_msg in result['stderr']:
+        pass
+    elif result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])
+    else:
+        pass
