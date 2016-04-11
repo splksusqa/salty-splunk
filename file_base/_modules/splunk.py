@@ -26,7 +26,8 @@ def _import_sdk():
     return splunklib
 
 
-def _get_splunk(username="admin", password="changeme", namespace='system'):
+def _get_splunk(username="admin", password="changeme", owner=None, app=None,
+        namespace='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -34,8 +35,8 @@ def _get_splunk(username="admin", password="changeme", namespace='system'):
     import splunklib.client as client
 
     splunk = client.connect(
-        username=username, password=password, sharing=namespace,
-        autologin=True)
+        username=username, password=password, sharing=namespace, owner=owner,
+        app=app, autologin=True)
     return splunk
 
 
@@ -429,7 +430,8 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
     return stanza[key_name]
 
 
-def is_stanza_existed(conf_name, stanza_name, namespace='system'):
+def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
+        namespace='system'):
     '''
     check if a stanza is existed in the given conf file
     :param conf_name: name of the conf file
@@ -447,12 +449,7 @@ def is_stanza_existed(conf_name, stanza_name, namespace='system'):
     except KeyError:
         log.warn("no such conf file %s" % conf_name)
         return None
-
-    try:
-        stanza = conf[stanza_name]
-        return True
-    except KeyError:
-        return False
+    return stanza_name in conf
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):

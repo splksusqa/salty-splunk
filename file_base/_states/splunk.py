@@ -270,3 +270,28 @@ def forward_servers_added(name, servers):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
+
+
+def listening_ports_enabled(name, ports):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+    ports = [ports, ] if type(ports) is not list else ports
+
+    try:
+        for port in ports:
+            stanza = "splunktcp://{p}".format(p=port)
+            existed = __salt__['splunk.is_stanza_existed'](
+                'inputs', stanza, owner='admin', app='search', namespace='user')
+            if not existed:
+                __salt__['splunk.enable_listen'](port)
+        ret['result'] = True
+        ret['comment'] = "{p} have been enabled as listening port"\
+            .format(p=str(ports))
+        ret['changes'] = {'new': ports}
+
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
