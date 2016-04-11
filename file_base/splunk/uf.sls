@@ -9,5 +9,7 @@ install-splunk:
     - require:
       - sls: splunk.common
 
-
-
+add-forward-server:
+  splunk:
+    - forward_servers_added
+    - servers: {{ pillar['universal-forwarder']['forward-servers'] }}

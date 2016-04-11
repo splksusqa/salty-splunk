@@ -246,8 +246,9 @@ def license_added(name, **kwargs):
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
 
-def forward_servers_added(servers, **kwargs):
-    ret = {'name': servers,
+
+def forward_servers_added(name, servers):
+    ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}
@@ -264,8 +265,8 @@ def forward_servers_added(servers, **kwargs):
         ret['comment'] = "{s} have been added as forward-server"\
             .format(s=str(servers))
         ret['changes'] = {'new': servers}
+
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
-
