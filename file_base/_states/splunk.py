@@ -247,14 +247,16 @@ def license_added(name, **kwargs):
     return ret
 
 
-def forward_servers_added(name, servers):
+def forward_servers_added(name, servers=None):
     ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}
-    servers = [servers, ] if type(servers) is not list else servers
 
+    servers = __salt__['publish.runner']('splunk.get_forward_servers') \
+        if servsers is None  else servers
     try:
+        servers = [servers, ] if type(servers) is not list else servers
         for server in servers:
             # if the server is added already, skip
             stanza = "tcpout-server://{s}".format(s=server)

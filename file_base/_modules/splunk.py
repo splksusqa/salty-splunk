@@ -861,6 +861,9 @@ def enable_listen(port):
 
     if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
+    else:
+        # save the port to grains
+        __salt__['grains.append']("listening_ports", port)
 
 
 def add_forward_server(server):
