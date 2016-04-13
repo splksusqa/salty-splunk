@@ -26,7 +26,8 @@ def _import_sdk():
     return splunklib
 
 
-def _get_splunk(username="admin", password="changeme", namespace='system'):
+def _get_splunk(username="admin", password="changeme", owner=None, app=None,
+        namespace='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -34,8 +35,8 @@ def _get_splunk(username="admin", password="changeme", namespace='system'):
     import splunklib.client as client
 
     splunk = client.connect(
-        username=username, password=password, sharing=namespace,
-        autologin=True)
+        username=username, password=password, sharing=namespace, owner=owner,
+        app=app, autologin=True)
     return splunk
 
 
@@ -427,6 +428,28 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
         return None
 
     return stanza[key_name]
+
+
+def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
+        namespace='system'):
+    '''
+    check if a stanza is existed in the given conf file
+    :param conf_name: name of the conf file
+    :type conf_name: string
+    :param stanza_name: name of the stanza to check
+    :type stanza_name: string
+    :param namespace: namespace of the conf file
+    :type namespace: string
+    :return: boolean
+    '''
+    splunk = _get_splunk(namespace=namespace)
+
+    try:
+        conf = splunk.confs[conf_name]
+    except KeyError:
+        log.warn("no such conf file %s" % conf_name)
+        return None
+    return stanza_name in conf
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
@@ -825,3 +848,32 @@ def add_batch_of_saved_search(name_prefix, count, **kwargs):
         # restart at the final one
         is_restart = True if s == count - 1 else False
         config_conf('savedsearches', search_name, kwargs, do_restart=is_restart)
+
+
+def enable_listen(port):
+    '''
+    enable listening on the splunk instance
+    :param port: the port number to enable listening
+    :type port: integer
+    :return: None
+    '''
+    result = cli("enable listen {p} -auth admin:changeme".format(p=port))
+
+    if result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])
+    else:
+        # save the port to grains
+        __salt__['grains.append']("listening_ports", port)
+
+
+def add_forward_server(server):
+    '''
+    add forward server to the splunk instance
+    :param server: server to add to the splunk instance
+    :type server: string
+    :return: None
+    '''
+    result = cli("add forward-server {s} -auth admin:changeme".format(s=server))
+
+    if result['retcode'] != 0:
+        raise CommandExecutionError(result['stderr'] + result['stdout'])

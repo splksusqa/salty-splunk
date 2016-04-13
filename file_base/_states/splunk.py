@@ -245,3 +245,55 @@ def license_added(name, **kwargs):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
+
+
+def forward_servers_added(name, servers=None):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    servers = __salt__['publish.runner']('splunk.get_forward_servers') \
+        if servsers is None  else servers
+    try:
+        servers = [servers, ] if type(servers) is not list else servers
+        for server in servers:
+            # if the server is added already, skip
+            stanza = "tcpout-server://{s}".format(s=server)
+            if not __salt__['splunk.is_stanza_existed']('outputs', stanza):
+                __salt__['splunk.add_forward_server'](server)
+
+        ret['result'] = True
+        ret['comment'] = "{s} have been added as forward-server"\
+            .format(s=str(servers))
+        ret['changes'] = {'new': servers}
+
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
+
+
+def listening_ports_enabled(name, ports):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+    ports = [ports, ] if type(ports) is not list else ports
+
+    try:
+        for port in ports:
+            stanza = "splunktcp://{p}".format(p=port)
+            existed = __salt__['splunk.is_stanza_existed'](
+                'inputs', stanza, owner='admin', app='search', namespace='user')
+            if not existed:
+                __salt__['splunk.enable_listen'](port)
+        ret['result'] = True
+        ret['comment'] = "{p} have been enabled as listening port"\
+            .format(p=str(ports))
+        ret['changes'] = {'new': ports}
+
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
