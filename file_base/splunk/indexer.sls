@@ -21,3 +21,8 @@ allow_remote_login:
     - name: splunk.allow_remote_login
     - onchanges:
       - module: sleep_after_install_splunk
+
+enable-listening-port:
+  splunk:
+    - listening_ports_enabled
+    - ports: {{ pillar['listening_ports'] }}
