@@ -254,7 +254,7 @@ def forward_servers_added(name, servers=None):
            'comment': ''}
 
     servers = __salt__['publish.runner']('splunk.get_forward_servers') \
-        if servsers is None  else servers
+        if servers is None else servers
     try:
         servers = [servers, ] if type(servers) is not list else servers
         for server in servers:
