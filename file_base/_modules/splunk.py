@@ -884,7 +884,7 @@ def add_batch_of_deployment_apps(name_prefix, count):
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
-    cmd_template = 'mkdir {p}'.format(
+    cmd = 'mkdir {p}'.format(
         p=os.path.join(splunk_home, 'deployment-apps', name_prefix))
-    cmd = ";".join([cmd_template + str(i) for i in range(count)])
-    return __salt__['cmd.run_all'](cmd)
+    for i in range(count):
+        __salt__['cmd.run_all'](cmd + str(i))
