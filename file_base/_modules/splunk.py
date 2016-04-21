@@ -938,14 +938,14 @@ def config_dmc():
     if len(servers) > 0:
         config_conf(
             'distsearch', 'distributedSearch:dmc_group_deployment_server',
-            {'servers': servers}, do_restart=False)
+            {'servers': servers[0]}, do_restart=False)
 
     # shc deployer
-    servers = get_list_of_mgmt_uri('search-head-cluster-deployer')
-    if len(servers) > 0:
+    deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
+    if len(deployer) > 0:
         config_conf(
             'distsearch', 'distributedSearch:dmc_group_shc_deployer',
-            {'servers': servers}, do_restart=False)
+            {'servers': deployer[0]}, do_restart=False)
 
     # we should do following steps only after ember
     # todo: add checking version to decide doing them or not
@@ -958,5 +958,8 @@ def config_dmc():
         'distsearch', stanza, {"servers": ",".join(indexers+searchheads)})
 
     # config shcluster group
-    stanza = stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
-        l=__salt__['grains.get']('shcluster_label'))
+    stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
+        l=__pillar__['search_head_cluster']('shcluster_label'))
+
+    config_conf(
+        'distsearch', stanza, {"servers": ",".join(searchheads+deployer)})
