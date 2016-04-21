@@ -452,7 +452,8 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
     return stanza_name in conf
 
 
-def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
+def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2,
+        cluster_label="my_label"):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -466,9 +467,11 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
             'replication_factor': replication_factor,
             'search_factor': search_factor,
             'mode': 'master',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
+    __salt__['grains.set']('cluster_label', cluster_label, force=True)
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
@@ -530,6 +533,7 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
             'shcluster_label': shcluster_label}
 
     config_conf('server', 'shclustering', data=data)
+    __salt__['grains.set']('shcluster_label', shcluster_label)
 
 
 def config_shcluster_member(
@@ -643,14 +647,6 @@ def config_search_peer(
     :param remote_password: splunk password of the search peer
     :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
     '''
-
-    # if a search head is part of indexer cluster search head
-    # skip configuration part
-    role = __salt__['grains.get']('role')
-    if role == 'indexer-cluster-search-head':
-        raise EnvironmentError('indexer cluster search head cant '
-                               'config as distributed search head')
-
     if not servers:
         servers = get_list_of_mgmt_uri('indexer')
 
@@ -877,3 +873,73 @@ def add_forward_server(server):
 
     if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
+
+
+def config_dmc():
+    '''
+    config deployment management console by editing distsearch.conf
+    https://confluence.splunk.com/display/PROD/How+to+set+up+DMC+in+Dash
+
+    In the doc, it is assumed that indexer cluster is used, dmc is built on
+    indexer cluster master. Therefore we assume that for now, too.
+    TODO: update where the dmc should be built by the deployment
+    '''
+    # add all searchheads and license master as search peer
+    config_search_peer(get_list_of_mgmt_uri('search-head'))
+    config_search_peer(get_list_of_mgmt_uri('central-license-master'))
+
+    # set distsearch groups by editing distsearch.conf
+    # indexer
+    indexers = get_list_of_mgmt_uri('indexer')
+    config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
+        {'servers': ','.join(indexers), 'default': True},
+        do_restart=False)
+
+    # search head
+    searchheads = get_list_of_mgmt_uri('search-head')
+    config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
+        {'servers': ','.join(searchheads)},
+        do_restart=False)
+
+    # license master
+    config_conf('distsearch', 'distributedSearch:dmc_group_license_master',
+        {'servers': ','.join(get_list_of_mgmt_uri('central-license-master'))},
+        do_restart=False)
+
+    # cluster_master
+    config_conf('distsearch', 'distributedSearch:dmc_group_cluster_master',
+        {'servers': 'localhost:localhost'},
+        do_restart=False)
+
+    # kv store
+    config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
+        {'servers': ','.join(get_list_of_mgmt_uri('search-head'))},
+        do_restart=False)
+
+    # deployment server
+    servers = get_list_of_mgmt_uri('deployment-server')
+    if len(servers) > 0:
+        config_conf(
+            'distsearch', 'distributedSearch:dmc_group_deployment_server',
+            {'servers': servers}, do_restart=False)
+
+    # shc deployer
+    servers = get_list_of_mgmt_uri('search-head-cluster-deployer')
+    if len(servers) > 0:
+        config_conf(
+            'distsearch', 'distributedSearch:dmc_group_shc_deployer',
+            {'servers': servers}, do_restart=False)
+
+    # we should do following steps only after ember
+    # todo: add checking version to decide doing them or not
+
+    # config indexer cluster group
+    stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
+        l=__salt__['grains.get']('cluster_label'))
+
+    config_conf(
+        'distsearch', stanza, {"servers": ",".join(indexers+searchheads)})
+
+    # config shcluster group
+    stanza = stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
+        l=__salt__['grains.get']('shcluster_label'))
