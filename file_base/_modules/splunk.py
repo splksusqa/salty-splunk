@@ -471,7 +471,6 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2,
             }
 
     config_conf('server', 'clustering', data)
-    __salt__['grains.set']('cluster_label', cluster_label, force=True)
 
 
 def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
@@ -533,7 +532,6 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
             'shcluster_label': shcluster_label}
 
     config_conf('server', 'shclustering', data=data)
-    __salt__['grains.set']('shcluster_label', shcluster_label)
 
 
 def config_shcluster_member(
@@ -935,7 +933,7 @@ def config_dmc():
 
     # config indexer cluster group
     stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
-        l=__salt__['grains.get']('cluster_label'))
+        l=__pillar__['index_cluster']('cluster_label'))
 
     config_conf(
         'distsearch', stanza, {"servers": ",".join(indexers+searchheads)})
