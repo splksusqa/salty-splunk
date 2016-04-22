@@ -353,7 +353,7 @@ def install(fetcher_arg,
 
 
 def config_conf(conf_name, stanza_name, data=None, do_restart=True,
-                namespace='system'):
+                app=None, owner=None, namespace='system'):
     """
     config conf file by REST, if a data is existed, it will skip
 
@@ -366,7 +366,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     :raise EnvironmentError: if restart fail
     """
 
-    splunk = _get_splunk(namespace=namespace)
+    splunk = _get_splunk(namespace=namespace, app=app, owner=owner)
     conf = splunk.confs[conf_name]
 
     if not data:
@@ -900,9 +900,9 @@ def config_dmc():
         do_restart=False)
 
     # license master
+    license_master = get_list_of_mgmt_uri('central-license-master')
     config_conf('distsearch', 'distributedSearch:dmc_group_license_master',
-        {'servers': ','.join(get_list_of_mgmt_uri('central-license-master'))},
-        do_restart=False)
+        {'servers': ','.join(license_master)}, do_restart=False)
 
     # cluster_master
     config_conf('distsearch', 'distributedSearch:dmc_group_cluster_master',
@@ -911,15 +911,14 @@ def config_dmc():
 
     # kv store
     config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
-        {'servers': ','.join(get_list_of_mgmt_uri('search-head'))},
-        do_restart=False)
+        {'servers': ','.join(searchheads)}, do_restart=False)
 
     # deployment server
-    servers = get_list_of_mgmt_uri('deployment-server')
+    deployment_server = get_list_of_mgmt_uri('deployment-server')
     if len(servers) > 0:
         config_conf(
             'distsearch', 'distributedSearch:dmc_group_deployment_server',
-            {'servers': servers[0]}, do_restart=False)
+            {'servers': deployment_server[0]}, do_restart=False)
 
     # shc deployer
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
@@ -936,11 +935,30 @@ def config_dmc():
         l=__pillar__['index_cluster']('cluster_label'))
 
     config_conf(
-        'distsearch', stanza, {"servers": ",".join(indexers+searchheads)})
+        'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
+        do_restart=False)
 
     # config shcluster group
     stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
         l=__pillar__['search_head_cluster']('shcluster_label'))
 
     config_conf(
-        'distsearch', stanza, {"servers": ",".join(searchheads+deployer)})
+        'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
+        do_restart=False)
+
+    # set is_configured flag in splunk_management_console app
+    config_conf('app', 'install', {'is_configured': True}, owner="admin",
+        app="splunk_management_console", sharing="app", do_restart=False)
+
+    # add all machines to splunk_management_console_assets.conf
+    all_peers = indexers + searchheads + deployer + deployment_server + \
+        license_master
+    config_conf('splunk_management_console_assets', 'settings',
+        {'configuredPeers': ','.join(all_peers)}, owner="admin",
+        app="splunk_management_console", sharing="app", do_restart=True)
+
+    # Run the "DMC Asset - Build Full" saved search
+    path = ('https://localhost:8089/servicesNS/nobody/splunk_management_console'
+            '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
+    response = requests.post(path, auth=("admin", "changeme"),
+        data={'trigger_actions': 1}, verify=False)
