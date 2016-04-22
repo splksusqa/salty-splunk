@@ -784,15 +784,10 @@ def get_list_of_mgmt_uri(role):
 
     minions = __salt__['publish.runner']('splunk.management_uri_list', arg=role)
 
-    if not minions:
-        raise EnvironmentError(
-            "should be at least %s under master, count %d" %
-            (role, len(minions.values())))
-
     ret = []
-    for key, value in minions.iteritems():
-        ret.append(value)
-
+    if minions:
+        for key, value in minions.iteritems():
+            ret.append(value)
     return ret
 
 
@@ -949,7 +944,7 @@ def config_dmc():
 
     # config indexer cluster group
     stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
-        l=__pillar__['index_cluster']('cluster_label'))
+        l=__pillar__['indexer_cluster']['cluster_label'], do_restart=False)
 
     config_conf(
         'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
@@ -957,7 +952,7 @@ def config_dmc():
 
     # config shcluster group
     stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
-        l=__pillar__['search_head_cluster']('shcluster_label'))
+        l=__pillar__['search_head_cluster']['shcluster_label'])
 
     config_conf(
         'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
