@@ -405,8 +405,8 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
-def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
-    splunk = _get_splunk(namespace=namespace)
+def read_conf(conf_name, stanza_name, key_name=None, sharing='system'):
+    splunk = _get_splunk(sharing=sharing)
 
     try:
         conf = splunk.confs[conf_name]
@@ -431,18 +431,18 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
 
 
 def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
-        namespace='system'):
+        sharing='system'):
     '''
     check if a stanza is existed in the given conf file
     :param conf_name: name of the conf file
     :type conf_name: string
     :param stanza_name: name of the stanza to check
     :type stanza_name: string
-    :param namespace: namespace of the conf file
-    :type namespace: string
+    :param sharing: sharing of the conf file
+    :type sharing: string
     :return: boolean
     '''
-    splunk = _get_splunk(namespace=namespace)
+    splunk = _get_splunk(sharing=sharing)
 
     try:
         conf = splunk.confs[conf_name]
