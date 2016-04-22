@@ -27,7 +27,7 @@ def _import_sdk():
 
 
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
-        namespace='system'):
+        sharing='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -35,7 +35,7 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
     import splunklib.client as client
 
     splunk = client.connect(
-        username=username, password=password, sharing=namespace, owner=owner,
+        username=username, password=password, sharing=sharing, owner=owner,
         app=app, autologin=True)
     return splunk
 
@@ -353,11 +353,11 @@ def install(fetcher_arg,
 
 
 def config_conf(conf_name, stanza_name, data=None, do_restart=True,
-                app=None, owner=None, namespace='system'):
+                app=None, owner=None, sharing='system'):
     """
     config conf file by REST, if a data is existed, it will skip
 
-    :param namespace:
+    :param sharing:
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
@@ -366,7 +366,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     :raise EnvironmentError: if restart fail
     """
 
-    splunk = _get_splunk(namespace=namespace, app=app, owner=owner)
+    splunk = _get_splunk(sharing=sharing, app=app, owner=owner)
     conf = splunk.confs[conf_name]
 
     if not data:
@@ -452,8 +452,8 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
     return stanza_name in conf
 
 
-def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2,
-        cluster_label):
+def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
+        search_factor=2):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -473,7 +473,8 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2,
     config_conf('server', 'clustering', data)
 
 
-def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
+def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
+        replication_port=9887):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
@@ -929,7 +930,7 @@ def config_dmc():
 
     # deployment server
     deployment_server = get_list_of_mgmt_uri('deployment-server')
-    if len(servers) > 0:
+    if len(deployment_server) > 0:
         config_conf(
             'distsearch', 'distributedSearch:dmc_group_deployment_server',
             {'servers': deployment_server[0]}, do_restart=False)
