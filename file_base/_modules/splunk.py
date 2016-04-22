@@ -453,7 +453,7 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2,
-        cluster_label="my_label"):
+        cluster_label):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -493,12 +493,13 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'slave',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
 
 
-def config_cluster_searchhead(pass4SymmKey, master_uri=None):
+def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     """
     config splunk as a search head of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
@@ -514,6 +515,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'searchhead',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
