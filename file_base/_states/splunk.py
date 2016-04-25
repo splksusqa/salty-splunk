@@ -285,7 +285,7 @@ def listening_ports_enabled(name, ports):
         for port in ports:
             stanza = "splunktcp://{p}".format(p=port)
             existed = __salt__['splunk.is_stanza_existed'](
-                'inputs', stanza, owner='admin', app='search', namespace='user')
+                'inputs', stanza, owner='admin', app='search', sharing='user')
             if not existed:
                 __salt__['splunk.enable_listen'](port)
         ret['result'] = True
