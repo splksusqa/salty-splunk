@@ -953,13 +953,14 @@ def config_dmc():
         'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
         do_restart=False)
 
-    # config shcluster group
-    stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
-        l=__pillar__['search_head_cluster']['shcluster_label'])
+    # config shcluster group if shcluster is enabled
+    if len(deployer) > 0:
+        stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
+            l=__pillar__['search_head_cluster']['shcluster_label'])
 
-    config_conf(
-        'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
-        do_restart=False)
+        config_conf(
+            'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
+            do_restart=False)
 
     # set is_configured flag in splunk_management_console app
     config_conf('app', 'install', {'is_configured': True}, owner="admin",
