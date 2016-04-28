@@ -879,12 +879,18 @@ def add_forward_server(server):
         raise CommandExecutionError(result['stderr'] + result['stdout'])
 
 
-def add_batch_of_deployment_apps(name_prefix, count):
+def add_deployment_app(name):
     '''
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     cmd = 'mkdir {p}'.format(
-        p=os.path.join(splunk_home, 'etc', 'deployment-apps', name_prefix))
+        p=os.path.join(splunk_home, 'etc', 'deployment-apps', name))
+    return __salt__['cmd.run_all'](cmd)
+
+
+def add_batch_of_deployment_apps(name_prefix, count):
+    '''
+    '''
     for i in range(count):
-        __salt__['cmd.run_all'](cmd + str(i))
+        add_deployment_app(name_prefix + str(i))
