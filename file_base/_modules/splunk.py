@@ -877,3 +877,20 @@ def add_forward_server(server):
 
     if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
+
+
+def add_deployment_app(name):
+    '''
+    '''
+    installer = InstallerFactory.create_installer()
+    splunk_home = installer.splunk_home
+    cmd = 'mkdir {p}'.format(
+        p=os.path.join(splunk_home, 'etc', 'deployment-apps', name))
+    return __salt__['cmd.run_all'](cmd)
+
+
+def add_batch_of_deployment_apps(name_prefix, count):
+    '''
+    '''
+    for i in range(count):
+        add_deployment_app(name_prefix + str(i))
