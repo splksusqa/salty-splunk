@@ -357,7 +357,9 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     """
     config conf file by REST, if a data is existed, it will skip
 
-    :param sharing:
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
@@ -405,8 +407,22 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
-def read_conf(conf_name, stanza_name, key_name=None, sharing='system'):
-    splunk = _get_splunk(sharing=sharing)
+def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
+        sharing='system'):
+    """
+    read config file
+
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
+    :param conf_name: name of config file
+    :param stanza_name: stanza need to config
+    :param data: data under stanza
+    :param do_restart: restart after configuration
+    :return: no return value
+    :raise EnvironmentError: if restart fail
+    """
+    splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
     try:
         conf = splunk.confs[conf_name]
@@ -434,6 +450,10 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
         sharing='system'):
     '''
     check if a stanza is existed in the given conf file
+
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
     :param conf_name: name of the conf file
     :type conf_name: string
     :param stanza_name: name of the stanza to check
@@ -442,7 +462,7 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
     :type sharing: string
     :return: boolean
     '''
-    splunk = _get_splunk(sharing=sharing)
+    splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
     try:
         conf = splunk.confs[conf_name]
@@ -461,6 +481,7 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
     :param search_factor: factor of bucket be able to search
     :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     """
 
     data = {'pass4SymmKey': pass4SymmKey,
@@ -484,6 +505,7 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
         if not specified, will search minion under same master with role
         indexer-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     """
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
@@ -509,6 +531,7 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
+    :param cluster_label: the label for indexer cluster
     """
     if not master_uri:
         master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
@@ -898,8 +921,10 @@ def config_dmc():
     TODO: update where the dmc should be built by the deployment
     '''
     # add all searchheads and license master as search peer
-    config_search_peer(get_list_of_mgmt_uri('search-head'))
-    config_search_peer(get_list_of_mgmt_uri('central-license-master'))
+    searchheads = get_list_of_mgmt_uri('search-head')
+    license_master = get_list_of_mgmt_uri('central-license-master')
+    config_search_peer(searchheads)
+    config_search_peer(license_master)
 
     # set distsearch groups by editing distsearch.conf
     # indexer
@@ -909,20 +934,17 @@ def config_dmc():
         do_restart=False)
 
     # search head
-    searchheads = get_list_of_mgmt_uri('search-head')
     config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
         {'servers': ','.join(searchheads)},
         do_restart=False)
 
     # license master
-    license_master = get_list_of_mgmt_uri('central-license-master')
     config_conf('distsearch', 'distributedSearch:dmc_group_license_master',
         {'servers': ','.join(license_master)}, do_restart=False)
 
     # cluster_master
     config_conf('distsearch', 'distributedSearch:dmc_group_cluster_master',
-        {'servers': 'localhost:localhost'},
-        do_restart=False)
+        {'servers': 'localhost:localhost'}, do_restart=False)
 
     # kv store
     config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
