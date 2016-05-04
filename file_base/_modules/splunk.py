@@ -923,8 +923,10 @@ def config_dmc():
     # add all searchheads and license master as search peer
     searchheads = get_list_of_mgmt_uri('search-head')
     license_master = get_list_of_mgmt_uri('central-license-master')
+    deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
     config_search_peer(searchheads)
     config_search_peer(license_master)
+    config_search_peer(deployer)
 
     # set distsearch groups by editing distsearch.conf
     # indexer
@@ -958,7 +960,6 @@ def config_dmc():
             {'servers': deployment_server[0]}, do_restart=False)
 
     # shc deployer
-    deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
     if len(deployer) > 0:
         config_conf(
             'distsearch', 'distributedSearch:dmc_group_shc_deployer',
