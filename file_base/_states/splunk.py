@@ -297,3 +297,24 @@ def listening_ports_enabled(name, ports):
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(s=str(err))
     return ret
+
+
+def dmc_configured(name):
+    '''
+    config dmc
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    try:
+        __salt__['splunk.config_dmc']()
+        ret['result'] = True
+        ret['comment'] = "dmc has been configured on this instance"
+        ret['changes'] = {'new': "dmc is configured"}
+
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
