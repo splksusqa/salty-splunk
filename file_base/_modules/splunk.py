@@ -924,9 +924,7 @@ def config_dmc():
     searchheads = get_list_of_mgmt_uri('search-head')
     license_master = get_list_of_mgmt_uri('central-license-master')
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
-    config_search_peer(searchheads)
-    config_search_peer(license_master)
-    config_search_peer(deployer)
+    config_search_peer(searchheads + license_master + deployer)
 
     # set distsearch groups by editing distsearch.conf
     # indexer
@@ -970,7 +968,7 @@ def config_dmc():
 
     # config indexer cluster group
     stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
-        l=__pillar__['indexer_cluster']['cluster_label'], do_restart=False)
+        l=__pillar__['indexer_cluster']['cluster_label'])
 
     config_conf(
         'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
