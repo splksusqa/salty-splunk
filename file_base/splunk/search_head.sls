@@ -1,10 +1,10 @@
 include:
   - splunk.indexer
 
-# For dmc, we need to forward internal logs of search heads to indexers
-add-forward-server:
-  splunk:
-    - forward_servers_added
+# dummy for avoiding empty sls if skipping below configuration
+always-passes:
+  test.succeed_without_changes:
+    - name: foo
 
 {% if 'indexer-cluster-search-head' not in salt.grains.get('role') %}
 config_search_peer:
