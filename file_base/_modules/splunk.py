@@ -924,11 +924,11 @@ def config_dmc():
     searchheads = get_list_of_mgmt_uri('search-head')
     license_master = get_list_of_mgmt_uri('central-license-master')
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
-    config_search_peer(searchheads + license_master + deployer)
+    indexers = get_list_of_mgmt_uri('indexer')
+    config_search_peer(searchheads + license_master + deployer + indexer)
 
     # set distsearch groups by editing distsearch.conf
     # indexer
-    indexers = get_list_of_mgmt_uri('indexer')
     config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
         {'servers': ','.join(indexers), 'default': True},
         do_restart=False)
