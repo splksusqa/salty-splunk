@@ -925,7 +925,7 @@ def config_dmc():
     license_master = get_list_of_mgmt_uri('central-license-master')
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
     indexers = get_list_of_mgmt_uri('indexer')
-    config_search_peer(searchheads + license_master + deployer + indexer)
+    config_search_peer(searchheads + license_master + deployer)
 
     # set distsearch groups by editing distsearch.conf
     # indexer
