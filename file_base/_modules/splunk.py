@@ -1007,8 +1007,7 @@ def is_dmc_configured():
     '''
     configured = read_conf('app', 'install', 'is_configured', owner="admin",
         app="splunk_management_console", sharing="app")
-    if 0 == configured or configured is None:
+    if "0" == configured or configured is None:
         return False
     else:
         return True
-
