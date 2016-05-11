@@ -285,13 +285,34 @@ def listening_ports_enabled(name, ports):
         for port in ports:
             stanza = "splunktcp://{p}".format(p=port)
             existed = __salt__['splunk.is_stanza_existed'](
-                'inputs', stanza, owner='admin', app='search', namespace='user')
+                'inputs', stanza, owner='admin', app='search', sharing='user')
             if not existed:
                 __salt__['splunk.enable_listen'](port)
         ret['result'] = True
         ret['comment'] = "{p} have been enabled as listening port"\
             .format(p=str(ports))
         ret['changes'] = {'new': ports}
+
+    except Exception as err:
+        ret['result'] = False
+        ret['comment'] = "Something went wrong: {s}".format(s=str(err))
+    return ret
+
+
+def dmc_configured(name):
+    '''
+    config dmc
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    try:
+        __salt__['splunk.config_dmc']()
+        ret['result'] = True
+        ret['comment'] = "dmc has been configured on this instance"
+        ret['changes'] = {'new': "dmc is configured"}
 
     except Exception as err:
         ret['result'] = False

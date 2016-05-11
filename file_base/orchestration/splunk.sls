@@ -129,3 +129,10 @@ universal_forwarder_setup:
     - tgt_type: grain
     - sls: splunk.uf
     - order: 7
+
+dmc_setup:
+  salt.state:
+    - tgt: 'role:distributed-management-console'
+    - tgt_type: grain
+    - sls: splunk.distributed_management_console
+    - order: 8

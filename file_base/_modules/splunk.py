@@ -27,7 +27,7 @@ def _import_sdk():
 
 
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
-        namespace='system'):
+        sharing='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -35,7 +35,7 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
     import splunklib.client as client
 
     splunk = client.connect(
-        username=username, password=password, sharing=namespace, owner=owner,
+        username=username, password=password, sharing=sharing, owner=owner,
         app=app, autologin=True)
     return splunk
 
@@ -353,11 +353,13 @@ def install(fetcher_arg,
 
 
 def config_conf(conf_name, stanza_name, data=None, do_restart=True,
-                namespace='system'):
+                app=None, owner=None, sharing='system'):
     """
     config conf file by REST, if a data is existed, it will skip
 
-    :param namespace:
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
@@ -366,7 +368,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     :raise EnvironmentError: if restart fail
     """
 
-    splunk = _get_splunk(namespace=namespace)
+    splunk = _get_splunk(sharing=sharing, app=app, owner=owner)
     conf = splunk.confs[conf_name]
 
     if not data:
@@ -405,8 +407,22 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             raise EnvironmentError(restart_fail_msg)
 
 
-def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
-    splunk = _get_splunk(namespace=namespace)
+def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
+        sharing='system'):
+    """
+    read config file
+
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
+    :param conf_name: name of config file
+    :param stanza_name: stanza need to config
+    :param data: data under stanza
+    :param do_restart: restart after configuration
+    :return: no return value
+    :raise EnvironmentError: if restart fail
+    """
+    splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
     try:
         conf = splunk.confs[conf_name]
@@ -431,18 +447,22 @@ def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
 
 
 def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
-        namespace='system'):
+        sharing='system'):
     '''
     check if a stanza is existed in the given conf file
+
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
     :param conf_name: name of the conf file
     :type conf_name: string
     :param stanza_name: name of the stanza to check
     :type stanza_name: string
-    :param namespace: namespace of the conf file
-    :type namespace: string
+    :param sharing: sharing of the conf file
+    :type sharing: string
     :return: boolean
     '''
-    splunk = _get_splunk(namespace=namespace)
+    splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
     try:
         conf = splunk.confs[conf_name]
@@ -452,7 +472,8 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
     return stanza_name in conf
 
 
-def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
+def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
+        search_factor=2):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -460,18 +481,21 @@ def config_cluster_master(pass4SymmKey, replication_factor=2, search_factor=2):
     :param search_factor: factor of bucket be able to search
     :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     """
 
     data = {'pass4SymmKey': pass4SymmKey,
             'replication_factor': replication_factor,
             'search_factor': search_factor,
             'mode': 'master',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
 
 
-def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
+def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
+        replication_port=9887):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
@@ -481,6 +505,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
         if not specified, will search minion under same master with role
         indexer-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     """
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
@@ -491,12 +516,13 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'slave',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
 
 
-def config_cluster_searchhead(pass4SymmKey, master_uri=None):
+def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     """
     config splunk as a search head of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
@@ -505,6 +531,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
+    :param cluster_label: the label for indexer cluster
     """
     if not master_uri:
         master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
@@ -512,6 +539,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'searchhead',
+            'cluster_label': cluster_label,
             }
 
     config_conf('server', 'clustering', data)
@@ -643,14 +671,6 @@ def config_search_peer(
     :param remote_password: splunk password of the search peer
     :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
     '''
-
-    # if a search head is part of indexer cluster search head
-    # skip configuration part
-    role = __salt__['grains.get']('role')
-    if role == 'indexer-cluster-search-head':
-        raise EnvironmentError('indexer cluster search head cant '
-                               'config as distributed search head')
-
     if not servers:
         servers = get_list_of_mgmt_uri('indexer')
 
@@ -790,15 +810,10 @@ def get_list_of_mgmt_uri(role):
 
     minions = __salt__['publish.runner']('splunk.management_uri_list', arg=role)
 
-    if not minions:
-        raise EnvironmentError(
-            "should be at least %s under master, count %d" %
-            (role, len(minions.values())))
-
     ret = []
-    for key, value in minions.iteritems():
-        ret.append(value)
-
+    if minions:
+        for key, value in minions.iteritems():
+            ret.append(value)
     return ret
 
 
@@ -894,3 +909,93 @@ def add_batch_of_deployment_apps(name_prefix, count):
     '''
     for i in range(count):
         add_deployment_app(name_prefix + str(i))
+
+
+def config_dmc():
+    '''
+    config deployment management console by editing distsearch.conf
+    https://confluence.splunk.com/display/PROD/How+to+set+up+DMC+in+Dash
+
+    In the doc, it is assumed that indexer cluster is used, dmc is built on
+    indexer cluster master. Therefore we assume that for now, too.
+    TODO: update where the dmc should be built by the deployment
+    '''
+    # add all searchheads and license master as search peer
+    searchheads = get_list_of_mgmt_uri('search-head')
+    license_master = get_list_of_mgmt_uri('central-license-master')
+    deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
+    indexers = get_list_of_mgmt_uri('indexer')
+    config_search_peer(searchheads + license_master + deployer)
+
+    # set distsearch groups by editing distsearch.conf
+    # indexer
+    config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
+        {'servers': ','.join(indexers), 'default': True},
+        do_restart=False)
+
+    # search head
+    config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
+        {'servers': ','.join(searchheads)},
+        do_restart=False)
+
+    # license master
+    config_conf('distsearch', 'distributedSearch:dmc_group_license_master',
+        {'servers': ','.join(license_master)}, do_restart=False)
+
+    # cluster_master
+    config_conf('distsearch', 'distributedSearch:dmc_group_cluster_master',
+        {'servers': 'localhost:localhost'}, do_restart=False)
+
+    # kv store
+    config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
+        {'servers': ','.join(searchheads)}, do_restart=False)
+
+    # deployment server
+    deployment_server = get_list_of_mgmt_uri('deployment-server')
+    if len(deployment_server) > 0:
+        config_conf(
+            'distsearch', 'distributedSearch:dmc_group_deployment_server',
+            {'servers': deployment_server[0]}, do_restart=False)
+
+    # shc deployer
+    if len(deployer) > 0:
+        config_conf(
+            'distsearch', 'distributedSearch:dmc_group_shc_deployer',
+            {'servers': deployer[0]}, do_restart=False)
+
+    # we should do following steps only after ember
+    # todo: add checking version to decide doing them or not
+
+    # config indexer cluster group
+    stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
+        l=__pillar__['indexer_cluster']['cluster_label'])
+
+    config_conf(
+        'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
+        do_restart=False)
+
+    # config shcluster group if shcluster is enabled
+    if len(deployer) > 0:
+        stanza = 'distributedSearch:dmc_searchheadclustergroup_{l}'.format(
+            l=__pillar__['search_head_cluster']['shcluster_label'])
+
+        config_conf(
+            'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
+            do_restart=False)
+
+    # set is_configured flag in splunk_management_console app
+    config_conf('app', 'install', {'is_configured': True}, owner="admin",
+        app="splunk_management_console", sharing="app", do_restart=False)
+
+    # add all machines to splunk_management_console_assets.conf
+    all_peers = indexers + searchheads + deployer + deployment_server + \
+        license_master
+    config_conf('splunk_management_console_assets', 'settings',
+        {'configuredPeers': ','.join(all_peers)}, owner="admin",
+        app="splunk_management_console", sharing="app", do_restart=True)
+
+    # Run the "DMC Asset - Build Full" saved search
+    path = ('https://localhost:8089/servicesNS/nobody/splunk_management_console'
+            '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
+    response = requests.post(path, auth=("admin", "changeme"),
+        data={'trigger_actions': 1}, verify=False)
