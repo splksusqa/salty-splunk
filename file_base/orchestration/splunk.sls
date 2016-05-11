@@ -134,5 +134,5 @@ dmc_setup:
   salt.state:
     - tgt: 'role:distributed-management-console'
     - tgt_type: grain
-    - sls: splunk.dmc
+    - sls: splunk.distributed_management_console
     - order: 8
