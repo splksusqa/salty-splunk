@@ -999,3 +999,12 @@ def config_dmc():
             '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
     response = requests.post(path, auth=("admin", "changeme"),
         data={'trigger_actions': 1}, verify=False)
+
+
+def is_dmc_configured():
+    '''
+    check if dmc is configured
+    '''
+    configured = config_conf('app', 'install', 'is_configured', owner="admin",
+        app="splunk_management_console", sharing="app", do_restart=False)
+    return configured
