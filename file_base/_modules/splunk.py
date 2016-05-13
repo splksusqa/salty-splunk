@@ -1001,7 +1001,7 @@ def config_dmc():
         data={'trigger_actions': 1}, verify=False)
 
 
-def check_crash(**kwargs):
+def get_crash_log():
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     crash_file = []
