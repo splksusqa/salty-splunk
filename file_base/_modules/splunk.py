@@ -999,3 +999,15 @@ def config_dmc():
             '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
     response = requests.post(path, auth=("admin", "changeme"),
         data={'trigger_actions': 1}, verify=False)
+
+
+def check_crash(**kwargs):
+    installer = InstallerFactory.create_installer()
+    splunk_home = installer.splunk_home
+    crash_file = []
+    log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
+    for file in os.listdir(log_path):
+        if file.startswith("crash-"):
+            crash_file.append(file)
+
+    return crash_file
