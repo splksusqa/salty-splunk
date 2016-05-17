@@ -57,11 +57,11 @@ class InstallerFactory(object):
         pass
 
     @staticmethod
-    def create_installer(splunk_type=None):
+    def create_installer():
         if "linux" in PLATFORM:
-            installer = LinuxTgzInstaller(splunk_type)
+            installer = LinuxTgzInstaller()
         elif "win" in PLATFORM:
-            installer = WindowsMsiInstaller(splunk_type)
+            installer = WindowsMsiInstaller()
         else:
             # to do: throw error when platform is not supported
             raise NotImplementedError
@@ -69,9 +69,8 @@ class InstallerFactory(object):
 
 
 class Installer(object):
-    def __init__(self, splunk_type=None):
-        if not self.splunk_type:
-            self.splunk_type = splunk_type
+    def __init__(self):
+        pass
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
         pass
@@ -103,20 +102,10 @@ class Installer(object):
     def splunk_home(self, value):
         __salt__['grains.set']('splunk_home', value, force=True)
 
-    @property
-    def splunk_type(self):
-        ''' splunk types are: splunk, splunkforwarder, or splunklight'''
-        splunk_type = __salt__['grains.get']('splunk_type')
-        return splunk_type if splunk_type else None
-
-    @splunk_type.setter
-    def splunk_type(self, value):
-        __salt__['grains.set']('splunk_type', value, force=True)
-
 
 class WindowsMsiInstaller(Installer):
-    def __init__(self, splunk_type):
-        super(WindowsMsiInstaller, self).__init__(splunk_type)
+    def __init__(self):
+        super(WindowsMsiInstaller, self).__init__()
         if not self.splunk_home:
             self.splunk_home = "C:\\Program Files\\Splunk"
 
@@ -136,15 +125,7 @@ class WindowsMsiInstaller(Installer):
         return __salt__['cmd.run_all'](cmd, python_shell=True)
 
     def is_installed(self):
-        if "splunk" == self.splunk_type:
-            result = __salt__['service.available']('Splunkd')
-        elif "splunkforwarder" == self.splunk_type:
-            result = __salt__['service.available']('SplunkForwarder')
-        elif self.splunk_type is None:
-            result = False
-        else:
-            raise Exception, "Unexpected splunk_type: {s}".format(s=self.splunk_type)
-
+        result = __salt__['service.available']('Splunkd')
         log.debug('service.available return : %s' % result)
         return result
 
@@ -161,7 +142,6 @@ class WindowsMsiInstaller(Installer):
         if result['retcode'] == 0:
             os.remove(pkg_path)
             __salt__['grains.delval']('pkg_path')
-            __salt__['grains.delval']('splunk_type')
 
         # remove mgmt_uri
         if __salt__['grains.has_value']('splunk_mgmt_uri'):
@@ -169,8 +149,8 @@ class WindowsMsiInstaller(Installer):
 
 
 class LinuxTgzInstaller(Installer):
-    def __init__(self, splunk_type):
-        super(LinuxTgzInstaller, self).__init__(splunk_type)
+    def __init__(self):
+        super(LinuxTgzInstaller, self).__init__()
         if not self.splunk_home:
             self.splunk_home = "/opt/splunk"
 
@@ -198,13 +178,14 @@ class LinuxTgzInstaller(Installer):
     def uninstall(self):
         if not self.is_installed():
             return
-        cli("stop -f")
+
+        __salt__['cmd.run_all']("{s} stop -f".format(
+            s=os.path.join(self.splunk_home, "bin", "splunk")))
         ret = __salt__['cmd.run_all'](
             "rm -rf {h}".format(h=self.splunk_home))
         if 0 == ret['retcode']:
             os.remove(self.pkg_path)
             __salt__['grains.delval']('pkg_path')
-            __salt__['grains.delval']('splunk_type')
         else:
             raise CommandExecutionError(ret['stdout'] + ret['stderr'])
 
@@ -323,7 +304,7 @@ def install(fetcher_arg,
     :rtype: dict
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
-    installer = InstallerFactory.create_installer(splunk_type=type)
+    installer = InstallerFactory.create_installer()
 
     if installer.is_installed() and not is_upgrade:
         log.debug('splunk is installed')
