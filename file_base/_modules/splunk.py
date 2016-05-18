@@ -28,7 +28,10 @@ def _import_sdk():
     return splunklib
 
 
-def _random_sleep_to_avoid_heart_beat_fail():
+def _random_sleep():
+    '''
+    to avoid heart beat failure
+    '''
     m_sec = random.randint(0, 999)
     time.sleep(m_sec/100)
 
@@ -447,7 +450,7 @@ def config_cluster_slave(pass4SymmKey, master_uri=None, replication_port=9887):
         indexer-cluster-master
     :param pass4SymmKey: is a key to communicate between indexer cluster
     """
-    _random_sleep_to_avoid_heart_beat_fail()
+    _random_sleep()
 
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
@@ -473,7 +476,7 @@ def config_cluster_searchhead(pass4SymmKey, master_uri=None):
         if not specified, will search minion under same master with role
         splunk-cluster-master
     """
-    _random_sleep_to_avoid_heart_beat_fail()
+    _random_sleep()
 
     if not master_uri:
         master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
@@ -698,7 +701,7 @@ def config_license_slave(master_uri=None):
     :param master_uri: uri of the license master
     :type master_uri: string
     '''
-    _random_sleep_to_avoid_heart_beat_fail()
+    _random_sleep()
 
     splunk = _get_splunk()
 
