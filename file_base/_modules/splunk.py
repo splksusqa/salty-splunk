@@ -36,7 +36,6 @@ def _random_sleep():
     time.sleep(m_sec/100)
 
 
-def _get_splunk(username="admin", password="changeme", namespace='system'):
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
         sharing='system'):
     '''
