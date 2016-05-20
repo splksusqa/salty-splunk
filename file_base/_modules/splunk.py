@@ -32,7 +32,7 @@ def _random_sleep():
     '''
     to avoid heart beat failure
     '''
-    m_sec = random.randint(0, 999)
+    m_sec = random.randint(0, 1500)
     time.sleep(m_sec/100)
 
 
