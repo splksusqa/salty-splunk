@@ -384,6 +384,8 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
 
+    time.sleep(1)
+
     if do_restart:
         result = splunk.restart(timeout=300)
         log.debug('splunk restart result: %s' % result)
