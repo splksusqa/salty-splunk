@@ -1007,7 +1007,7 @@ def get_crash_log():
     crash_file = []
     log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
     for file in os.listdir(log_path):
-        if file.startswith("crash-"):
+        if 'crash' in file:
             crash_file.append(file)
 
     return crash_file
