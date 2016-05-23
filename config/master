@@ -6,7 +6,7 @@ file_roots:
 peer:
   .*:
     - .*
-worker_threads: 100
+worker_threads: 50
 pillar_roots:
   base:
     - /srv/salt/pillar
@@ -15,3 +15,4 @@ runner_dirs:
 peer_run:
   .*:
     - splunk.management_uri_list
+timeout: 60
