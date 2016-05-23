@@ -764,18 +764,26 @@ def get_list_of_mgmt_uri(role):
     # exp = 'grain'
     # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
-    minions = __salt__['publish.runner']('splunk.management_uri_list', arg=role)
+    retry_count = 5
+    minions = None
+    while True:
+        minions = __salt__['publish.runner']('splunk.management_uri_list',
+                                             arg=role)
 
-    if not minions:
-        raise EnvironmentError(
-            "should be at least %s under master, count %d" %
-            (role, len(minions.values())))
+        if minions and isinstance(minions, dict):
+            ret = []
+            for key, value in minions.iteritems():
+                ret.append(value)
+            return ret
 
-    ret = []
-    for key, value in minions.iteritems():
-        ret.append(value)
+        retry_count -= 1
+        if retry_count == 0:
+            break
 
-    return ret
+        time.sleep(5)
+
+    raise EnvironmentError(
+        "Can't get the result from master: %s" % str(minions))
 
 
 def uninstall():
