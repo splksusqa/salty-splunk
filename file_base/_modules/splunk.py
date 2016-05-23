@@ -384,17 +384,17 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
         log.critical('%s is existed' % str(stanza_name))
         log.debug(err)
 
-    time.sleep(1)
-
     if do_restart:
-        result = splunk.restart(timeout=300)
-        log.debug('splunk restart result: %s' % result)
-        if 200 == result['status']:
-            return
-        else:
+        result = cli('restart')
+        log.debug('splunk restart result: %s'
+                  % result['stdout'] + result['stderr'])
+
+        if result['retcode'] != 0:
             restart_fail_msg = 'restart fail after config'
             log.critical(restart_fail_msg)
             raise EnvironmentError(restart_fail_msg)
+
+        return result
 
 
 def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
