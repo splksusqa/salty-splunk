@@ -27,7 +27,7 @@ def management_uri_list(role=None):
     with open(tsplk_info_path, 'r') as f:
         minion_info = yaml.load(f)
 
-    for minion, data in minion_info:
+    for minion, data in minion_info.items():
         if role in data['roles']:
             result.update({minion: data['private_ip'] + ':8089'})
 
