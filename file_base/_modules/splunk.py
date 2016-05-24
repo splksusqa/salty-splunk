@@ -770,6 +770,8 @@ def get_list_of_mgmt_uri(role):
         minions = __salt__['publish.runner']('splunk.management_uri_list',
                                              arg=role)
 
+        log.warn('runner returned: ' + str(minions))
+
         if minions and isinstance(minions, dict):
             ret = []
             for key, value in minions.iteritems():
@@ -781,6 +783,7 @@ def get_list_of_mgmt_uri(role):
             break
 
         time.sleep(5)
+        log.warn('runner returned value is not valid, retrying...')
 
     raise EnvironmentError(
         "Can't get the result from master: %s" % str(minions))
