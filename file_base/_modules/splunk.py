@@ -1022,9 +1022,9 @@ def get_crash_log():
     splunk_home = installer.splunk_home
     crash_file = []
     log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
-    for file in os.listdir(log_path):
-        if 'crash' in file:
-            crash_file.append(file)
+    for file_name in os.listdir(log_path):
+        if 'crash' in file_name:
+            crash_file.append(file_name)
 
     return crash_file
 
