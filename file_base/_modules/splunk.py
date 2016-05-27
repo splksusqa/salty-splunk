@@ -5,6 +5,8 @@ import sys
 import logging
 import re
 from salt.exceptions import CommandExecutionError
+import random
+import time
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
@@ -24,6 +26,14 @@ def _import_sdk():
             __salt__['pip.install']('splunk-sdk')
         import splunklib
     return splunklib
+
+
+def _random_sleep():
+    '''
+    to avoid heart beat failure
+    '''
+    m_sec = random.randint(0, 999)
+    time.sleep(m_sec/100)
 
 
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
@@ -507,6 +517,8 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     :param pass4SymmKey: is a key to communicate between indexer cluster
     :param cluster_label: the label for indexer cluster
     """
+    _random_sleep()
+
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
 
@@ -533,6 +545,8 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
         splunk-cluster-master
     :param cluster_label: the label for indexer cluster
     """
+    _random_sleep()
+
     if not master_uri:
         master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
 
@@ -749,6 +763,8 @@ def config_license_slave(master_uri=None):
     :param master_uri: uri of the license master
     :type master_uri: string
     '''
+    _random_sleep()
+
     splunk = _get_splunk()
 
     if not master_uri:
@@ -1011,3 +1027,14 @@ def get_crash_log():
             crash_file.append(file)
 
     return crash_file
+
+def is_dmc_configured():
+    '''
+    check if dmc is configured
+    '''
+    configured = read_conf('app', 'install', 'is_configured', owner="admin",
+        app="splunk_management_console", sharing="app")
+    if "0" == configured or configured is None:
+        return False
+    else:
+        return True

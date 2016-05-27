@@ -309,10 +309,14 @@ def dmc_configured(name):
            'comment': ''}
 
     try:
-        __salt__['splunk.config_dmc']()
-        ret['result'] = True
-        ret['comment'] = "dmc has been configured on this instance"
-        ret['changes'] = {'new': "dmc is configured"}
+        if __salt__['splunk.is_dmc_configured']():
+            ret['result'] = True
+            ret['comment'] = "dmc is already configured, nothing changed"
+        else:
+            __salt__['splunk.config_dmc']()
+            ret['result'] = True
+            ret['comment'] = "dmc has been configured on this instance"
+            ret['changes'] = {'new': "dmc is configured"}
 
     except Exception as err:
         ret['result'] = False
