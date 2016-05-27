@@ -1017,6 +1017,17 @@ def config_dmc():
         data={'trigger_actions': 1}, verify=False)
 
 
+def get_crash_log():
+    installer = InstallerFactory.create_installer()
+    splunk_home = installer.splunk_home
+    crash_file = []
+    log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
+    for file_name in os.listdir(log_path):
+        if 'crash' in file_name:
+            crash_file.append(file_name)
+
+    return crash_file
+
 def is_dmc_configured():
     '''
     check if dmc is configured
