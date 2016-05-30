@@ -32,7 +32,7 @@ def _random_sleep():
     '''
     to avoid heart beat failure
     '''
-    m_sec = random.randint(0, 999)
+    m_sec = random.randint(0, 1500)
     time.sleep(m_sec/100)
 
 
@@ -385,14 +385,16 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
         log.debug(err)
 
     if do_restart:
-        result = splunk.restart(timeout=300)
-        log.debug('splunk restart result: %s' % result)
-        if 200 == result['status']:
-            return
-        else:
+        result = cli('restart')
+        log.debug('splunk restart result: %s'
+                  % result['stdout'] + result['stderr'])
+
+        if result['retcode'] != 0:
             restart_fail_msg = 'restart fail after config'
             log.critical(restart_fail_msg)
             raise EnvironmentError(restart_fail_msg)
+
+        return result
 
 
 def read_conf(conf_name, stanza_name, key_name=None, namespace='system'):
@@ -762,18 +764,29 @@ def get_list_of_mgmt_uri(role):
     # exp = 'grain'
     # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
-    minions = __salt__['publish.runner']('splunk.management_uri_list', arg=role)
+    retry_count = 5
+    minions = None
+    while True:
+        minions = __salt__['publish.runner']('splunk.management_uri_list',
+                                             arg=role)
 
-    if not minions:
-        raise EnvironmentError(
-            "should be at least %s under master, count %d" %
-            (role, len(minions.values())))
+        log.warn('runner returned: ' + str(minions))
 
-    ret = []
-    for key, value in minions.iteritems():
-        ret.append(value)
+        if minions and isinstance(minions, dict):
+            ret = []
+            for key, value in minions.iteritems():
+                ret.append(value)
+            return ret
 
-    return ret
+        retry_count -= 1
+        if retry_count == 0:
+            break
+
+        time.sleep(5)
+        log.warn('runner returned value is not valid, retrying...')
+
+    raise EnvironmentError(
+        "Can't get the result from master: %s" % str(minions))
 
 
 def uninstall():
