@@ -181,7 +181,7 @@ def search_peer_configured(name, **kwargs):
         ret['result'] = True
         ret['comment'] = "Search peer was configured successfully"
         ret['changes'] = {"new": 'indexer added %s \n indexer removed %s' % (
-            str(servers_need_to_be_added), str(servers_need_to_be_added))}
+            str(servers_need_to_be_added), str(servers_need_to_be_removed))}
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(r=str(err))
