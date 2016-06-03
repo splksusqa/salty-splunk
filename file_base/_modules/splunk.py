@@ -1056,3 +1056,10 @@ def is_dmc_configured():
         return False
     else:
         return True
+
+
+def enable_js_debug_mode():
+    '''
+    by disabling js cache and minify js, javascript could be debugged by browser console
+    '''
+    config_conf('server', 'settings', {'js_no_cache': True, 'minify_js': False})
