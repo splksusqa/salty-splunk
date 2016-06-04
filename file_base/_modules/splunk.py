@@ -810,7 +810,7 @@ def get_mgmt_uri():
         raise CommandExecutionError(str(cli_result))
 
 
-def get_list_of_mgmt_uri(role):
+def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
     '''
     :param role: grains role matched
     :type role: str
@@ -826,11 +826,10 @@ def get_list_of_mgmt_uri(role):
     # exp = 'grain'
     # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
-    retry_count = 5
     minions = None
     while True:
-        minions = __salt__['publish.runner']('splunk.management_uri_list',
-                                             arg=role)
+        minions = __salt__['publish.runner'](
+            'splunk.management_uri_list', arg=role)
 
         log.warn('runner returned: ' + str(minions))
 
@@ -847,8 +846,11 @@ def get_list_of_mgmt_uri(role):
         time.sleep(5)
         log.warn('runner returned value is not valid, retrying...')
 
-    raise EnvironmentError(
-        "Can't get the result from master: %s" % str(minions))
+    if raise_exception:
+        raise EnvironmentError(
+            "Can't get the result from master: %s" % str(minions))
+    else:
+        return []
 
 
 def uninstall():
