@@ -1015,12 +1015,13 @@ def config_dmc():
     # todo: add checking version to decide doing them or not
 
     # config indexer cluster group
-    stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
-        l=__pillar__['indexer_cluster']['cluster_label'])
+    if len(cluster_master) > 0
+        stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
+            l=__pillar__['indexer_cluster']['cluster_label'])
 
-    config_conf(
-        'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
-        do_restart=False)
+        config_conf(
+            'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
+            do_restart=False)
 
     # config shcluster group if shcluster is enabled
     if len(deployer) > 0:
