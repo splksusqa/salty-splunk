@@ -957,7 +957,7 @@ def _config_dmc_group(group_name, servers, role_name=None):
     else:
         config_conf(
             'distsearch', group_name, {'servers': ','.join(servers)},
-            do_restart=False))
+            do_restart=False)
 
 
 def config_dmc():
