@@ -947,6 +947,19 @@ def add_batch_of_deployment_apps(name_prefix, count):
         add_deployment_app(name_prefix + str(i))
 
 
+def _config_dmc_group(group_name, servers, role_name=None):
+    '''
+    '''
+    if role_name is not None and role_name in __grains__['role']:
+        config_conf(
+            'distsearch', group_name, {'servers': 'localhost:localhost'},
+            do_restart=False)
+    else:
+        config_conf(
+            'distsearch', group_name, {'servers': ','.join(servers)},
+            do_restart=False))
+
+
 def config_dmc():
     '''
     config deployment management console by editing distsearch.conf
@@ -966,38 +979,37 @@ def config_dmc():
     # set distsearch groups by editing distsearch.conf
     # indexer
     config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
-        {'servers': ','.join(indexers), 'default': True},
-        do_restart=False)
+        {'servers': ','.join(indexers), 'default': True}, do_restart=False)
 
     # search head
     config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
-        {'servers': ','.join(searchheads)},
-        do_restart=False)
-
-    # license master
-    config_conf('distsearch', 'distributedSearch:dmc_group_license_master',
-        {'servers': ','.join(license_master)}, do_restart=False)
-
-    # cluster_master
-    config_conf('distsearch', 'distributedSearch:dmc_group_cluster_master',
-        {'servers': 'localhost:localhost'}, do_restart=False)
+        {'servers': ','.join(searchheads)}, do_restart=False)
 
     # kv store
     config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
         {'servers': ','.join(searchheads)}, do_restart=False)
 
+    # license master
+    _config_dmc_group(
+        'distributedSearch:dmc_group_license_master', license_master,
+        'central-license-master')
+
+    # cluster_master
+    cluster_master = get_list_of_mgmt_uri('indexer-cluster-master')
+    _config_dmc_group(
+        'distributedSearch:dmc_group_cluster_master', cluster_master,
+        'indexer-cluster-master')
+
     # deployment server
     deployment_server = get_list_of_mgmt_uri('deployment-server')
-    if len(deployment_server) > 0:
-        config_conf(
-            'distsearch', 'distributedSearch:dmc_group_deployment_server',
-            {'servers': deployment_server[0]}, do_restart=False)
+    _config_dmc_group(
+        'distributedSearch:dmc_group_deployment_server', deployment_server,
+        'deployment-server')
 
     # shc deployer
-    if len(deployer) > 0:
-        config_conf(
-            'distsearch', 'distributedSearch:dmc_group_shc_deployer',
-            {'servers': deployer[0]}, do_restart=False)
+    _config_dmc_group(
+        'distributedSearch:dmc_group_shc_deployer', deployer,
+        'search-head-cluster-deployer')
 
     # we should do following steps only after ember
     # todo: add checking version to decide doing them or not
