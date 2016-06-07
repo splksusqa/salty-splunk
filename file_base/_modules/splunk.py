@@ -1015,7 +1015,7 @@ def config_dmc():
     # todo: add checking version to decide doing them or not
 
     # config indexer cluster group
-    if len(cluster_master) > 0
+    if len(cluster_master) > 0:
         stanza = 'distributedSearch:dmc_indexerclustergroup_{l}'.format(
             l=__pillar__['indexer_cluster']['cluster_label'])
 
