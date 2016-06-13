@@ -975,7 +975,8 @@ def config_dmc():
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
     indexers = get_list_of_mgmt_uri('indexer')
 
-    if 'indexer-cluster-master' in __grains__['role']:
+    if ('indexer-cluster-master' in __grains__['role'] or
+        'search-head' in __grains__['role']):
         config_search_peer(searchheads + license_master + deployer)
     else:
         config_search_peer(searchheads + license_master + deployer + indexers)
