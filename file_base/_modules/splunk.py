@@ -623,9 +623,6 @@ def config_shcluster_member(
     if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
 
-    # config_conf('server', 'shclustering', data)
-
-
 
 def bootstrap_shcluster_captain(servers_list=None):
     '''
