@@ -577,16 +577,17 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
 
 
 def config_shcluster_member(
-        pass4SymmKey, shcluster_label, replication_factor, replication_port,
+        pass4SymmKey, shcluster_label, replication_port,
+        replication_factor=None,
         conf_deploy_fetch_url=None):
     '''
     config splunk as a member of a search head cluster
 
-    :param conf_deploy_fetch_url: deployer's mgmt uri
     :param replication_port: replication port for SHC
-    :param replication_factor: replication factor for SHC
     :param shcluster_label: shcluster's label
     :param pass4SymmKey: pass4SymmKey for SHC
+    :param replication_factor: replication factor for SHC, if none use default provided by Splunk
+    :param conf_deploy_fetch_url: deployer's mgmt uri
     '''
 
     if not conf_deploy_fetch_url:
@@ -596,24 +597,20 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    # data = {
-    #     'pass4SymmKey': pass4SymmKey,
-    #     'shcluster_label': shcluster_label,
-    #     'conf_deploy_fetch_url': conf_deploy_fetch_url,
-    #     'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
-    #     'replication_factor': replication_factor,
-    #     'disabled': 'false',
-    # }
+    replication_factor_str = ''
+    if replication_factor:
+        replication_factor_str = '-replication_factor {n}'.format(
+            n=replication_factor)
 
     cmd = 'init shcluster-config -auth {username}:{password} ' \
           '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
-          '-replication_factor {n} ' \
+          '{replication_factor_str} ' \
           '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
           '-secret {security_key} -shcluster_label {label}'\
         .format(username='admin', password='changeme',
                 mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
                 replication_port=replication_port,
-                n=replication_factor,
+                replication_factor_str=replication_factor_str,
                 conf_deploy_fetch_url=conf_deploy_fetch_url,
                 security_key=pass4SymmKey,
                 label=shcluster_label
