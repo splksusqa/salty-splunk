@@ -52,3 +52,7 @@ base:
   role:deployment-server:
     - match: grain
     - splunk.indexer
+
+  role:search_head_pooling_share_storage:
+    - match: grains
+    - splunk.search_head_pooling_share_storage
