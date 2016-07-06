@@ -1,7 +1,7 @@
 nfs:
   server:
     exports:
-      /srv/homes: "*(rw,sync,no_subtree_check)"
+      /opt/shp_share: "*(rw,sync,no_subtree_check)"
   mount:
     somename:
       mountpoint: "/some/path"
