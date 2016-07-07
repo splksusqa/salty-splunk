@@ -38,8 +38,8 @@ copy_user_app:
   cmd.run:
     # splunk_home
     - name: |
-        cp -r -n {{ splunk_home }}/etc/users /opt/shp_share
-        cp -r -n {{ splunk_home }}/etc/apps /opt/shp_share
+        cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc
+        cp -r -n {{ splunk_home }}/etc/apps /opt/shp_share/etc
     - require:
       - module: setup_shp
 
