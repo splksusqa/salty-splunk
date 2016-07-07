@@ -46,8 +46,7 @@ copy_user_app:
 start_splunk:
   module.run:
     - name: splunk.cli
-    - kwargs:
-         command: start
+    - command: start
     - require:
       - cmd: copy_user_app
 
