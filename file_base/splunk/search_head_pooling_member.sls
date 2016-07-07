@@ -20,5 +20,6 @@ include:
     - persist: True
   require:
     - file: /opt/shp_share
+{% endfor %}
 
 {% endif %}
