@@ -14,7 +14,7 @@ include:
 
 /opt/shp_share:
   mount.mounted:
-    - device: /dev/sdb1
+    - device: /dev/xvda
     - fstype: nfs
     - persist: True
   require:
