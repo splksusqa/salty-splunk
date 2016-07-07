@@ -12,9 +12,10 @@ include:
       - group
       - mode
 
-/opt/shp_share:
+{% set hostip = salt['mine.get']('role:search_head_pooling_share_storage', 'fqdn_ip4', 'grain')[0] %}
+/opt/shp_share
   mount.mounted:
-    - device: /dev/xvda
+    - device: {{ hostip }}:/opt/shp_share
     - fstype: nfs
     - persist: True
   require:
