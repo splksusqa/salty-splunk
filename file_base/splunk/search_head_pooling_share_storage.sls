@@ -1,5 +1,3 @@
-#{% from "nfs/map.jinja" import nfs with context %}
-
 {% if grains['os'] != 'Windows' %}
 include:
   - nfs.server
@@ -14,8 +12,4 @@ include:
       - group
       - mode
 
-#nfs-service:
-#  service.running:
-#    - name: {{ nfs.service_name }}
-#    - enable: True
 {% endif %}
