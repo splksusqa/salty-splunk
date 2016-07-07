@@ -6,8 +6,7 @@ include:
 {% for server, ips in salt['mine.get']('role:search_head_pooling_share_storage', 'network.ip_addrs', 'grain').items() %}
 /opt/shp_share:
   file.directory:
-    - user: root
-    - group: root
+    - user: nobody
     - dir_mode: 777
     - recurse:
       - user
