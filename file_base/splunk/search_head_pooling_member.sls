@@ -24,14 +24,12 @@ include:
 stop_splunk:
   module.run:
     - name: splunk.cli
-    - kwargs:
-        command: 'stop -f'
+    - command: stop -f
 
 setup_shp:
   module.run:
      - name: splunk.cli
-     - kwargs:
-         command: 'pooling enable /opt/shp_share'
+     - command: 'pooling enable /opt/shp_share'
      - require:
        - module: stop_splunk
 
