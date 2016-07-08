@@ -7,6 +7,7 @@ include:
 /opt/shp_share:
   file.directory:
     - user: nobody
+    - group: nogroup
     - dir_mode: 777
     - recurse:
       - user
