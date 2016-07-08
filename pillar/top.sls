@@ -2,3 +2,4 @@ base:
   '*':
     - splunk
     - nfs
+    - mine
