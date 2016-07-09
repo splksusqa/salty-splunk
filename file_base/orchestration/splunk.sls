@@ -37,6 +37,25 @@ search_head_captain_setup:
     - require:
       - salt: search_head_member_setup
 
+# 3 SHP
+search_head_pooling_share_storage_setup:
+  salt.state:
+    - tgt: 'role:search-head-pooling-share-storage'
+    - tgt_type: grain
+    - sls: splunk.shp_share_storage
+    - order: 2
+    - require:
+      - salt: indexer_setup
+
+search_head_pooling_member_setup:
+  salt.state:
+    - tgt: 'role:search-head-pooling-member'
+    - tgt_type: grain
+    - sls: splunk.shp_member
+    - order: 2
+    - require:
+      - salt: search_head_pooling_share_storage_setup
+
 # 3 IDX cluster
 indexer_cluster_master_setup:
   salt.state:
@@ -130,6 +149,7 @@ universal_forwarder_setup:
     - sls: splunk.uf
     - order: 7
 
+#
 dmc_setup:
   salt.state:
     - tgt: 'role:distributed-management-console'
