@@ -1,3 +1,6 @@
+# docs of shp
+# http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
+
 {% if grains['os'] != 'Windows' %}
 include:
   - nfs.client
