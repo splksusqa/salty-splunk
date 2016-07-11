@@ -5,7 +5,7 @@
 include:
   - splunk.search_head
 
-{% set server, ips = salt['mine.get']('role:search_head_pooling_share_storage', 'network.ip_addrs', 'grain').popitem() %}
+{% set server, ips = salt['mine.get']('role:search-head-pooling-share-storage', 'network.ip_addrs', 'grain').popitem() %}
 
 {% if grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\' + ips[0] + '\shp_share' %}
