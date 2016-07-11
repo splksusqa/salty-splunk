@@ -15,7 +15,7 @@ include:
 
 # non windows system
 {% else %}
-{% set share_folder_path = /opt/shp_share %}
+{% set share_folder_path = '/opt/shp_share' %}
 
 include:
   - nfs.client
