@@ -12,4 +12,13 @@ include:
       - group
       - mode
 
+{% else %}
+
+Local Area Connection #2:
+  network.managed:
+    - dns_proto: static
+    - dns_servers:
+      - 172.31.36.77
+      - 172.31.14.80
+
 {% endif %}
