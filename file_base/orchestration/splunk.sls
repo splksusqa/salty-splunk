@@ -37,25 +37,6 @@ search_head_captain_setup:
     - require:
       - salt: search_head_member_setup
 
-# 3 SHP
-search_head_pooling_share_storage_setup:
-  salt.state:
-    - tgt: 'role:search-head-pooling-share-storage'
-    - tgt_type: grain
-    - sls: splunk.shp_share_storage
-    - order: 2
-    - require:
-      - salt: indexer_setup
-
-search_head_pooling_member_setup:
-  salt.state:
-    - tgt: 'role:search-head-pooling-member'
-    - tgt_type: grain
-    - sls: splunk.shp_member
-    - order: 2
-    - require:
-      - salt: search_head_pooling_share_storage_setup
-
 # 3 IDX cluster
 indexer_cluster_master_setup:
   salt.state:
@@ -98,13 +79,32 @@ distributed_search_head_setup:
       - salt: indexer_cluster_peer_setup
       - salt: indexer_cluster_search_head_setup
 
-# 5 Central license master and slave
+# 5 SHP
+search_head_pooling_share_storage_setup:
+  salt.state:
+    - tgt: 'role:search-head-pooling-share-storage'
+    - tgt_type: grain
+    - sls: splunk.shp_share_storage
+    - order: 5
+    - require:
+      - salt: indexer_setup
+
+search_head_pooling_member_setup:
+  salt.state:
+    - tgt: 'role:search-head-pooling-member'
+    - tgt_type: grain
+    - sls: splunk.shp_member
+    - order: 5
+    - require:
+      - salt: search_head_pooling_share_storage_setup
+
+# 6 Central license master and slave
 central_license_master_setup:
   salt.state:
     - tgt: 'role:central-license-master'
     - tgt_type: grain
     - sls: splunk.central_license_master
-    - order: 5
+    - order: 6
     - require:
       - salt: indexer_setup
       - salt: distributed_search_head_setup
@@ -114,18 +114,26 @@ central_license_slave_setup:
     - tgt: 'role:central-license-slave'
     - tgt_type: grain
     - sls: splunk.central_license_slave
-    - order: 5
+    - order: 6
     - require:
       - salt: central_license_master_setup
 
-# 6 Deployment server
+# 7 Universal forwarder
+universal_forwarder_setup:
+  salt.state:
+    - tgt: 'role:universal-forwarder'
+    - tgt_type: grain
+    - sls: splunk.uf
+    - order: 7
+
+# 8 Deployment server
 # deployment sever don't need configuration
 deployment_server_setup:
   salt.state:
     - tgt: 'role:deployment-server'
     - tgt_type: grain
     - sls: splunk.indexer
-    - order: 6
+    - order: 8
     - require:
       - salt: indexer_setup
       - salt: central_license_master_setup
@@ -136,23 +144,14 @@ deployment_client_setup:
     - tgt: 'role:deployment-client'
     - tgt_type: grain
     - sls: splunk.deployment_client
-    - order: 6
+    - order: 8
     - require:
       - salt: deployment_server_setup
 
-# 7 Universal forwarder
-
-universal_forwarder_setup:
-  salt.state:
-    - tgt: 'role:universal-forwarder'
-    - tgt_type: grain
-    - sls: splunk.uf
-    - order: 7
-
-#
+# 9
 dmc_setup:
   salt.state:
     - tgt: 'role:distributed-management-console'
     - tgt_type: grain
     - sls: splunk.distributed_management_console
-    - order: 8
+    - order: 9

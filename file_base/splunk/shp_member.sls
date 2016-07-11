@@ -1,6 +1,10 @@
 # docs of shp
 # http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
 
+# 1 config search peer on each search head
+include:
+  - splunk.search_head
+
 {% set server, ips = salt['mine.get']('role:search_head_pooling_share_storage', 'network.ip_addrs', 'grain').popitem() %}
 
 {% if grains['os'] == 'Windows' %}
