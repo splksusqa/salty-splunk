@@ -13,11 +13,6 @@ include:
 include:
   - splunk.indexer
 
-
-
-
-
-
 # non windows system
 {% else %}
 {% set share_folder_path = /opt/shp_share %}
