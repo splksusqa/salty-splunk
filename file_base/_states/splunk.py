@@ -33,7 +33,7 @@ def configured(conf_name, stanza_name, data=None, do_restart=True,
 
     :return:
     '''
-    ret = {'name': name,
+    ret = {'name': conf_name,
            'changes': {},
            'result': True,
            'comment': ''}
