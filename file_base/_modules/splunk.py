@@ -809,7 +809,7 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
 
     minions = None
     while True:
-        minions = __salt__['mine.get'](role, 'splunk.get_mgmt_uri', 'compound')
+        minions = __salt__['mine.get'](role, 'splunk.get_mgmt_uri', 'grain')
 
         log.warn('runner returned: ' + str(minions))
 
