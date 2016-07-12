@@ -8,19 +8,12 @@ install-splunk:
     - require:
       - sls: splunk.common
 
-#TODO find out why Splunk might fail by timeout config allow remote login
-sleep_after_install_splunk:
-  module.run:
-    - name: test.sleep
-    - length: 30
-    - onchanges:
-      - splunk: install-splunk
-
 allow_remote_login:
-  module.run:
-    - name: splunk.allow_remote_login
-    - onchanges:
-      - module: sleep_after_install_splunk
+  splunk.configured:
+    - conf_name: server
+    - stanza_name: general
+    - data:
+      allowRemoteLogin: always
 
 enable-listening-port:
   splunk:

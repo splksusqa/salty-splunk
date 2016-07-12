@@ -2,9 +2,10 @@
 # http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
 
 {% set server, ips = salt['mine.get']('role:search-head-pooling-share-storage', 'network.ip_addrs', 'grain').popitem() %}
+{% share_storage_ip = ips[0] %}
 
 {% if grains['os'] == 'Windows' %}
-{% set share_folder_path = '\\' + ips[0] + '\shp_share' %}
+{% set share_folder_path = '\\' + share_storage_ip + '\shp_share' %}
 
 include:
   - splunk.indexer
@@ -22,12 +23,8 @@ include:
     - user: nobody
     - group: nogroup
     - dir_mode: 777
-    - recurse:
-      - user
-      - group
-      - mode
   mount.mounted:
-    - device: {{ ips[0] }}:/opt/shp_share
+    - device: {{ share_storage_ip }}:/opt/shp_share
     - fstype: nfs
     - persist: True
   require:

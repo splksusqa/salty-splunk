@@ -27,6 +27,50 @@ def installed(name, **kwargs):
     return ret
 
 
+def configured(conf_name, stanza_name, data=None, do_restart=True,
+               app=None, owner=None, sharing='system'):
+    '''
+
+    :return:
+    '''
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    key_to_changed = []
+    if data:
+        for key, value in data.items():
+            current_value = __salt__['splunk.read_conf'](
+                conf_name, stanza_name, key)
+            if str(current_value) != str(value):
+                key_to_changed.append(key)
+
+    if not key_to_changed:
+        ret['result'] = True
+        ret['comment'] = 'no config changed'
+        return ret
+
+    new_data = dict()
+    for key in key_to_changed:
+        new_data[key] = data[key]
+
+    try:
+        __salt__['splunk.config_conf'](conf_name, stanza_name, new_data,
+                                       do_restart, app, owner, sharing)
+        ret['result'] = True
+        ret['comment'] = 'config changed successfully'
+        ret['changes'] = {
+            'stanza': stanza_name,
+            'data': new_data
+        }
+    except EnvironmentError as err:
+        ret['result'] = False
+        ret['comment'] = str(err)
+
+    return ret
+
+
 def cluster_master_configured(name, **kwargs):
     '''
     '''
