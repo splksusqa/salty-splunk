@@ -13,7 +13,7 @@ allow_remote_login:
     - conf_name: server
     - stanza_name: general
     - data:
-      allowRemoteLogin: always
+        allowRemoteLogin: always
 
 enable-listening-port:
   splunk:
