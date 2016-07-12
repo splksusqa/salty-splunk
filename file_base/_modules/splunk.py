@@ -420,7 +420,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
 
 
 def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
-        sharing='system'):
+              sharing='system'):
     """
     read config file
 
@@ -429,8 +429,8 @@ def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
     :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
-    :param data: data under stanza
-    :param do_restart: restart after configuration
+    :param key_name: key for the value you want to read
+    :param sharing: namespace of conf
     :return: no return value
     :raise EnvironmentError: if restart fail
     """
