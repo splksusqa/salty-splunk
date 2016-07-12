@@ -2,7 +2,7 @@
 # http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
 
 {% set server, ips = salt['mine.get']('role:search-head-pooling-share-storage', 'network.ip_addrs', 'grain').popitem() %}
-{% share_storage_ip = ips[0] %}
+{% set share_storage_ip = ips[0] %}
 
 {% if grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\' + share_storage_ip + '\shp_share' %}

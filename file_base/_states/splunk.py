@@ -27,13 +27,13 @@ def installed(name, **kwargs):
     return ret
 
 
-def configured(conf_name, stanza_name, data=None, do_restart=True,
+def configured(name, conf_name, stanza_name, data=None, do_restart=True,
                app=None, owner=None, sharing='system'):
     '''
 
     :return:
     '''
-    ret = {'name': conf_name,
+    ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}

@@ -174,10 +174,6 @@ class WindowsMsiInstaller(Installer):
             __salt__['grains.delval']('pkg_path')
             __salt__['grains.delval']('splunk_type')
 
-        # remove mgmt_uri
-        if __salt__['grains.has_value']('splunk_mgmt_uri'):
-            __salt__['grains.delval']('splunk_mgmt_uri')
-
 
 class LinuxTgzInstaller(Installer):
     def __init__(self, splunk_type):
@@ -779,19 +775,10 @@ def get_mgmt_uri():
     '''
     get mgmt uri of splunk
 
-    :return: The mgmt uri of splunk
+    :return: The mgmt uri of splunk, return None if Splunk is not started
     :rtype: string
     '''
-    # todo merge this to Splunk Object
-    # todo deal with command line parsing
-    # todo when a large traffic, to avoid revisit splunk to get port
-    # use grains system to deal with that.
-    # try to figure out other solution for this since when a port is changed
-    # the grains value won't reflect it
-    # and we have to remove this grains value when uninstall splunk
-    grains_value = __salt__['grains.get']('splunk_mgmt_uri')
-    if grains_value:
-        return grains_value
+    # todo auth parameter
 
     cli_result = cli("show splunkd-port -auth admin:changeme")
 
@@ -801,7 +788,7 @@ def get_mgmt_uri():
         __salt__['grains.set']('splunk_mgmt_uri', mgmt_uri, force=True)
         return mgmt_uri
     else:
-        raise CommandExecutionError(str(cli_result))
+        return None
 
 
 def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
@@ -822,8 +809,7 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
 
     minions = None
     while True:
-        minions = __salt__['publish.runner'](
-            'splunk.management_uri_list', arg=role)
+        minions = __salt__['mine.get'](role, 'splunk.get_mgmt_uri', 'compound')
 
         log.warn('runner returned: ' + str(minions))
 
