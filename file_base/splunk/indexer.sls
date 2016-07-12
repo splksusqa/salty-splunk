@@ -19,3 +19,9 @@ enable-listening-port:
   splunk:
     - listening_ports_enabled
     - ports: {{ pillar['listening_ports'] }}
+
+update-mine-date:
+  module.run:
+    - name: mine.update
+    - require:
+      - splunk: install-splunk
