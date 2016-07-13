@@ -41,7 +41,7 @@ def join_ad_domain():
                         arg=['splunk.windows_domain_member'],
                         expr_form='grain')
 
-    log.error(str(result))
+    log.debug(str(result))
 
     is_minion_failed = False
     for minion, states in result.items():
@@ -62,7 +62,7 @@ def join_ad_domain():
         if 'already' in str(states[state_str]['changes']['ret']).lower():
             vm_count -= 1
 
-    log.error('wait for vm {v}'.format(v=vm_count))
+    log.warn('wait for vm {v}'.format(v=vm_count))
 
     if vm_count != 0:
         runner = salt.runner.RunnerClient(opts)
