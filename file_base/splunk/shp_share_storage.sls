@@ -21,7 +21,7 @@ C:\shp_share:
 
 setup-shareing:
   cmd.run:
-    - name: net share shp_share=c:\shp_share /GRANT:Everyone,FULL
+    - name: net share shp_share=c:\shp_share
     - require:
       - file: C:\shp_share
 

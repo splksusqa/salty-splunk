@@ -5,10 +5,15 @@
 {% set share_storage_ip = ips[0] %}
 
 {% if grains['os'] == 'Windows' %}
-{% set share_folder_path = '\\' + share_storage_ip + '\shp_share' %}
+{% set share_folder_path = '\\\\' + share_storage_ip + '\shp_share' %}
+{% set map_drive = 'x' %}
 
 include:
   - splunk.indexer
+
+map-drive:
+  - cmd.run
+    - name: net use {{ map_drive }}: {{ share_folder_path }} /user:{{ pillar['win_domain']['domain_name'] }}\{{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}
 
 # non windows system
 {% else %}
@@ -51,8 +56,8 @@ copy_user_app:
     # splunk_home
     {% if grains['os'] == 'Windows' %}
     - name: |
-        robocopy {{ splunk_home }}\etc\users {{ share_folder_path }}\etc /e /xo
-        robocopy {{ splunk_home }}\etc\apps {{ share_folder_path }}\etc /e /xo
+        robocopy "{{ splunk_home }}\etc\users" {{ map_drive }}:\etc\users /e /xo
+        robocopy "{{ splunk_home }}\etc\apps" {{ map_drive }}:\etc\apps /e /xo
     {% else %}
     - name: |
         cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc
