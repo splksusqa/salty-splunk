@@ -5,7 +5,7 @@
 {% set share_storage_ip = ips[0] %}
 
 {% if grains['os'] == 'Windows' %}
-{% set share_folder_path = '\\\\' + share_storage_ip + '\shp_share' %}
+{% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
 {% set map_drive = 'x' %}
 
 include:
@@ -13,7 +13,7 @@ include:
 
 map-drive:
   - cmd.run
-    - name: "net use {{ map_drive }}: {{ share_folder_path }} /user:{{ pillar['win_domain']['domain_name'] }}\{{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}"
+    - name: "net use {{ map_drive }}: {{ share_folder_path }} /user:{{ pillar['win_domain']['domain_name'] }}\\{{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}"
 
 # non windows system
 {% else %}
