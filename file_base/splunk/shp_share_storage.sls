@@ -2,6 +2,10 @@
 include:
   - nfs.server
 
+update-mine-for-ip:
+  module.run:
+    - name: mine.update
+
 /opt/shp_share:
   file.directory:
     - user: nobody
