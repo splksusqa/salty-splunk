@@ -1,7 +1,7 @@
 change-dns:
   module.run:
     - name: ip.set_static_dns
-    - m_name: Local Area Connection
+    - iface: Local Area Connection
     - addrs:
       - {{ pillar['win_domain']['dns1'] }}
       - {{ pillar['win_domain']['dns2'] }}
