@@ -135,12 +135,13 @@ class WindowsMsiInstaller(Installer):
         if splunk_home:
             self.splunk_home = splunk_home
 
-        install_flags = ''
+        install_flags = []
         for key, value in kwargs.iteritems():
-            install_flags = ' '.join('{k}={v}'.format(k=key, v=value))
+            install_flags.append('{k}={v}'.format(k=key, v=value))
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'. \
-            format(c=pkg_path, h=self.splunk_home, q='/quiet', f=install_flags)
+            format(c=pkg_path, h=self.splunk_home, q='/quiet',
+                   f=' '.join(install_flags))
 
         self.pkg_path = pkg_path
 
