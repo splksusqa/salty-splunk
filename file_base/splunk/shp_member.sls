@@ -14,10 +14,10 @@ include:
 map-drive:
   - cmd.run:
     - name: >
-      net use {{ map_drive }}: {{ share_folder_path }}
-      /user:{{ pillar['win_domain']['domain_name'] }}
-      \\{{ pillar['win_domain']['username'] }}
-       {{ pillar['win_domain']['password'] }}
+        net use {{ map_drive }}: {{ share_folder_path }}
+        /user:{{ pillar['win_domain']['domain_name'] }}
+        \\{{ pillar['win_domain']['username'] }}
+         {{ pillar['win_domain']['password'] }}
 
 # non windows system
 {% else %}
