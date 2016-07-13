@@ -13,8 +13,6 @@ include:
 
 C:\shp_share:
   file.directory:
-    - user: nobody
-    - group: nogroup
     - makedirs: True
 
 setup-shareing:

@@ -64,9 +64,10 @@ def join_ad_domain():
 
     log.error('wait for vm {v}'.format(v=vm_count))
 
-    runner = salt.runner.RunnerClient(opts)
-    runner.cmd('state.event', arg=['salt/minion/*/start'],
-               kwarg={'quiet': True, 'count': vm_count})
+    if vm_count != 0:
+        runner = salt.runner.RunnerClient(opts)
+        runner.cmd('state.event', arg=['salt/minion/*/start'],
+                   kwarg={'quiet': True, 'count': vm_count})
 
     return result
 

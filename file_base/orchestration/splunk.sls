@@ -4,8 +4,8 @@
 #TODO non Enterprise role should be take care in the other way
 indexer_setup:
   salt.state:
-    - tgt: 'not G@role:universal-forwarder'
-    - tgt_type: compound
+    - tgt: 'role:indexer'
+    - tgt_type: grain
     - sls: splunk.indexer
     - order: 1
 
