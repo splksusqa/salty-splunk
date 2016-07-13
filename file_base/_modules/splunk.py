@@ -355,7 +355,7 @@ def install(fetcher_arg,
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
-    return installer.install(pkg_path, splunk_home, kwargs=kwargs)
+    return installer.install(pkg_path, splunk_home, **kwargs)
 
 
 def config_conf(conf_name, stanza_name, data=None, do_restart=True,
