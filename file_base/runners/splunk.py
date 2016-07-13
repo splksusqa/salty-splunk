@@ -36,16 +36,24 @@ def join_ad_domain():
 
     client = salt.client.LocalClient()
 
-    minions = client.cmd('os:Windows', 'test.ping', expr_form='grain')
-    vm_count = len(minions)
-
     result = client.cmd('os:Windows', 'state.apply',
                         arg=['splunk.windows_domain_member'],
                         expr_form='grain')
 
     log.error(str(result))
 
+    is_minion_failed = False
+    for minion, states in result.items():
+        for state, state_result in states.items():
+            if not state_result['result']:
+                is_minion_failed = True
+                break
+
+    if is_minion_failed:
+        return result
+
     # wait for minion back online
+    vm_count = len(result)
     runner = salt.runner.RunnerClient(opts)
     runner.cmd('state.event', arg=['salt/minion/*/start'],
                kwarg={'quiet': True, 'count': vm_count})
