@@ -4,7 +4,7 @@ import salt.config
 import logging
 
 log = logging.getLogger(__name__)
-config = __opts__['conf_file']
+
 opts = salt.config.master_config('/etc/salt/master')
 
 def get_forward_servers():
@@ -12,7 +12,7 @@ def get_forward_servers():
     Get the ip and listening ports on all indexers and return in list of
     <ip>:<port>
     '''
-    client = salt.client.LocalClient(config)
+    client = salt.client.LocalClient()
     listening_ports = client.cmd(
         "G@role:indexer", 'grains.get', arg=['listening_ports'],
         expr_form='compound', timeout=300)
@@ -34,7 +34,7 @@ def join_ad_domain():
     :return:
     '''
 
-    client = salt.client.LocalClient(config)
+    client = salt.client.LocalClient()
 
     minions = client.cmd('os:Windows', 'test.ping', expr_form='grain')
     vm_count = len(minions)
@@ -52,4 +52,4 @@ def join_ad_domain():
 
 
 def create_site_from_pillar():
-    client = salt.client.LocalClient(config)
+    client = salt.client.LocalClient()
