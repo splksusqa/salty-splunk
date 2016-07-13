@@ -62,6 +62,8 @@ def join_ad_domain():
         if 'already' in str(states[state_str]['changes']['ret']).lower():
             vm_count -= 1
 
+    log.error('wait for vm {v}'.format(v=vm_count))
+
     runner = salt.runner.RunnerClient(opts)
     runner.cmd('state.event', arg=['salt/minion/*/start'],
                kwarg={'quiet': True, 'count': vm_count})
