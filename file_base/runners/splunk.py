@@ -74,3 +74,14 @@ def join_ad_domain():
 
 def create_site_from_pillar():
     client = salt.client.LocalClient()
+    runner = salt.runner.RunnerClient(opts)
+
+    pillar = runner.cmd('pillar.show_pillar', [])
+    sites = pillar['sites']
+
+    for site, site_data in sites.items():
+        for minion, minion_data in site.items():
+            client.cmd(minion, 'grains.set',
+                       arg=['role', minion_data['role']],
+                       kwarg={'force': True})
+

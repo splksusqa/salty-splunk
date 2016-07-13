@@ -1,7 +1,7 @@
 #ex.
-#list_config:
+#sites:
+#  site1:
 #    minion_name:
-#        grain:
-#            role:
-#             - search-head
-#
+#      role:
+#        - search-head
+#        - search-head-cluster-member
