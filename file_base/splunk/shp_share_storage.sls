@@ -17,4 +17,8 @@ C:\shp_share:
     - group: nogroup
     - makedirs: True
 
+setup-shareing:
+  cmd.run:
+    - name: net share shp_share=c:\shp_share /GRANT:Everyone,FULL
+
 {% endif %}
