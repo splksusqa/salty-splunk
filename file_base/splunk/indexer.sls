@@ -6,9 +6,8 @@ install-splunk:
     - installed
     - fetcher_arg: {{ pillar['version'] }}
     {% if (grains['os'] == 'Windows' and pillar['win_domain']['domain_name'] != 'NaN') %}
-    - kwargs:
-      LOGON_USERNAME: {{ pillar['win_domain']['domain_name'] }}\{{ pillar['win_domain']['username'] }}
-      LOGON_PASSWORD: {{ pillar['win_domain']['password'] }}
+    - LOGON_USERNAME: {{ pillar['win_domain']['domain_name'] }}\{{ pillar['win_domain']['username'] }}
+    - LOGON_PASSWORD: {{ pillar['win_domain']['password'] }}
     {% endif %}
     - require:
       - sls: splunk.common
