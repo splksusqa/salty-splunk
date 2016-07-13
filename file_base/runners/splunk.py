@@ -1,16 +1,18 @@
 import salt.client
-import os
-import yaml
+import salt.runner
+import salt.config
 import logging
 
 log = logging.getLogger(__name__)
+config = __opts__['conf_file']
+opts = salt.config.master_config('/etc/salt/master')
 
 def get_forward_servers():
     '''
     Get the ip and listening ports on all indexers and return in list of
     <ip>:<port>
     '''
-    client = salt.client.LocalClient(__opts__['conf_file'])
+    client = salt.client.LocalClient(config)
     listening_ports = client.cmd(
         "G@role:indexer", 'grains.get', arg=['listening_ports'],
         expr_form='compound', timeout=300)
@@ -24,3 +26,30 @@ def get_forward_servers():
         for port in listening_ports[key]:
             ret.append(ip + ":" + str(port))
     return ret
+
+
+def join_ad_domain():
+    '''
+    join all windows minion to AD domain
+    :return:
+    '''
+
+    client = salt.client.LocalClient(config)
+
+    minions = client.cmd('os:Windows', 'test.ping', expr_form='grain')
+    vm_count = len(minions)
+
+    result = client.cmd('os:Windows', 'state.apply',
+                        arg=['splunk.windows_domain_member'],
+                        expr_form='grain')
+
+    # wait for minion back online
+    runner = salt.runner.RunnerClient(opts)
+    runner.cmd('state.event', arg='salt/minion/*/start',
+               kwarg={'quiet': True, 'count': vm_count})
+
+    return result
+
+
+def create_site_from_pillar():
+    client = salt.client.LocalClient(config)
