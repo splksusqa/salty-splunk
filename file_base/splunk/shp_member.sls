@@ -36,7 +36,7 @@ include:
 stop_splunk:
   module.run:
     - name: splunk.cli
-    - command: stop -f
+    - command: stop
 
 setup_shp:
   module.run:
