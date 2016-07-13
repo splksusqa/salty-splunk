@@ -139,7 +139,7 @@ class WindowsMsiInstaller(Installer):
         for key, value in kwargs.iteritems():
             install_flags.append('{k}="{v}"'.format(k=key, v=value))
 
-        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}' \
+        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q} ' \
               '/L*V "C:\\msi_install.log"'. \
             format(c=pkg_path, h=self.splunk_home, q='/quiet',
                    f=' '.join(install_flags))
