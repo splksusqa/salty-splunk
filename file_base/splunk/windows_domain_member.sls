@@ -1,7 +1,9 @@
+{% set interfaces = salt.network.interfaces_names() %}
+
 change-dns:
   module.run:
     - name: ip.set_static_dns
-    - iface: Local Area Connection
+    - iface: {{ interfaces[0] }}
     - addrs:
       - {{ pillar['win_domain']['dns1'] }}
       - {{ pillar['win_domain']['dns2'] }}
