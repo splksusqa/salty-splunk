@@ -12,7 +12,7 @@ include:
   - splunk.indexer
 
 map-drive:
-  - cmd.run
+  - cmd.run:
     - name: >
       net use {{ map_drive }}: {{ share_folder_path }}
       /user:{{ pillar['win_domain']['domain_name'] }}
