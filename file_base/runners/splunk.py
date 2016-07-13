@@ -7,6 +7,7 @@ log = logging.getLogger(__name__)
 
 opts = salt.config.master_config('/etc/salt/master')
 
+
 def get_forward_servers():
     '''
     Get the ip and listening ports on all indexers and return in list of
@@ -54,6 +55,13 @@ def join_ad_domain():
 
     # wait for minion back online
     vm_count = len(result)
+
+    # skip if already configured
+    state_str = 'module_|-join-domain_|-system.join_domain_|-run'
+    for minion, states in result.items():
+        if 'already' in str(states[state_str]['changes']['ret']).lower():
+            vm_count -= 1
+
     runner = salt.runner.RunnerClient(opts)
     runner.cmd('state.event', arg=['salt/minion/*/start'],
                kwarg={'quiet': True, 'count': vm_count})
