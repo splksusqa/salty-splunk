@@ -43,9 +43,11 @@ def join_ad_domain():
                         arg=['splunk.windows_domain_member'],
                         expr_form='grain')
 
+    log.error(str(result))
+
     # wait for minion back online
     runner = salt.runner.RunnerClient(opts)
-    runner.cmd('state.event', arg='salt/minion/*/start',
+    runner.cmd('state.event', arg=['salt/minion/*/start'],
                kwarg={'quiet': True, 'count': vm_count})
 
     return result
