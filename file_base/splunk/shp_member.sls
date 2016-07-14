@@ -7,7 +7,7 @@
 {% set sever, ips = ip_dict.popitem() %}
 {% set share_storage_ip = ips[0] %}
 
-{% if ( grains['os'] == 'Windows' %}
+{% if grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
 {% set map_drive = 'x' %}
 
