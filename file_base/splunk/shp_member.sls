@@ -14,9 +14,9 @@
 include:
   - splunk.indexer
 
-#{% set win_domain = pillar['win_domain']['domain_name'] %}
-#{% set win_user = pillar['win_domain']['username'] %}
-#{% set win_pwd = pillar['win_domain']['password'] %}
+{% set win_domain = pillar['win_domain']['domain_name'] %}
+{% set win_user = pillar['win_domain']['username'] %}
+{% set win_pwd = pillar['win_domain']['password'] %}
 #map-drive:
 #  cmd.run:
 #    - name: >

@@ -1,4 +1,7 @@
 {% if grains['os_family'] == 'Windows'%}
+{% set win_domain = pillar['win_domain']['domain_name'] %}
+{% set win_user = pillar['win_domain']['username'] %}
+{% set win_pwd = pillar['win_domain']['password'] %}
 
 win-domain-info-must-have:
   test.check_pillar:
@@ -13,7 +16,7 @@ setup-shareing:
   module.run:
     - name: >
         net share shp_share="c:\shp_share" &
-        icacls "c:\shp_share" /grant tsplkad.com\administrator:(OI)(CI)F /T
+        icacls "c:\shp_share" /grant {{ win_domain }}\{{ win_user }}:(OI)(CI)F /T
     - require:
       - file: C:\shp_share
 
