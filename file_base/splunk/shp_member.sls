@@ -7,13 +7,17 @@
 {% set sever, ips = ip_dict.popitem() %}
 {% set share_storage_ip = ips[0] %}
 
-{% if ( grains['os'] == 'Windows' and
-        pillar['win_domain']['username'] is not none ): %}
+{% if ( grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
 {% set map_drive = 'x' %}
 
 include:
   - splunk.indexer
+
+win-domain-info-must-have:
+  test.check_pillar:
+    - present:
+      - win_domain
 
 map-drive:
   cmd.run:
@@ -21,6 +25,8 @@ map-drive:
         net use {{ map_drive }}: "{{ share_folder_path }}"
         /user:{{ pillar['win_domain']['domain_name'] }}\
         {{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}
+    - require:
+      - test: win-domain-info-must-have
 
 # non windows system
 {% else %}
@@ -47,6 +53,10 @@ stop_splunk:
   module.run:
     - name: splunk.cli
     - command: stop
+    {% if grains['os'] == 'Windows' %}
+    - require:
+      - cmd: map-drive
+    {% endif %}
 
 setup_shp:
   module.run:
@@ -58,7 +68,6 @@ setup_shp:
 {% set splunk_home = grains['splunk_home'] %}
 copy_user_app:
   cmd.run:
-    # splunk_home
     {% if grains['os'] == 'Windows' %}
     - name: |
         robocopy "{{ splunk_home }}\etc\users" {{ map_drive }}:\etc\users /e /xo
