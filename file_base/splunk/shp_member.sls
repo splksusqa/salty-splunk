@@ -14,19 +14,14 @@
 include:
   - splunk.indexer
 
-win-domain-info-must-have:
-  test.check_pillar:
-    - present:
-      - win_domain
-
+{% set win_domain = pillar['win_domain']['domain_name'] %}
+{% set win_user = pillar['win_domain']['username'] %}
+{% set win_pwd = pillar['win_domain']['password'] %}
 map-drive:
   cmd.run:
     - name: >
         net use {{ map_drive }}: "{{ share_folder_path }}"
-        /user:{{ pillar['win_domain']['domain_name'] }}\
-        {{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}
-    - require:
-      - test: win-domain-info-must-have
+        /user:{{ win_domain }}\{{ win_user }} {{ win_pwd }}
 
 # non windows system
 {% else %}
