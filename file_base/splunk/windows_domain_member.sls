@@ -1,10 +1,5 @@
 {% set interfaces = salt.network.interfaces_names() %}
 
-win-domain-info-must-have:
-  test.check_pillar:
-    - present:
-      - win_domain
-
 change-dns:
   module.run:
     - name: ip.set_static_dns

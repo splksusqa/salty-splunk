@@ -3,11 +3,6 @@
 {% set win_user = pillar['win_domain']['username'] %}
 {% set win_pwd = pillar['win_domain']['password'] %}
 
-win-domain-info-must-have:
-  test.check_pillar:
-    - present:
-      - win_domain
-
 C:\shp_share:
   file.directory:
     - makedirs: True
