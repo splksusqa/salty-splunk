@@ -7,8 +7,6 @@ change-dns:
     - addrs:
       - {{ pillar['win_domain']['dns1'] }}
       - {{ pillar['win_domain']['dns2'] }}
-    - require:
-      - test: win-domain-info-must-have
 
 join-domain:
   module.run:
