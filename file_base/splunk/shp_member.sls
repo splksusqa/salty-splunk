@@ -9,19 +9,19 @@
 
 {% if grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
-{% set map_drive = 'x' %}
+#{% set map_drive = 'x' %}
 
 include:
   - splunk.indexer
 
-{% set win_domain = pillar['win_domain']['domain_name'] %}
-{% set win_user = pillar['win_domain']['username'] %}
-{% set win_pwd = pillar['win_domain']['password'] %}
-map-drive:
-  cmd.run:
-    - name: >
-        net use {{ map_drive }}: "{{ share_folder_path }}"
-        /user:{{ win_domain }}\{{ win_user }} {{ win_pwd }}
+#{% set win_domain = pillar['win_domain']['domain_name'] %}
+#{% set win_user = pillar['win_domain']['username'] %}
+#{% set win_pwd = pillar['win_domain']['password'] %}
+#map-drive:
+#  cmd.run:
+#    - name: >
+#        net use {{ map_drive }}: "{{ share_folder_path }}"
+#        /user:{{ win_domain }}\{{ win_user }} {{ win_pwd }}
 
 # non windows system
 {% else %}
@@ -48,10 +48,6 @@ stop_splunk:
   module.run:
     - name: splunk.cli
     - command: stop
-    {% if grains['os'] == 'Windows' %}
-    - require:
-      - cmd: map-drive
-    {% endif %}
 
 setup_shp:
   module.run:
@@ -65,11 +61,12 @@ copy_user_app:
   cmd.run:
     {% if grains['os'] == 'Windows' %}
     - name: |
-        robocopy "{{ splunk_home }}\etc\users" {{ map_drive }}:\etc\users /e /xo
-        robocopy "{{ splunk_home }}\etc\apps" {{ map_drive }}:\etc\apps /e /xo
+        robocopy "{{ splunk_home }}\etc\users" "{{ share_folder_path }}:\etc\users" /e /xo /NFL
+        robocopy "{{ splunk_home }}\etc\apps" "{{ share_folder_path }}:\etc\apps" /e /xo /NFL
+    - runas: {{ win_domain }}\{{ win_user }}
+    - password: {{ win_pwd }}
     - require:
       - module: setup_shp
-      - cmd: map-drive
     {% else %}
     - name: |
         cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc

@@ -10,10 +10,10 @@ C:\shp_share:
     - makedirs: True
 
 setup-shareing:
-  cmd.run:
+  module.run:
     - name: >
         net share shp_share="c:\shp_share" &
-        icacls "c:\shp_share" /grant EVERYONE:(OI)(CI)F /T
+        icacls "c:\shp_share" /grant tsplkad.com\administrator:(OI)(CI)F /T
     - require:
       - file: C:\shp_share
 
