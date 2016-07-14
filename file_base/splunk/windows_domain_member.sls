@@ -1,5 +1,6 @@
 {% set interfaces = salt.network.interfaces_names() %}
 
+{% if pillar['']
 change-dns:
   module.run:
     - name: ip.set_static_dns

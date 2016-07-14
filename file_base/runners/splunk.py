@@ -72,16 +72,50 @@ def join_ad_domain():
     return result
 
 
-def create_site_from_pillar():
+def create_site():
     client = salt.client.LocalClient()
     runner = salt.runner.RunnerClient(opts)
 
-    pillar = runner.cmd('pillar.show_pillar', [])
-    sites = pillar['sites']
+    # join to domain
+    runner.cmd('splunk.join_ad_domain')
 
+    # from pillar list
+    pillar = runner.cmd('pillar.show_pillar', [])
+    try:
+        sites = pillar['sites']
+        _set_grains(client, sites)
+    except KeyError:
+        pass
+
+    try:
+        sites = pillar['roles_array_site']
+
+        len(sites)
+    except KeyError:
+        pass
+
+    result = runner.cmd('state.orch', arg=['orchestration.splunk'])
+
+    # check result
+
+
+    return True
+
+
+def _set_grains(client, sites):
+    # check all minion is connected
     for site, site_data in sites.items():
         for minion, minion_data in site.items():
-            client.cmd(minion, 'grains.set',
-                       arg=['role', minion_data['role']],
-                       kwarg={'force': True})
+            result = client.cmd(minion, 'test.ping')
+            if not result['ret']:
+                raise EnvironmentError('{m} is not up'.format(m=minion))
 
+    # set grains
+    for site, site_data in sites.items():
+        for minion, minion_data in site.items():
+            result = client.cmd(minion, 'grains.set',
+                                arg=['role', minion_data['role']],
+                                kwarg={'force': True})
+            if not result['ret']:
+                raise EnvironmentError(
+                    '{m} is fail to set grains'.format(m=minion))

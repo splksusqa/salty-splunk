@@ -1,10 +1,14 @@
 # docs of shp
 # http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
 
-{% set server, ips = salt['mine.get']('role:search-head-pooling-share-storage', 'network.ip_addrs', 'grain').popitem() %}
+{% set ip_dict = salt['mine.get']('role:search-head-pooling-share-storage',
+                                  'network.ip_addrs', 'grain')
+%}
+{% set sever, ips = ip_dict.popitem() %}
 {% set share_storage_ip = ips[0] %}
 
-{% if grains['os'] == 'Windows' %}
+{% if ( grains['os'] == 'Windows' and
+        pillar['win_domain']['username'] is not none ): %}
 {% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
 {% set map_drive = 'x' %}
 
@@ -12,12 +16,11 @@ include:
   - splunk.indexer
 
 map-drive:
-  - cmd.run:
+  cmd.run:
     - name: >
-        net use {{ map_drive }}: {{ share_folder_path }}
-        /user:{{ pillar['win_domain']['domain_name'] }}
-        \\{{ pillar['win_domain']['username'] }}
-         {{ pillar['win_domain']['password'] }}
+        net use {{ map_drive }}: "{{ share_folder_path }}"
+        /user:{{ pillar['win_domain']['domain_name'] }}\
+        {{ pillar['win_domain']['username'] }} {{ pillar['win_domain']['password'] }}
 
 # non windows system
 {% else %}
@@ -38,8 +41,6 @@ include:
     - persist: True
   require:
     - file: {{ share_folder_path }}
-
-
 {% endif %}
 
 stop_splunk:
@@ -62,13 +63,16 @@ copy_user_app:
     - name: |
         robocopy "{{ splunk_home }}\etc\users" {{ map_drive }}:\etc\users /e /xo
         robocopy "{{ splunk_home }}\etc\apps" {{ map_drive }}:\etc\apps /e /xo
+    - require:
+      - module: setup_shp
+      - cmd: map-drive
     {% else %}
     - name: |
         cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc
         cp -r -n {{ splunk_home }}/etc/apps /opt/shp_share/etc
-    {% endif %}
     - require:
       - module: setup_shp
+    {% endif %}
 
 start_splunk:
   module.run:
