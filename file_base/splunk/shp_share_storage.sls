@@ -11,7 +11,9 @@ C:\shp_share:
 
 setup-shareing:
   cmd.run:
-    - name: net share shp_share=c:\shp_share
+    - name: |
+        net share shp_share="c:\shp_share"
+        icacls "c:\shp_share" /grant EVERYONE:(OI)(CI)F /T
     - require:
       - file: C:\shp_share
 
