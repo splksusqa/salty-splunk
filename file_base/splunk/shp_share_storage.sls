@@ -13,7 +13,7 @@ C:\shp_share:
     - makedirs: True
 
 setup-shareing:
-  module.run:
+  cmd.run:
     - name: >
         net share shp_share="c:\shp_share" &
         icacls "c:\shp_share" /grant {{ win_domain }}\{{ win_user }}:(OI)(CI)F /T
