@@ -62,8 +62,9 @@ copy_user_app:
         "{{ share_folder_path }}\etc\users" /e /xo /NFL /NDL &
         robocopy "{{ splunk_home }}\etc\apps"
         "{{ share_folder_path }}\etc\apps" /e /xo /NFL /NDL
-    - runas: {{ win_domain }}\{{ win_user }}
-    - password: {{ win_pwd }}
+    - kwargs:
+        runas: {{ win_domain }}\{{ win_user }}
+        password: {{ win_pwd }}
     - require:
       - module: setup_shp
     {% else %}
