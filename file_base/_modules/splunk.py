@@ -65,7 +65,8 @@ def cli(command):
 
     if domain_name:
         password = __salt__['pillar.get']('win_domain:password', default=None)
-        runas = __salt__['pillar.get']('win_domain:username', default=None)
+        user = __salt__['pillar.get']('win_domain:username', default=None)
+        runas = domain_name + '\\' + user
     else:
         runas = None
         password = None
