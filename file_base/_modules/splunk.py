@@ -50,18 +50,22 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
     return splunk
 
 
-def cli(command):
+def cli(command, runas=None, password=None):
     '''
     run splunk cli
 
+    :param password: when specified runas, give the password of the user
+    :param runas: for search head pooling command, command need to run under domain user
     :param command: splunk cli command, ex. 'add listen 9997'
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                            c=command)
-    return __salt__['cmd.run_all'](cmd)
-
+    if runas and password:
+        return __salt__['cmd.run_all'](cmd, runas=runas, password=password)
+    else:
+        return __salt__['cmd.run_all'](cmd)
 
 class InstallerFactory(object):
     def __init__(self):
