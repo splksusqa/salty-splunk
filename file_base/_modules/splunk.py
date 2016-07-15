@@ -60,7 +60,7 @@ def cli(command, runas=None, password=None):
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
-    cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
+    cmd = '"{p}" {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                            c=command)
     if runas and password:
         return __salt__['cmd.run_all'](cmd, runas=runas, password=password)
