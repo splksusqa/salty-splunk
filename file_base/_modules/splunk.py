@@ -33,11 +33,11 @@ def _random_sleep():
     to avoid heart beat failure
     '''
     m_sec = random.randint(0, 1500)
-    time.sleep(m_sec/100)
+    time.sleep(m_sec / 100)
 
 
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
-        sharing='system'):
+                sharing='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -50,22 +50,31 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
     return splunk
 
 
-def cli(command, runas=None, password=None):
+def cli(command):
     '''
     run splunk cli
 
     :param password: when specified runas, give the password of the user
-    :param runas: for search head pooling command, command need to run under domain user
-    :param command: splunk cli command, ex. 'add listen 9997'
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     cmd = '"{p}" {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
-                           c=command)
+                             c=command)
+
+    domain_name = __salt__['pillar.get']('win_domain:domain_name', default=None)
+
+    if domain_name:
+        password = __salt__['pillar.get']('win_domain:password', default=None)
+        runas = __salt__['pillar.get']('win_domain:username', default=None)
+    else:
+        runas = None
+        password = None
+
     if runas and password:
         return __salt__['cmd.run_all'](cmd, runas=runas, password=password)
     else:
         return __salt__['cmd.run_all'](cmd)
+
 
 class InstallerFactory(object):
     def __init__(self):
@@ -160,7 +169,8 @@ class WindowsMsiInstaller(Installer):
         elif self.splunk_type is None:
             result = False
         else:
-            raise Exception, "Unexpected splunk_type: {s}".format(s=self.splunk_type)
+            raise Exception, "Unexpected splunk_type: {s}".format(
+                s=self.splunk_type)
 
         log.debug('service.available return : %s' % result)
         return result
@@ -461,7 +471,7 @@ def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
 
 
 def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
-        sharing='system'):
+                      sharing='system'):
     '''
     check if a stanza is existed in the given conf file
 
@@ -487,7 +497,7 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
-        search_factor=2):
+                          search_factor=2):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -509,7 +519,7 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
 
 
 def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
-        replication_port=9887):
+                         replication_port=9887):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
@@ -608,7 +618,7 @@ def config_shcluster_member(
           '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
           '{replication_factor_str} ' \
           '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
-          '-secret {security_key} -shcluster_label {label}'\
+          '-secret {security_key} -shcluster_label {label}' \
         .format(username='admin', password='changeme',
                 mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
                 replication_port=replication_port,
@@ -966,19 +976,19 @@ def config_dmc():
     else:
         config_search_peer(searchheads + license_master + deployer + indexers)
 
-
     # set distsearch groups by editing distsearch.conf
     # indexer
     config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
-        {'servers': ','.join(indexers), 'default': True}, do_restart=False)
+                {'servers': ','.join(indexers), 'default': True},
+                do_restart=False)
 
     # search head
     config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
-        {'servers': ','.join(searchheads)}, do_restart=False)
+                {'servers': ','.join(searchheads)}, do_restart=False)
 
     # kv store
     config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
-        {'servers': ','.join(searchheads)}, do_restart=False)
+                {'servers': ','.join(searchheads)}, do_restart=False)
 
     # license master
     _config_dmc_group(
@@ -1011,7 +1021,7 @@ def config_dmc():
             l=__pillar__['indexer_cluster']['cluster_label'])
 
         config_conf(
-            'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
+            'distsearch', stanza, {"servers": ",".join(indexers + searchheads)},
             do_restart=False)
 
     # config shcluster group if shcluster is enabled
@@ -1020,25 +1030,26 @@ def config_dmc():
             l=__pillar__['search_head_cluster']['shcluster_label'])
 
         config_conf(
-            'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
+            'distsearch', stanza, {"servers": ",".join(searchheads + deployer)},
             do_restart=False)
 
     # set is_configured flag in splunk_management_console app
     config_conf('app', 'install', {'is_configured': True}, owner="admin",
-        app="splunk_management_console", sharing="app", do_restart=False)
+                app="splunk_management_console", sharing="app",
+                do_restart=False)
 
     # add all machines to splunk_management_console_assets.conf
     all_peers = indexers + searchheads + deployer + deployment_server + \
-        license_master
+                license_master
     config_conf('splunk_management_console_assets', 'settings',
-        {'configuredPeers': ','.join(all_peers)}, owner="admin",
-        app="splunk_management_console", sharing="app", do_restart=True)
+                {'configuredPeers': ','.join(all_peers)}, owner="admin",
+                app="splunk_management_console", sharing="app", do_restart=True)
 
     # Run the "DMC Asset - Build Full" saved search
     path = ('https://localhost:8089/servicesNS/nobody/splunk_management_console'
             '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
     response = requests.post(path, auth=("admin", "changeme"),
-        data={'trigger_actions': 1}, verify=False)
+                             data={'trigger_actions': 1}, verify=False)
 
 
 def get_crash_log():
@@ -1052,12 +1063,13 @@ def get_crash_log():
 
     return crash_file
 
+
 def is_dmc_configured():
     '''
     check if dmc is configured
     '''
     configured = read_conf('app', 'install', 'is_configured', owner="admin",
-        app="splunk_management_console", sharing="app")
+                           app="splunk_management_console", sharing="app")
     if "0" == configured or configured is None:
         return False
     else:
