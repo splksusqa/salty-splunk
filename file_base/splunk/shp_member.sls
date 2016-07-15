@@ -55,8 +55,8 @@ copy_user_app:
   cmd.run:
     {% if grains['os'] == 'Windows' %}
     - name: |
-        robocopy "{{ splunk_home }}\etc\users" "{{ share_folder_path }}:\etc\users" /e /xo /NFL
-        robocopy "{{ splunk_home }}\etc\apps" "{{ share_folder_path }}:\etc\apps" /e /xo /NFL
+        robocopy "{{ splunk_home }}\etc\users" "{{ share_folder_path }}\etc\users" /e /xo /NFL
+        robocopy "{{ splunk_home }}\etc\apps" "{{ share_folder_path }}\etc\apps" /e /xo /NFL
     - runas: {{ win_domain }}\{{ win_user }}
     - password: {{ win_pwd }}
     - require:
