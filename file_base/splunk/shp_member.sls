@@ -80,5 +80,6 @@ start_splunk:
     - name: splunk.cli
     - command: start
     - require:
-      - cmd: copy_user_app
+      - module: stop_splunk
+    - order: last
 
