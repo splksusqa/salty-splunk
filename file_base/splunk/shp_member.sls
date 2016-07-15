@@ -47,8 +47,6 @@ setup_shp:
   module.run:
      - name: splunk.cli
      - command: 'pooling enable {{ share_folder_path }}'
-     - runas: {{ win_domain }}\{{ win_user }}
-     - password: {{ win_pwd }}
      - require:
        - module: stop_splunk
 
