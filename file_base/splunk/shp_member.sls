@@ -9,7 +9,6 @@
 
 {% if grains['os'] == 'Windows' %}
 {% set share_folder_path = '\\\\' + share_storage_ip + '\\shp_share' %}
-#{% set map_drive = 'x' %}
 
 include:
   - splunk.indexer
@@ -17,11 +16,6 @@ include:
 {% set win_domain = pillar['win_domain']['domain_name'] %}
 {% set win_user = pillar['win_domain']['username'] %}
 {% set win_pwd = pillar['win_domain']['password'] %}
-#map-drive:
-#  cmd.run:
-#    - name: >
-#        net use {{ map_drive }}: "{{ share_folder_path }}"
-#        /user:{{ win_domain }}\{{ win_user }} {{ win_pwd }}
 
 # non windows system
 {% else %}
@@ -53,6 +47,8 @@ setup_shp:
   module.run:
      - name: splunk.cli
      - command: 'pooling enable {{ share_folder_path }}'
+     - runas: {{ win_domain }}\{{ win_user }}
+     - password: {{ win_pwd }}
      - require:
        - module: stop_splunk
 
