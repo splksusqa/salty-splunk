@@ -10,8 +10,9 @@ C:\shp_share:
 setup-shareing:
   cmd.run:
     - name: >
-        net share shp_share="c:\shp_share" "/GRANT:tsplkad.com\administrator,Full" &
-        icacls "c:\shp_share" /grant {{ win_domain }}\{{ win_user }}:(OI)(CI)F /T
+        net share shp_share="c:\shp_share"
+        "/GRANT:EVERYONE,Full" &
+        icacls "c:\shp_share" /grant EVERYONE:(OI)(CI)F /T
     - require:
       - file: C:\shp_share
 
