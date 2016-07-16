@@ -419,7 +419,8 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
 
         result = __salt__['cmd.run_all'](cmd, runas=runas, password=password)
 
-        if result['retcode'] != 0 and result['retcode'] != 1:
+        # ref http://ss64.com/nt/robocopy-exit.html
+        if result['retcode'] > 7:
             ret['result'] = False
             ret['comment'] = result['stdout'] + result['stderr']
             return ret
@@ -427,7 +428,7 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
             ret['changes'] = {
                 'new': 'files copied'
             }
-            ret['comment'] += result['stdout']
+            ret['comment'] += (result['stdout'] + result['stderr'])
 
     return ret
 
