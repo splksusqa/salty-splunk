@@ -383,9 +383,9 @@ def shared_folder_created(name, shared_name, folder_path):
            'result': True,
            'comment': ''}
 
-    cmd = 'net share {s}="{f}" "/GRANT:EVERYONE,Full"'.format(
+    cmd = r'net share {s}="{f}" "/GRANT:EVERYONE,Full"'.format(
         s=shared_name, f=os.path.normpath(folder_path))
-    result = __salt__['cmd.run_all'](cmd=cmd)
+    result = __salt__['cmd.run_all'](cmd=cmd, python_shell=True)
 
     if result['retcode'] == 2 and ('already' in result['stderr']):
         ret['comment'] = result['stderr']
