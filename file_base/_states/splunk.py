@@ -424,6 +424,9 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
             ret['comment'] = result['stdout'] + result['stderr']
             return ret
         else:
+            ret['changes'] = {
+                'new': 'files copied'
+            }
             ret['comment'] += result['stdout']
 
     return ret
