@@ -111,10 +111,14 @@ def destroy_site():
     # clean up shared storage
     share_name = 'shp_share'
     result = client.cmd('role:search-head-pooling-shared-storage',
-               'cmd.run', 'net share %s /delete' % share_name)
+                        'cmd.run',
+                        arg=['net share %s /delete' % share_name],
+                        expr_form='grain')
     log.warn(result)
     result = client.cmd('role:search-head-pooling-shared-storage',
-               'file.remove', 'C:\\shp_share')
+                        'file.remove',
+                        arg=['C:\\shp_share'],
+                        expr_form='grain')
     log.warn(result)
 
 
