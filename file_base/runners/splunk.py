@@ -105,14 +105,17 @@ def create_site():
 def destroy_site():
     client = salt.client.LocalClient()
 
-    client.cmd('*', 'splunk.uninstall')
+    result = client.cmd('*', 'splunk.uninstall')
+    log.warn(result)
 
     # clean up shared storage
     share_name = 'shp_share'
-    client.cmd('role:search-head-pooling-shared-storage',
+    result = client.cmd('role:search-head-pooling-shared-storage',
                'cmd.run', 'net share %s /delete' % share_name)
-    client.cmd('role:search-head-pooling-shared-storage',
+    log.warn(result)
+    result = client.cmd('role:search-head-pooling-shared-storage',
                'file.remove', 'C:\\shp_share')
+    log.warn(result)
 
 
 def _set_grains(client, sites):
