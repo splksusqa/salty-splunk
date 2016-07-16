@@ -1,7 +1,6 @@
 import logging
 
 log = logging.getLogger(__name__)
-salt_obj = __salt__
 
 
 def installed(name, **kwargs):
@@ -12,11 +11,11 @@ def installed(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    if salt_obj['splunk.is_installed']():
+    if __salt__['splunk.is_installed']():
         ret['comment'] = 'Splunk is already installed.'
         return ret
 
-    installed_result = salt_obj['splunk.install'](**kwargs)
+    installed_result = __salt__['splunk.install'](**kwargs)
 
     if 0 == installed_result['retcode']:
         ret['result'] = True
@@ -43,7 +42,7 @@ def configured(name, conf_name, stanza_name, data=None, do_restart=True,
     key_to_changed = []
     if data:
         for key, value in data.items():
-            current_value = salt_obj['splunk.read_conf'](
+            current_value = __salt__['splunk.read_conf'](
                 conf_name, stanza_name, key)
             if str(current_value) != str(value):
                 key_to_changed.append(key)
@@ -58,7 +57,7 @@ def configured(name, conf_name, stanza_name, data=None, do_restart=True,
         new_data[key] = data[key]
 
     try:
-        salt_obj['splunk.config_conf'](conf_name, stanza_name, new_data,
+        __salt__['splunk.config_conf'](conf_name, stanza_name, new_data,
                                        do_restart, app, owner, sharing)
         ret['result'] = True
         ret['comment'] = 'config changed successfully'
@@ -82,7 +81,7 @@ def cluster_master_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_cluster_master'](**kwargs)
+        __salt__['splunk.config_cluster_master'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster master successfully"
         ret['changes'] = {"new": 'configured'}
@@ -102,7 +101,7 @@ def cluster_slave_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_cluster_slave'](**kwargs)
+        __salt__['splunk.config_cluster_slave'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster slave successfully"
         ret['changes'] = {"new": 'configured'}
@@ -122,7 +121,7 @@ def cluster_searchhead_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_cluster_searchhead'](**kwargs)
+        __salt__['splunk.config_cluster_searchhead'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as cluster SH successfully"
         ret['changes'] = {"new": 'configured'}
@@ -142,7 +141,7 @@ def shcluster_deployer_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_shcluster_deployer'](**kwargs)
+        __salt__['splunk.config_shcluster_deployer'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as SHC deployer successfully"
         ret['changes'] = {"new": 'configured'}
@@ -161,7 +160,7 @@ def shcluster_member_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_shcluster_member'](**kwargs)
+        __salt__['splunk.config_shcluster_member'](**kwargs)
         ret['result'] = True
         ret['comment'] = "Splunk was configured as SHC member successfully"
         ret['changes'] = {"new": 'configured'}
@@ -179,7 +178,7 @@ def shcluster_captain_bootstrapped(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    bootstrap_result = salt_obj['splunk.bootstrap_shcluster_captain'](**kwargs)
+    bootstrap_result = __salt__['splunk.bootstrap_shcluster_captain'](**kwargs)
 
     if 0 == bootstrap_result['retcode']:
         ret['result'] = True
@@ -200,11 +199,11 @@ def search_peer_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    servers_need_to_be_added = salt_obj['splunk.get_list_of_mgmt_uri'](
+    servers_need_to_be_added = __salt__['splunk.get_list_of_mgmt_uri'](
         'indexer')
 
     # read current servers is configured
-    current_servers = salt_obj['splunk.read_conf'](
+    current_servers = __salt__['splunk.read_conf'](
         'distsearch', 'distributedSearch', key_name='servers')
     servers_need_to_be_removed = []
     if current_servers:
@@ -223,8 +222,8 @@ def search_peer_configured(name, **kwargs):
         return ret
 
     try:
-        salt_obj['splunk.remove_search_peer'](servers_need_to_be_removed)
-        salt_obj['splunk.config_search_peer'](servers_need_to_be_added)
+        __salt__['splunk.remove_search_peer'](servers_need_to_be_removed)
+        __salt__['splunk.config_search_peer'](servers_need_to_be_added)
         ret['result'] = True
         ret['comment'] = "Search peer was configured successfully"
         ret['changes'] = {"new": 'indexer added %s \n indexer removed %s' % (
@@ -244,7 +243,7 @@ def deployment_client_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_deployment_client'](**kwargs)
+        __salt__['splunk.config_deployment_client'](**kwargs)
         ret['result'] = True
         ret['comment'] = "deploymeny client was configured successfully"
         ret['changes'] = {'new': "installed"}
@@ -267,7 +266,7 @@ def license_client_configured(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.config_license_slave'](**kwargs)
+        __salt__['splunk.config_license_slave'](**kwargs)
         ret['result'] = True
         ret['comment'] = "configured as a license slave"
         ret['changes'] = {'new': "configured as a license slave"}
@@ -284,7 +283,7 @@ def license_added(name, **kwargs):
            'comment': ''}
 
     try:
-        salt_obj['splunk.add_license'](**kwargs)
+        __salt__['splunk.add_license'](**kwargs)
         ret['result'] = True
         ret['comment'] = "configured as a license master"
         ret['changes'] = {'new': "license added"}
@@ -300,15 +299,15 @@ def forward_servers_added(name, servers=None):
            'result': True,
            'comment': ''}
 
-    servers = salt_obj['publish.runner']('splunk.get_forward_servers') \
+    servers = __salt__['publish.runner']('splunk.get_forward_servers') \
         if servers is None else servers
     try:
         servers = [servers, ] if type(servers) is not list else servers
         for server in servers:
             # if the server is added already, skip
             stanza = "tcpout-server://{s}".format(s=server)
-            if not salt_obj['splunk.is_stanza_existed']('outputs', stanza):
-                salt_obj['splunk.add_forward_server'](server)
+            if not __salt__['splunk.is_stanza_existed']('outputs', stanza):
+                __salt__['splunk.add_forward_server'](server)
 
         ret['result'] = True
         ret['comment'] = "{s} have been added as forward-server" \
@@ -331,10 +330,10 @@ def listening_ports_enabled(name, ports):
     try:
         for port in ports:
             stanza = "splunktcp://{p}".format(p=port)
-            existed = salt_obj['splunk.is_stanza_existed'](
+            existed = __salt__['splunk.is_stanza_existed'](
                 'inputs', stanza, owner='admin', app='search', sharing='user')
             if not existed:
-                salt_obj['splunk.enable_listen'](port)
+                __salt__['splunk.enable_listen'](port)
         ret['result'] = True
         ret['comment'] = "{p} have been enabled as listening port" \
             .format(p=str(ports))
@@ -356,11 +355,11 @@ def dmc_configured(name):
            'comment': ''}
 
     try:
-        if salt_obj['splunk.is_dmc_configured']():
+        if __salt__['splunk.is_dmc_configured']():
             ret['result'] = True
             ret['comment'] = "dmc is already configured, nothing changed"
         else:
-            salt_obj['splunk.config_dmc']()
+            __salt__['splunk.config_dmc']()
             ret['result'] = True
             ret['comment'] = "dmc has been configured on this instance"
             ret['changes'] = {'new': "dmc is configured"}
@@ -385,7 +384,7 @@ def shared_folder_created(name, shared_name, folder_path):
 
     cmd = 'net share {s}="{f}" "/GRANT:EVERYONE,Full"'.format(s=shared_name,
                                                               f=folder_path)
-    result = salt_obj['cmd.run_all'](cmd=cmd)
+    result = __salt__['cmd.run_all'](cmd=cmd)
 
     if result['retcode'] == 2 and ('already' in result['stderr']):
         ret['comment'] = result['stderr']
@@ -415,7 +414,7 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
                                                  s=shared_folder_path,
                                                  f=f)
 
-        result = salt_obj['cmd.run_all'](cmd, runas=runas, password=password)
+        result = __salt__['cmd.run_all'](cmd, runas=runas, password=password)
 
         if result['retcode'] != 0 and result['retcode'] != 1:
             ret['result'] = False
