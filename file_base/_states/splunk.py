@@ -1,4 +1,5 @@
 import logging
+
 log = logging.getLogger(__name__)
 salt_obj = __salt__
 
@@ -24,7 +25,7 @@ def installed(name, **kwargs):
     else:
         ret['result'] = False
         ret['comment'] = "Splunk was not installed: {s}".format(
-                s=installed_result['stderr'])
+            s=installed_result['stderr'])
     return ret
 
 
@@ -88,7 +89,7 @@ def cluster_master_configured(name, **kwargs):
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=str(err))
+            r=str(err))
     return ret
 
 
@@ -108,7 +109,7 @@ def cluster_slave_configured(name, **kwargs):
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=str(err))
+            r=str(err))
     return ret
 
 
@@ -128,7 +129,7 @@ def cluster_searchhead_configured(name, **kwargs):
     except Exception as err:
         ret['result'] = False
         ret['comment'] = "Something went wrong. Reason: {r}".format(
-                r=str(err))
+            r=str(err))
     return ret
 
 
@@ -187,7 +188,7 @@ def shcluster_captain_bootstrapped(name, **kwargs):
     else:
         ret['result'] = False
         ret['comment'] = "Something went wrong: {s}".format(
-                s=bootstrap_result['stderr'])
+            s=bootstrap_result['stderr'])
     return ret
 
 
@@ -199,7 +200,8 @@ def search_peer_configured(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    servers_need_to_be_added = salt_obj['splunk.get_list_of_mgmt_uri']('indexer')
+    servers_need_to_be_added = salt_obj['splunk.get_list_of_mgmt_uri'](
+        'indexer')
 
     # read current servers is configured
     current_servers = salt_obj['splunk.read_conf'](
@@ -309,7 +311,7 @@ def forward_servers_added(name, servers=None):
                 salt_obj['splunk.add_forward_server'](server)
 
         ret['result'] = True
-        ret['comment'] = "{s} have been added as forward-server"\
+        ret['comment'] = "{s} have been added as forward-server" \
             .format(s=str(servers))
         ret['changes'] = {'new': servers}
 
@@ -334,7 +336,7 @@ def listening_ports_enabled(name, ports):
             if not existed:
                 salt_obj['splunk.enable_listen'](port)
         ret['result'] = True
-        ret['comment'] = "{p} have been enabled as listening port"\
+        ret['comment'] = "{p} have been enabled as listening port" \
             .format(p=str(ports))
         ret['changes'] = {'new': ports}
 
@@ -394,3 +396,32 @@ def share_folder_created(name, share_name, folder_path):
     else:
         ret['result'] = False
         ret['comment'] = result['stdout'] + result['stderr']
+
+    return ret
+
+
+def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
+                                runas, password):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    folders = ['\\etc\\users', '\\etc\\apps']
+
+    for f in folders:
+        cmd = ' robocopy "{h}{f}" ' \
+              '"{s}{f}" /e /xo /NFL /NDL'.format(h=splunk_home,
+                                                 s=shared_folder_path,
+                                                 f=f)
+
+        result = salt_obj['cmd.run_all'](cmd, runas=runas, password=password)
+
+        if result['retcode'] != 0 and result['retcode'] != 1:
+            ret['result'] = False
+            ret['comment'] = result['stdout'] + result['stderr']
+            return ret
+        else:
+            ret['comment'] += result['stdout']
+
+    return ret

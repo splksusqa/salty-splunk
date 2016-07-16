@@ -54,28 +54,23 @@ setup_shp:
 copy_user_app:
 # use module run because robocopy would return exit code 1
 # for new added folder
-  module.run:
-    {% if grains['os'] == 'Windows' %}
+  {% if grains['os'] == 'Windows' %}
+  pooling_shared_files_copied:
     - name: cmd.run
-    - cmd: >
-        robocopy "{{ splunk_home }}\etc\users"
-        "{{ share_folder_path }}\etc\users" /e /xo /NFL /NDL &
-        robocopy "{{ splunk_home }}\etc\apps"
-        "{{ share_folder_path }}\etc\apps" /e /xo /NFL /NDL
+    - splunk_home: {{ splunk_home }}
+    - shared_folder_path: {{ share_folder_path }}
     - runas: {{ win_domain }}\{{ win_user }}
-    - kwargs:
-        # this should not be in kwargs, should be bug of salt
-        password: {{ win_pwd }}
+    - password: {{ win_pwd }}
     - require:
       - module: setup_shp
-    {% else %}
-    - name: cmd.run
-    - cmd: >
+  {% else %}
+  cmd.run:
+    - name: >
         cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc &&
         cp -r -n {{ splunk_home }}/etc/apps /opt/shp_share/etc
     - require:
       - module: setup_shp
-    {% endif %}
+  {% endif %}
 
 start_splunk:
   module.run:
