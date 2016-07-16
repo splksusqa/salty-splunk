@@ -8,11 +8,9 @@ C:\shp_share:
     - makedirs: True
 
 setup-shareing:
-  cmd.run:
-    - name: >
-        net share shp_share="c:\shp_share"
-        "/GRANT:EVERYONE,Full" &
-        icacls "c:\shp_share" /grant EVERYONE:(OI)(CI)F /T
+  splunk.shared_folder_created:
+    - share_name: shp_share
+    - folder_path: "c:\shp_share"
     - require:
       - file: C:\shp_share
 

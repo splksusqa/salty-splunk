@@ -102,6 +102,16 @@ def create_site():
     return True
 
 
+def destroy_site():
+    client = salt.client.LocalClient()
+
+    client.cmd('*', 'splunk.uninstall')
+    client.cmd('role:shp')
+
+
+
+
+
 def _set_grains(client, sites):
     # check all minion is connected
     for site, site_data in sites.items():

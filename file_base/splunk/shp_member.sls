@@ -64,6 +64,7 @@ copy_user_app:
         "{{ share_folder_path }}\etc\apps" /e /xo /NFL /NDL
     - runas: {{ win_domain }}\{{ win_user }}
     - kwargs:
+        # this should not be in kwargs, should be bug of salt
         password: {{ win_pwd }}
     - require:
       - module: setup_shp
