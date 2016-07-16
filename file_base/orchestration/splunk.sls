@@ -82,7 +82,7 @@ distributed_search_head_setup:
 # 5 SHP
 search_head_pooling_share_storage_setup:
   salt.state:
-    - tgt: 'role:search-head-pooling-share-storage'
+    - tgt: 'role:search-head-pooling-shared-storage'
     - tgt_type: grain
     - sls: splunk.shp_share_storage
     - order: 5

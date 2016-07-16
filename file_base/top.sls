@@ -53,9 +53,9 @@ base:
     - match: grain
     - splunk.indexer
 
-  role:search-head-pooling-share-storage:
+  role:search-head-pooling-shared-storage:
     - match: grain
-    - splunk.shp_share_storage
+    - splunk.shp_shared_storage
 
   role:search-head-pooling-member:
     - match: grain

@@ -1,7 +1,7 @@
 # docs of shp
 # http://docs.splunk.com/Documentation/Splunk/6.4.1/DistSearch/Createasearchheadpool
 
-{% set ip_dict = salt['mine.get']('role:search-head-pooling-share-storage',
+{% set ip_dict = salt['mine.get']('role:search-head-pooling-shared-storage',
                                   'network.ip_addrs', 'grain')
 %}
 {% set sever, ips = ip_dict.popitem() %}
