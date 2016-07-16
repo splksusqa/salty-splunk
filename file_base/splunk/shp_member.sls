@@ -55,7 +55,7 @@ copy_user_app:
 # use module run because robocopy would return exit code 1
 # for new added folder
   {% if grains['os'] == 'Windows' %}
-  pooling_shared_files_copied:
+  splunk.pooling_shared_files_copied:
     - name: cmd.run
     - splunk_home: {{ splunk_home }}
     - shared_folder_path: {{ share_folder_path }}
