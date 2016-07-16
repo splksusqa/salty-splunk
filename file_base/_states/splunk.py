@@ -392,7 +392,7 @@ def shared_folder_created(name, shared_name, folder_path):
         return ret
 
     if result['retcode'] == 0:
-        ret['changes'] = '{s} is shared'.format(s=shared_name)
+        ret['changes'] = {'new': '{s} is shared'.format(s=shared_name)}
     else:
         ret['result'] = False
         ret['comment'] = result['stdout'] + result['stderr']
@@ -407,13 +407,15 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
            'result': True,
            'comment': ''}
 
-    folders = ['\\etc\\users', '\\etc\\apps']
+    shared_folder_path = os.path.normpath(shared_folder_path)
+    folders = ['users', 'apps']
 
     for f in folders:
-        cmd = ' robocopy "{h}{f}" ' \
-              '"{s}{f}" /e /xo /NFL /NDL'.format(h=splunk_home,
-                                                 s=shared_folder_path,
-                                                 f=f)
+        from_folder = os.path.join(splunk_home, 'etc', f)
+        to_folder = os.path.join(shared_folder_path, 'etc', f)
+
+        cmd = r' robocopy "{f}" "{t}" /e /xo /NFL /NDL'.format(
+            h=splunk_home, t=to_folder, f=from_folder)
 
         result = __salt__['cmd.run_all'](cmd, runas=runas, password=password)
 
