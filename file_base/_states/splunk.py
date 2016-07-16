@@ -430,3 +430,30 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
             ret['comment'] += result['stdout']
 
     return ret
+
+
+def pooling_enabled(name, shared_folder):
+    ret = {'name': name,
+           'changes': {},
+           'result': True,
+           'comment': ''}
+
+    pooling_status = __salt__['splunk.cli']('pooling display')
+
+    if 'enabled' in pooling_status['stdout']:
+        ret['comment'] = 'pooling is already enabled'
+        return ret
+
+    # deal with windows path
+    shared_folder = os.path.normpath(shared_folder)
+    result = __salt__['splunk.cli'](
+        r'pooling enable {s}'.format(s=shared_folder))
+
+    if result['retcode'] != 0:
+        ret['result'] = False
+        ret['comment'] = result['stdout'] + result['stderr']
+        return ret
+
+    ret['changes'] = {'new': 'pooling enabled'}
+    ret['comment'] = result['stdout']
+    return ret

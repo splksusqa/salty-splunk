@@ -44,9 +44,8 @@ stop_splunk:
     - command: stop
 
 setup_shp:
-  module.run:
-     - name: splunk.cli
-     - command: 'pooling enable {{ share_folder_path }}'
+  splunk.pooling_enabled:
+     - shared_folder: {{ share_folder_path }}
      - require:
        - module: stop_splunk
 
@@ -61,15 +60,15 @@ copy_user_app:
     - shared_folder_path: {{ share_folder_path }}
     - runas: {{ win_domain }}\{{ win_user }}
     - password: {{ win_pwd }}
-    - require:
-      - module: setup_shp
+    - onchanges:
+      - splunk: setup_shp
   {% else %}
   cmd.run:
     - name: >
         cp -r -n {{ splunk_home }}/etc/users /opt/shp_share/etc &&
         cp -r -n {{ splunk_home }}/etc/apps /opt/shp_share/etc
-    - require:
-      - module: setup_shp
+    - onchanges:
+      - splunk: setup_shp
   {% endif %}
 
 start_splunk:
