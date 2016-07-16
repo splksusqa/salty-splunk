@@ -10,7 +10,8 @@ C:\shp_share:
 setup-shareing:
   splunk.shared_folder_created:
     - shared_name: shp_share
-    - folder_path: c:\shp_share
+    # net share command accept not backslash
+    - folder_path: c:/shp_share
     - require:
       - file: C:\shp_share
 
