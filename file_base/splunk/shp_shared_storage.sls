@@ -9,7 +9,7 @@ C:\shp_share:
 
 setup-shareing:
   splunk.shared_folder_created:
-    - share_name: shp_share
+    - shared_name: shp_share
     - folder_path: c:\shp_share
     - require:
       - file: C:\shp_share

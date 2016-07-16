@@ -371,11 +371,11 @@ def dmc_configured(name):
     return ret
 
 
-def share_folder_created(name, share_name, folder_path):
+def shared_folder_created(name, shared_name, folder_path):
     '''
     create share folder on windows for shp, windows only
     :param name: name of id
-    :param share_name: name of share folder
+    :param shared_name: name of share folder
     :param folder_path: folder to be shared
     '''
     ret = {'name': name,
@@ -383,7 +383,7 @@ def share_folder_created(name, share_name, folder_path):
            'result': True,
            'comment': ''}
 
-    cmd = 'net share {s}="{f}" "/GRANT:EVERYONE,Full"'.format(s=share_name,
+    cmd = 'net share {s}="{f}" "/GRANT:EVERYONE,Full"'.format(s=shared_name,
                                                               f=folder_path)
     result = salt_obj['cmd.run_all'](cmd=cmd)
 
@@ -392,7 +392,7 @@ def share_folder_created(name, share_name, folder_path):
         return ret
 
     if result['retcode'] == 0:
-        ret['changes'] = '{s} is shared'.format(s=share_name)
+        ret['changes'] = '{s} is shared'.format(s=shared_name)
     else:
         ret['result'] = False
         ret['comment'] = result['stdout'] + result['stderr']
