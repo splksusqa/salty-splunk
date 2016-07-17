@@ -55,6 +55,7 @@ def cli(command):
     run splunk cli
 
     :param password: when specified runas, give the password of the user
+    :return dict with 'retcode', 'stdout', 'stderr'
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
@@ -815,14 +816,6 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
     '''
-    # todo avoiding using publish.publish since there's sometimes return nothing
-    # refer to https://github.com/saltstack/salt/issues/19784
-    #
-    # ==========
-    # target = 'role:{r}'.format(r=role)
-    # func_name = 'splunk.get_mgmt_uri'
-    # exp = 'grain'
-    # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
     minions = None
     while True:
