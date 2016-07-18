@@ -91,10 +91,10 @@ def create_site():
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
-    try:
-        sites = pillar['sites']
+    if 'sites' in pillar:
         _clear_grains()
 
+        sites = pillar['sites']
         for site, site_data in sites.items():
             if isinstance(site_data, dict):
                 _set_grains(site_data)
@@ -104,7 +104,7 @@ def create_site():
                 _set_grains(minions_data)
             else:
                 raise TypeError('sites data should be either dict or array')
-    except KeyError:
+    else:
         log.warn('no site data, run orchestration directly')
 
     result = runner.cmd('state.orch', arg=['orchestration.splunk'])
@@ -152,10 +152,9 @@ def _set_grains(site):
     # set grains
     for minion, grains_data in site.items():
         for key, value in grains_data.items():
-            result = client.cmd(minion, 'grains.set',
-                                arg=[key, value],
-                                kwarg={'force': True})
+            result = client.cmd(minion, 'grains.set', arg=[key, value])
             if not result['ret']:
+                log.error(str(result))
                 raise EnvironmentError(
                     '{m} is fail to set grains'.format(m=minion))
 
