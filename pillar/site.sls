@@ -1,6 +1,7 @@
-# create site with data
+# create site with grains data
 # the content under site1 or site2 could be either
-# 1.
+# 1. dict, with minion name as key
+# 2. list, runner will auto assign the minion to these grain datas
 
 #ex.
 #sites:

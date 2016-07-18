@@ -2,6 +2,7 @@ import salt.client
 import salt.runner
 import salt.config
 import logging
+from salt.utils.odict import OrderedDict
 
 log = logging.getLogger(__name__)
 opts = salt.config.master_config('/etc/salt/master')
@@ -95,9 +96,9 @@ def create_site():
         _clear_grains()
 
         for site, site_data in sites.items():
-            if type(site_data) is dict:
+            if isinstance(site_data, dict):
                 _set_grains(site_data)
-            elif type(site_data) is list:
+            elif isinstance(site_data, list):
                 minions = _check_number_of_minions(site, site_data)
                 minions_data = _assign_roles_to_minions(minions, site_data)
                 _set_grains(minions_data)
