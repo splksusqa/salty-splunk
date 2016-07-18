@@ -75,37 +75,36 @@ def join_ad_domain():
     return result
 
 
-def create_site():
-    _clear_grains()
+def get_minions_with_empty_roles():
+    result = client.cmd('*', 'grains.get', arg=['role'])
+    minions = []
+    for minion, data in result.items():
+        if not data:
+            minions.append(minion)
 
+    return minions
+
+
+def create_site():
     # join to domain
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
     try:
         sites = pillar['sites']
-        _set_grains(sites)
+        _clear_grains()
+
+        for site, site_data in sites.items():
+            if type(site_data) is dict:
+                _set_grains(site_data)
+            elif type(site_data) is list:
+                minions = _check_number_of_minions(site, site_data)
+                minions_data = _assign_roles_to_minions(minions, site_data)
+                _set_grains(minions_data)
+            else:
+                raise TypeError('sites data should be either dict or array')
     except KeyError:
-        pass
-
-    try:
-        sites = pillar['roles_array_site']
-        # calculate the site machine
-        vm_number = 0
-        for site in sites:
-            vm_number += len(site)
-
-        connected_minions = runner.cmd('manage.up')
-        if vm_number >= len(connected_minions):
-            raise OverflowError("Can't accept more than connected VM")
-
-        sites_with_minion_names = dict()
-        _assign_roles_to_minions(connected_minions, sites,
-                                 sites_with_minion_names)
-
-        _set_grains(sites_with_minion_names)
-    except KeyError:
-        pass
+        log.warn('no site data, run orchestration directly')
 
     result = runner.cmd('state.orch', arg=['orchestration.splunk'])
 
@@ -113,12 +112,21 @@ def create_site():
     return result
 
 
-def _assign_roles_to_minions(connected_minions, sites, sites_with_minion_names):
-    for site in sites:
-        while len(site) != 0:
-            minion_roles = site.pop()
-            minion = connected_minions.pop()
-            sites_with_minion_names.update({minion: minion_roles})
+def _check_number_of_minions(site, site_data):
+    minions = runner.cmd('splunk.get_minions_with_empty_roles')
+    if len(site_data) > minions:
+        raise ValueError('{s} site has more number of roles '
+                         'than available minions'.format(s=site))
+    return minions
+
+
+def _assign_roles_to_minions(connected_minions, site):
+    sites_with_minion_names = dict()
+    for roles_data in site:
+        minion = connected_minions.pop()
+        sites_with_minion_names.update({minion: roles_data})
+
+    return sites_with_minion_names
 
 
 def destroy_site():
@@ -139,19 +147,12 @@ def destroy_site():
     log.warn(result)
 
 
-def _set_grains(sites):
-    # check all minion is connected
-    for site, site_data in sites.items():
-        for minion, minion_data in site.items():
-            result = client.cmd(minion, 'test.ping')
-            if not result['ret']:
-                raise EnvironmentError('{m} is not up'.format(m=minion))
-
+def _set_grains(site):
     # set grains
-    for site, site_data in sites.items():
-        for minion, minion_data in site.items():
+    for minion, grains_data in site.items():
+        for key, value in grains_data.items():
             result = client.cmd(minion, 'grains.set',
-                                arg=['role', minion_data['role']],
+                                arg=[key, value],
                                 kwarg={'force': True})
             if not result['ret']:
                 raise EnvironmentError(

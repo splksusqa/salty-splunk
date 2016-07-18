@@ -1,15 +1,18 @@
-#ex. create site with given minion name
+# create site with data
+# the content under site1 or site2 could be either
+# 1.
+
+#ex.
 #sites:
 #  site1:
 #    minion_name:
 #      role:
 #        - search-head
 #        - search-head-cluster-member
-#
-#ex. create site with given roles array,
-#    runner will auto assign roles to minions
-#roles_array:
-#  - - search-head
-#    - search-head-cluster-member
-#    - search-head-cluster-first-captain
-#  - - indexer
+#  site2:
+#    - role:
+#        - search-head
+#        - search-head-cluster-member
+#        - search-head-cluster-first-captain
+#    - role:
+#        - indexer
