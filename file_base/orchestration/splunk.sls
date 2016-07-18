@@ -84,7 +84,7 @@ search_head_pooling_share_storage_setup:
   salt.state:
     - tgt: 'role:search-head-pooling-shared-storage'
     - tgt_type: grain
-    - sls: splunk.shp_share_storage
+    - sls: splunk.shp_shared_storage
     - order: 5
     - require:
       - salt: indexer_setup
