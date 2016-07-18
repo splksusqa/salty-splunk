@@ -4,8 +4,9 @@ import salt.config
 import logging
 
 log = logging.getLogger(__name__)
-
 opts = salt.config.master_config('/etc/salt/master')
+runner = salt.runner.RunnerClient(opts)
+client = salt.client.LocalClient()
 
 
 def get_forward_servers():
@@ -34,8 +35,11 @@ def join_ad_domain():
     join all windows minion to AD domain
     :return:
     '''
+    pillar = runner.cmd('pillar.show_pillar', [])
 
-    client = salt.client.LocalClient()
+    if 'win_domain' not in pillar:
+        log.warn('domain data is not in pillar, skip joining domain')
+        return None
 
     result = client.cmd('os:Windows', 'state.apply',
                         arg=['splunk.windows_domain_member'],
@@ -65,7 +69,6 @@ def join_ad_domain():
     log.warn('wait for vm {v}'.format(v=vm_count))
 
     if vm_count != 0:
-        runner = salt.runner.RunnerClient(opts)
         runner.cmd('state.event', arg=['salt/minion/*/start'],
                    kwarg={'quiet': True, 'count': vm_count})
 
@@ -73,38 +76,52 @@ def join_ad_domain():
 
 
 def create_site():
-    client = salt.client.LocalClient()
-    runner = salt.runner.RunnerClient(opts)
+    _clear_grains()
 
     # join to domain
     runner.cmd('splunk.join_ad_domain')
-
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
     try:
         sites = pillar['sites']
-        _set_grains(client, sites)
+        _set_grains(sites)
     except KeyError:
         pass
 
     try:
         sites = pillar['roles_array_site']
+        # calculate the site machine
+        vm_number = 0
+        for site in sites:
+            vm_number += len(site)
 
-        len(sites)
+        connected_minions = runner.cmd('manage.up')
+        if vm_number >= len(connected_minions):
+            raise OverflowError("Can't accept more than connected VM")
+
+        sites_with_minion_names = dict()
+        _assign_roles_to_minions(connected_minions, sites,
+                                 sites_with_minion_names)
+
+        _set_grains(sites_with_minion_names)
     except KeyError:
         pass
 
     result = runner.cmd('state.orch', arg=['orchestration.splunk'])
 
-    # check result
+    # todo check result
+    return result
 
 
-    return True
+def _assign_roles_to_minions(connected_minions, sites, sites_with_minion_names):
+    for site in sites:
+        while len(site) != 0:
+            minion_roles = site.pop()
+            minion = connected_minions.pop()
+            sites_with_minion_names.update({minion: minion_roles})
 
 
 def destroy_site():
-    client = salt.client.LocalClient()
-
     result = client.cmd('*', 'splunk.uninstall')
     log.warn(result)
 
@@ -122,7 +139,7 @@ def destroy_site():
     log.warn(result)
 
 
-def _set_grains(client, sites):
+def _set_grains(sites):
     # check all minion is connected
     for site, site_data in sites.items():
         for minion, minion_data in site.items():
@@ -139,3 +156,7 @@ def _set_grains(client, sites):
             if not result['ret']:
                 raise EnvironmentError(
                     '{m} is fail to set grains'.format(m=minion))
+
+
+def _clear_grains():
+    client.cmd('*', 'grains.set', arg=['role', []])
