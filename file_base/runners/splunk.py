@@ -153,7 +153,7 @@ def _set_grains(site):
     for minion, grains_data in site.items():
         for key, value in grains_data.items():
             result = client.cmd(minion, 'grains.set', arg=[key, value])
-            if not result['result']:
+            if not result[minion]['result']:
                 log.error(str(result))
                 raise EnvironmentError(
                     '{m} is fail to set grains'.format(m=minion))
