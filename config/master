@@ -18,6 +18,3 @@ peer_run:
 timeout: 60
 fileserver_backend:
   - roots
-  - git
-gitfs_remotes:
-  - https://github.com/saltstack-formulas/nfs-formula.git
