@@ -87,6 +87,14 @@ def get_minions_with_empty_roles():
 
 
 def create_site():
+    '''
+    this method will do the following
+    1. join windows minion to domain if win_domain.sls defined any info
+    2. assign grains role according to definition in pillar/site.sls
+    3. run orchestration
+    :return: return result of orchestration runner
+    '''
+
     # join to domain
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
@@ -131,6 +139,10 @@ def _assign_roles_to_minions(connected_minions, site):
 
 
 def destroy_site():
+    '''
+    destroy and teardown splunk site according to grains role
+    :return:
+    '''
     result = client.cmd('*', 'splunk.uninstall')
     log.warn(result)
 
