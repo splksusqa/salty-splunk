@@ -32,8 +32,7 @@ def installed(name, **kwargs):
 def configured(name, conf_name, stanza_name, data=None, do_restart=True,
                app=None, owner=None, sharing='system'):
     '''
-
-    :return:
+    config splunk conf file
     '''
     ret = {'name': name,
            'changes': {},

@@ -149,7 +149,7 @@ deployment_client_setup:
     - require:
       - salt: deployment_server_setup
 
-# 9
+# 9 DMC
 dmc_setup:
   salt.state:
     - tgt: 'role:distributed-management-console'
