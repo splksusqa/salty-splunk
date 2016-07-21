@@ -13,6 +13,12 @@ FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
 log = logging.getLogger(__name__)
 
 
+def _is_windows():
+    if 'win' in sys.platform:
+        return True
+    else:
+        return False
+
 def _import_sdk():
     try:
         import splunklib
@@ -53,6 +59,7 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
 def cli(command):
     '''
     run splunk cli
+    :param command: splunk cli command
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
@@ -69,7 +76,7 @@ def cli(command):
         runas = None
         password = None
 
-    if runas and password:
+    if runas and password and _is_windows():
         return __salt__['cmd.run_all'](cmd, runas=runas, password=password)
     else:
         return __salt__['cmd.run_all'](cmd)
