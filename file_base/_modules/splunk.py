@@ -53,9 +53,6 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
 def cli(command):
     '''
     run splunk cli
-
-    :param password: when specified runas, give the password of the user
-    :return dict with 'retcode', 'stdout', 'stderr'
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
