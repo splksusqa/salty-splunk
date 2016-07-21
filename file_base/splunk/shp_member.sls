@@ -44,7 +44,7 @@ stop_splunk:
     - command: stop
 
 setup_shp:
-  splunk.pooling_enabled:
+  splunk.enable_search_head_pooling:
      - shared_folder: {{ share_folder_path }}
      - require:
        - module: stop_splunk
@@ -54,7 +54,7 @@ copy_user_app:
 # use module run because robocopy would return exit code 1
 # for new added folder
   {% if grains['os'] == 'Windows' %}
-  splunk.pooling_shared_files_copied:
+  splunk.copy_shp_shared_files:
     - name: cmd.run
     - splunk_home: {{ splunk_home }}
     - shared_folder_path: {{ share_folder_path }}

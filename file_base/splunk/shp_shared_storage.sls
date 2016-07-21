@@ -8,7 +8,7 @@ C:\shp_share:
     - makedirs: True
 
 setup-shareing:
-  splunk.shared_folder_created:
+  splunk.create_shared_folder:
     - shared_name: shp_share
     # net share command accept not backslash
     - folder_path: c:\shp_share

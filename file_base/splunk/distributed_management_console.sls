@@ -1,3 +1,3 @@
 config_dmc:
   splunk:
-    - dmc_configured
+    - config_dmc

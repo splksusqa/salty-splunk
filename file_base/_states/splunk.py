@@ -345,7 +345,7 @@ def listening_ports_enabled(name, ports):
     return ret
 
 
-def dmc_configured(name):
+def config_dmc(name):
     '''
     config dmc
     '''
@@ -370,7 +370,7 @@ def dmc_configured(name):
     return ret
 
 
-def shared_folder_created(name, shared_name, folder_path):
+def create_shared_folder(name, shared_name, folder_path):
     '''
     create share folder on windows for shp, windows only
     :param name: name of id
@@ -399,8 +399,8 @@ def shared_folder_created(name, shared_name, folder_path):
     return ret
 
 
-def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
-                                runas, password):
+def copy_shp_shared_files(name, splunk_home, shared_folder_path,
+                          runas, password):
     ret = {'name': name,
            'changes': {},
            'result': True,
@@ -432,7 +432,7 @@ def pooling_shared_files_copied(name, splunk_home, shared_folder_path,
     return ret
 
 
-def pooling_enabled(name, shared_folder):
+def enable_search_head_pooling(name, shared_folder):
     ret = {'name': name,
            'changes': {},
            'result': True,
