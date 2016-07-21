@@ -330,8 +330,6 @@ def install(fetcher_arg,
     """
     install Splunk
 
-    :param splunk_home: path for splunk install to
-    :type splunk_home: string
     :param fetcher_arg: arguments which you want to pass the release fetcher
     :type fetcher_arg: string
     :param type: splunk, splunkforwarder or splunklite
@@ -342,6 +340,8 @@ def install(fetcher_arg,
     :type start_after_install: boolean
     :param is_upgrade: True if you want to upgrade splunk
     :type is_upgrade: bool
+    :param splunk_home: path for splunk install to
+    :type splunk_home: string
     :rtype: dict
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
@@ -378,13 +378,13 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     """
     config conf file by REST, if a data is existed, it will skip
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
-    :param owner: namespace of the conf
-    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
     :param do_restart: restart after configuration
+    :param app: namespace of the conf
+    :param owner: namespace of the conf
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
     :return: no return value
     :raise EnvironmentError: if restart fail
     """
@@ -427,23 +427,21 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             log.critical(restart_fail_msg)
             raise EnvironmentError(restart_fail_msg)
 
-        return result
-
 
 def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
               sharing='system'):
     """
     read config file
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
-    :param owner: namespace of the conf
-    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param key_name: key for the value you want to read
-    :param sharing: namespace of conf
-    :return: no return value
-    :raise EnvironmentError: if restart fail
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
+    :param sharing: The scope you want the conf to be. it can be user, app, or
+        system.
+    :return: if no key_name, stanza content will be returned, else will be value
+        of given stanza and key_name
     """
     splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
@@ -474,15 +472,14 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
     '''
     check if a stanza is existed in the given conf file
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :type conf_name: string
+    :type stanza_name: string
+    :type sharing: string
+    :param conf_name: name of the conf file
+    :param stanza_name: name of the stanza to check
     :param owner: namespace of the conf
     :param app: namespace of the conf
-    :param conf_name: name of the conf file
-    :type conf_name: string
-    :param stanza_name: name of the stanza to check
-    :type stanza_name: string
-    :param sharing: sharing of the conf file
-    :type sharing: string
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
     :return: boolean
     '''
     splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
@@ -501,10 +498,10 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
 
-    :param search_factor: factor of bucket be able to search
-    :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
     :param cluster_label: the label for indexer cluster
+    :param search_factor: factor of bucket be able to search
+    :param replication_factor: factor of bucket be able to replicate
     """
 
     data = {'pass4SymmKey': pass4SymmKey,
@@ -523,12 +520,12 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
 
+    :param pass4SymmKey: is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     :param replication_port: port to replicate data
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         indexer-cluster-master
-    :param pass4SymmKey: is a key to communicate between indexer cluster
-    :param cluster_label: the label for indexer cluster
     """
     _random_sleep()
 
@@ -553,10 +550,10 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
 
     :param pass4SymmKey:  is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
-    :param cluster_label: the label for indexer cluster
     """
     _random_sleep()
 
@@ -579,7 +576,6 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
 
     :param shcluster_label: refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DMC/Setclusterlabels
     :param pass4SymmKey: is a key to communicate between cluster
-    :return: result of splunk restart
     '''
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
@@ -594,10 +590,11 @@ def config_shcluster_member(
     '''
     config splunk as a member of a search head cluster
 
-    :param replication_port: replication port for SHC
-    :param shcluster_label: shcluster's label
     :param pass4SymmKey: pass4SymmKey for SHC
-    :param replication_factor: replication factor for SHC, if none use default provided by Splunk
+    :param shcluster_label: shcluster's label
+    :param replication_port: replication port for SHC
+    :param replication_factor: replication factor for SHC,
+        if it's None use default provided by Splunk
     :param conf_deploy_fetch_url: deployer's mgmt uri
     '''
 
@@ -688,9 +685,10 @@ def config_search_peer(
     will raise EnvironmentError
     refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/Connectclustersearchheadstosearchpeers#Search_head_cluster_with_indexer_cluster
 
+    :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
     :param remote_username: splunk username of the search peer
     :param remote_password: splunk password of the search peer
-    :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
+    :raise CommandExecutionError, if failed
     '''
     if not servers:
         servers = get_list_of_mgmt_uri('indexer')
@@ -770,7 +768,6 @@ def config_license_slave(master_uri=None):
     :param master_uri: uri of the license master
     :type master_uri: string
     '''
-    _random_sleep()
 
     splunk = _get_splunk()
 
