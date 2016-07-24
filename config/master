@@ -16,3 +16,8 @@ peer_run:
   .*:
     - splunk.*
 timeout: 60
+fileserver_backend:
+  - roots
+
+# deal with warning in 2016.3
+hash_type: sha256
