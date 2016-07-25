@@ -123,7 +123,7 @@ def create_site():
 
 def _check_number_of_minions(site, site_data):
     minions = runner.cmd('splunk.get_minions_with_empty_roles')
-    if len(site_data) > minions:
+    if len(site_data) > len(minions):
         raise ValueError('{s} site has more number of roles '
                          'than available minions'.format(s=site))
     return minions
