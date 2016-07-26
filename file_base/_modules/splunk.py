@@ -63,7 +63,7 @@ def cli(command):
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
-    cmd = '"{p}" {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
+    cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                              c=command)
 
     domain_name = __salt__['pillar.get']('win_domain:domain_name', default=None)
