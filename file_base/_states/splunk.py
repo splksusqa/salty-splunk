@@ -303,6 +303,7 @@ def forward_servers_added(name, servers=None):
         if servers is None else servers
     try:
         servers = [servers, ] if type(servers) is not list else servers
+        servers.remove({})
         for server in servers:
             # if the server is added already, skip
             stanza = "tcpout-server://{s}".format(s=server)
