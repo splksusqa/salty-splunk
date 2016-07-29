@@ -14,5 +14,10 @@ runner_dirs:
   - /srv/salt/file_base/runners
 peer_run:
   .*:
-    - splunk.management_uri_list
+    - splunk.*
 timeout: 60
+fileserver_backend:
+  - roots
+
+# deal with warning in 2016.3
+hash_type: sha256
