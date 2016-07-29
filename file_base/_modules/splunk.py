@@ -804,7 +804,7 @@ def get_mgmt_uri():
 
     if 0 == cli_result['retcode']:
         port = cli_result['stdout'].replace("Splunkd port: ", "").strip()
-        mgmt_uri = get_ip() + ":" + port
+        mgmt_uri = __grains__['ipv4'][-1] + ":" + port
         __salt__['grains.set']('splunk_mgmt_uri', mgmt_uri, force=True)
         return mgmt_uri
     else:
