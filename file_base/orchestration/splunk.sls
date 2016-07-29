@@ -95,7 +95,9 @@ search_head_pooling_member_setup:
     - tgt_type: grain
     - sls: splunk.shp_member
     - order: 5
-    - batch: 1
+# rolling back batch mode because of
+# https://github.com/saltstack/salt/issues/34922
+#    - batch: 1
     - require:
       - salt: search_head_pooling_share_storage_setup
 

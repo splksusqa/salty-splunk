@@ -19,6 +19,7 @@ def _is_windows():
     else:
         return False
 
+
 def _import_sdk():
     try:
         import splunklib
@@ -63,8 +64,8 @@ def cli(command):
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
-    cmd = '"{p}" {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
-                             c=command)
+    cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
+                           c=command)
 
     domain_name = __salt__['pillar.get']('win_domain:domain_name', default=None)
 
@@ -820,7 +821,8 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
 
     minions = None
     while True:
-        minions = __salt__['mine.get'](role, 'splunk.get_mgmt_uri', 'grain')
+        role_str = 'role:' + role
+        minions = __salt__['mine.get'](role_str, 'splunk.get_mgmt_uri', 'grain')
 
         log.warn('runner returned: ' + str(minions))
 
@@ -1076,3 +1078,41 @@ def enable_js_debug_mode():
     by disabling js cache and minify js, javascript could be debugged by browser console
     '''
     config_conf('server', 'settings', {'js_no_cache': True, 'minify_js': False})
+
+
+def get_listen_ports():
+    '''
+    get receiving/listened ports
+    :return: list of listened ports
+    '''
+    try:
+        # todo consider parsing 'display listen' result to get accurate result
+        ports = __grains__['listening_ports']
+        return ports
+    except Exception as err:
+        log.warn(str(err))
+        return None
+
+
+def get_forward_servers(role='indexer'):
+    '''
+    get list of forward server ports
+    :param role: splunk-role
+    :rtype: list
+    :return: [<ip>:<port>, <ip>:<port>]
+    '''
+    minions = __salt__['mine.get']('role:{r}'.format(r=role),
+                                   'splunk.get_listen_ports', 'grain')
+
+    minion_ips = __salt__['mine.get']('role:{r}'.format(r=role),
+                                      'network.ip_addrs', 'grain')
+
+    if not minions:
+        log.error('no minions matched forward servers')
+        return None
+
+    ret = []
+    for minion, ports in minions.items():
+        ret.append(str(minion_ips[minion][0]) + ':' + str(ports[0]))
+
+    return ret

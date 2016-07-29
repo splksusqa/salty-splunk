@@ -10,27 +10,6 @@ runner = salt.runner.RunnerClient(opts)
 client = salt.client.LocalClient()
 
 
-def get_forward_servers():
-    '''
-    Get the ip and listening ports on all indexers and return in list of
-    <ip>:<port>
-    '''
-    client = salt.client.LocalClient()
-    listening_ports = client.cmd(
-        "G@role:indexer", 'grains.get', arg=['listening_ports'],
-        expr_form='compound', timeout=300)
-    ips = client.cmd(
-        "G@role:indexer", 'grains.get', arg=['ipv4'],
-        expr_form='compound', timeout=300)
-
-    ret = []
-    for key, value in ips.items():
-        ip = value[-1]
-        for port in listening_ports[key]:
-            ret.append(ip + ":" + str(port))
-    return ret
-
-
 def join_ad_domain():
     '''
     join all windows minion to AD domain
@@ -123,7 +102,7 @@ def create_site():
 
 def _check_number_of_minions(site, site_data):
     minions = runner.cmd('splunk.get_minions_with_empty_roles')
-    if len(site_data) > minions:
+    if len(site_data) > len(minions):
         raise ValueError('{s} site has more number of roles '
                          'than available minions'.format(s=site))
     return minions

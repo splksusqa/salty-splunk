@@ -299,10 +299,15 @@ def forward_servers_added(name, servers=None):
            'result': True,
            'comment': ''}
 
-    servers = __salt__['publish.runner']('splunk.get_forward_servers') \
-        if servers is None else servers
+    if not servers:
+        servers = __salt__['splunk.get_forward_servers']()
+
+    if not servers:
+        ret['result'] = True
+        ret['comment'] = "no servers to be added"
+        return ret
+
     try:
-        servers = [servers, ] if type(servers) is not list else servers
         for server in servers:
             # if the server is added already, skip
             stanza = "tcpout-server://{s}".format(s=server)
