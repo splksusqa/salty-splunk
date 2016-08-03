@@ -602,14 +602,15 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None,
     if not master_uri:
         master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
 
-    if site is not None:  # for multi-site
-        config_conf('server', 'general', {'site': site}, do_restart=False)
-
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'searchhead',
             'cluster_label': cluster_label,
             }
+
+    if site is not None:  # for multi-site
+        config_conf('server', 'general', {'site': site}, do_restart=False)
+        data['multisite'] = True
 
     config_conf('server', 'clustering', data)
 
