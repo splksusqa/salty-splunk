@@ -501,7 +501,9 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
-                          search_factor=2):
+                          search_factor=2, num_of_sites=1,
+                          site_replication_factor=None,
+                          site_search_factor=None):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -512,12 +514,34 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
     :param replication_factor: factor of bucket be able to replicate
     """
 
-    data = {'pass4SymmKey': pass4SymmKey,
-            'replication_factor': replication_factor,
-            'search_factor': search_factor,
-            'mode': 'master',
-            'cluster_label': cluster_label,
-            }
+    def get_availaible_sites():
+        return ', '.join(
+            ["site" + str(i) for i in range(1, number_of_sites+1)])
+
+    if number_of_sites > 1:
+        # multi-site
+        config_conf('server', 'general', {'site': 'site1'})
+
+        if site_search_factor is None:
+            site_search_factor = "origin:2,total:3"
+        if site_replication_factor is None:
+            site_replication_factor = "origin:2,total:3"
+
+        data = {'pass4SymmKey': pass4SymmKey,
+                'mode': 'master',
+                'cluster_label': cluster_label,
+                'multisite': True,
+                'avalaible_sites': get_availaible_sites(),
+                'site_replication_factor': site_replication_factor
+                'site_search_factor': site_search_factor}
+    else:
+        # single-site
+        data = {'pass4SymmKey': pass4SymmKey,
+                'replication_factor': replication_factor,
+                'search_factor': search_factor,
+                'mode': 'master',
+                'cluster_label': cluster_label,
+                }
 
     config_conf('server', 'clustering', data)
 
