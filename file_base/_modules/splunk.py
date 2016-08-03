@@ -501,7 +501,7 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
-                          search_factor=2, num_of_sites=1,
+                          search_factor=2, number_of_sites=1,
                           site_replication_factor=None,
                           site_search_factor=None):
     """
