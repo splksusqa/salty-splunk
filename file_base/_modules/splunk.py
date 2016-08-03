@@ -520,7 +520,7 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
 
     if number_of_sites > 1:
         # multi-site
-        config_conf('server', 'general', {'site': 'site1'})
+        config_conf('server', 'general', {'site': 'site1'}, do_restart=False)
 
         if site_search_factor is None:
             site_search_factor = "origin:2,total:3"
@@ -532,7 +532,7 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
                 'cluster_label': cluster_label,
                 'multisite': True,
                 'avalaible_sites': get_availaible_sites(),
-                'site_replication_factor': site_replication_factor
+                'site_replication_factor': site_replication_factor,
                 'site_search_factor': site_search_factor}
     else:
         # single-site
