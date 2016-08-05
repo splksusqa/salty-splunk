@@ -531,7 +531,7 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
                 'mode': 'master',
                 'cluster_label': cluster_label,
                 'multisite': True,
-                'avalaible_sites': get_availaible_sites(),
+                'available_sites': get_availaible_sites(),
                 'site_replication_factor': site_replication_factor,
                 'site_search_factor': site_search_factor}
     else:
@@ -569,15 +569,15 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
 
-    if site is not None:  # for multi-site
-        config_conf('server', 'general', {'site': site}, do_restart=False)
-        
-         
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'slave',
             'cluster_label': cluster_label,
             }
+
+    if site is not None:  # for multi-site
+        config_conf('server', 'general', {'site': site}, do_restart=False)
+        data['multisite'] = True
 
     config_conf('server', 'clustering', data)
 
