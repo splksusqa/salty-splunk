@@ -577,7 +577,6 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
 
     if site is not None:  # for multi-site
         config_conf('server', 'general', {'site': site}, do_restart=False)
-        data['multisite'] = True
 
     config_conf('server', 'clustering', data)
 
