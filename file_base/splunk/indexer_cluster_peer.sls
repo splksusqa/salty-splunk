@@ -7,6 +7,7 @@ config_slave:
     - pass4SymmKey: {{ pillar['indexer_cluster']['pass4SymmKey'] }}
     - replication_port: {{ pillar['indexer_cluster']['replication_port'] }}
     - cluster_label: {{ pillar['indexer_cluster']['cluster_label']}}
+    - site: {{ grains['site'] }}
     # - master_uri:
   require:
     - sls: splunk.indexer

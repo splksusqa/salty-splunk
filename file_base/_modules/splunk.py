@@ -501,7 +501,9 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
-                          search_factor=2):
+                          search_factor=2, number_of_sites=1,
+                          site_replication_factor=None,
+                          site_search_factor=None):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
@@ -512,18 +514,40 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
     :param replication_factor: factor of bucket be able to replicate
     """
 
-    data = {'pass4SymmKey': pass4SymmKey,
-            'replication_factor': replication_factor,
-            'search_factor': search_factor,
-            'mode': 'master',
-            'cluster_label': cluster_label,
-            }
+    def get_availaible_sites():
+        return ', '.join(
+            ["site" + str(i) for i in range(1, number_of_sites+1)])
+
+    if number_of_sites > 1:
+        # multi-site
+        config_conf('server', 'general', {'site': 'site1'}, do_restart=False)
+
+        if site_search_factor is None:
+            site_search_factor = "origin:2,total:3"
+        if site_replication_factor is None:
+            site_replication_factor = "origin:2,total:3"
+
+        data = {'pass4SymmKey': pass4SymmKey,
+                'mode': 'master',
+                'cluster_label': cluster_label,
+                'multisite': True,
+                'available_sites': get_availaible_sites(),
+                'site_replication_factor': site_replication_factor,
+                'site_search_factor': site_search_factor}
+    else:
+        # single-site
+        data = {'pass4SymmKey': pass4SymmKey,
+                'replication_factor': replication_factor,
+                'search_factor': search_factor,
+                'mode': 'master',
+                'cluster_label': cluster_label,
+                }
 
     config_conf('server', 'clustering', data)
 
 
 def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
-                         replication_port=9887):
+                         replication_port=9887, site=None):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
@@ -534,14 +558,16 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         indexer-cluster-master
+    :param site: None if the slave is on single site, else "site1" or "site2"...
+    :type site: string
     """
     _random_sleep()
 
+    if not master_uri:
+            master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
+
     config_conf('server', "replication_port://{p}".format(p=replication_port),
                 do_restart=False)
-
-    if not master_uri:
-        master_uri = get_list_of_mgmt_uri('indexer-cluster-master')[0]
 
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
@@ -549,10 +575,14 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
             'cluster_label': cluster_label,
             }
 
+    if site is not None:  # for multi-site
+        config_conf('server', 'general', {'site': site}, do_restart=False)
+
     config_conf('server', 'clustering', data)
 
 
-def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
+def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None,
+                              site=None):
     """
     config splunk as a search head of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
@@ -562,6 +592,9 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
+    :param site: None if the search head is on single site, else
+        "site1" or "site2"...
+    :type site: string
     """
     _random_sleep()
 
@@ -573,6 +606,10 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
             'mode': 'searchhead',
             'cluster_label': cluster_label,
             }
+
+    if site is not None:  # for multi-site
+        config_conf('server', 'general', {'site': site}, do_restart=False)
+        data['multisite'] = True
 
     config_conf('server', 'clustering', data)
 
