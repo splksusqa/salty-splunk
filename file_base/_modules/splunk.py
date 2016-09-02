@@ -500,8 +500,12 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
             'replication_factor': replication_factor,
             'search_factor': search_factor,
             'mode': 'master',
-            'cluster_label': cluster_label,
             }
+
+    # todo, hotfix here, try better fix later
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        data['cluster_label'] = cluster_label
 
     config_conf('server', 'clustering', data)
 
@@ -530,8 +534,12 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'slave',
-            'cluster_label': cluster_label,
             }
+
+    #todo, hotfix here, try better fix later
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        data['cluster_label'] = cluster_label
 
     config_conf('server', 'clustering', data)
 
@@ -555,8 +563,12 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'searchhead',
-            'cluster_label': cluster_label,
             }
+
+    # todo, hotfix here, try better fix later
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        data['cluster_label'] = cluster_label
 
     config_conf('server', 'clustering', data)
 
