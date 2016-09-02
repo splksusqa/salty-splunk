@@ -13,6 +13,13 @@ FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
 log = logging.getLogger(__name__)
 
 
+def _is_windows():
+    if 'win' in sys.platform:
+        return True
+    else:
+        return False
+
+
 def _import_sdk():
     try:
         import splunklib
@@ -33,11 +40,11 @@ def _random_sleep():
     to avoid heart beat failure
     '''
     m_sec = random.randint(0, 1500)
-    time.sleep(m_sec/100)
+    time.sleep(m_sec / 100)
 
 
 def _get_splunk(username="admin", password="changeme", owner=None, app=None,
-        sharing='system'):
+                sharing='system'):
     '''
     returns the object which represents a splunk instance
     '''
@@ -53,14 +60,27 @@ def _get_splunk(username="admin", password="changeme", owner=None, app=None,
 def cli(command):
     '''
     run splunk cli
-
-    :param command: splunk cli command, ex. 'add listen 9997'
+    :param command: splunk cli command
     '''
     installer = InstallerFactory.create_installer()
     splunk_home = installer.splunk_home
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                            c=command)
-    return __salt__['cmd.run_all'](cmd)
+
+    domain_name = __salt__['pillar.get']('win_domain:domain_name', default=None)
+
+    if domain_name:
+        password = __salt__['pillar.get']('win_domain:password', default=None)
+        user = __salt__['pillar.get']('win_domain:username', default=None)
+        runas = domain_name + '\\' + user
+    else:
+        runas = None
+        password = None
+
+    if runas and password and _is_windows():
+        return __salt__['cmd.run_all'](cmd, runas=runas, password=password)
+    else:
+        return __salt__['cmd.run_all'](cmd)
 
 
 class InstallerFactory(object):
@@ -135,12 +155,14 @@ class WindowsMsiInstaller(Installer):
         if splunk_home:
             self.splunk_home = splunk_home
 
-        install_flags = ''
+        install_flags = []
         for key, value in kwargs.iteritems():
-            install_flags = ' '.join('{k}={v}'.format(k=key, v=value))
+            install_flags.append('{k}="{v}"'.format(k=key, v=value))
 
-        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q}'. \
-            format(c=pkg_path, h=self.splunk_home, q='/quiet', f=install_flags)
+        cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q} ' \
+              '/L*V "C:\\msi_install.log"'. \
+            format(c=pkg_path, h=self.splunk_home, q='/quiet',
+                   f=' '.join(install_flags))
 
         self.pkg_path = pkg_path
 
@@ -154,7 +176,8 @@ class WindowsMsiInstaller(Installer):
         elif self.splunk_type is None:
             result = False
         else:
-            raise Exception, "Unexpected splunk_type: {s}".format(s=self.splunk_type)
+            raise Exception, "Unexpected splunk_type: {s}".format(
+                s=self.splunk_type)
 
         log.debug('service.available return : %s' % result)
         return result
@@ -173,10 +196,6 @@ class WindowsMsiInstaller(Installer):
             os.remove(pkg_path)
             __salt__['grains.delval']('pkg_path')
             __salt__['grains.delval']('splunk_type')
-
-        # remove mgmt_uri
-        if __salt__['grains.has_value']('splunk_mgmt_uri'):
-            __salt__['grains.delval']('splunk_mgmt_uri')
 
 
 class LinuxTgzInstaller(Installer):
@@ -319,8 +338,6 @@ def install(fetcher_arg,
     """
     install Splunk
 
-    :param splunk_home: path for splunk install to
-    :type splunk_home: string
     :param fetcher_arg: arguments which you want to pass the release fetcher
     :type fetcher_arg: string
     :param type: splunk, splunkforwarder or splunklite
@@ -331,6 +348,8 @@ def install(fetcher_arg,
     :type start_after_install: boolean
     :param is_upgrade: True if you want to upgrade splunk
     :type is_upgrade: bool
+    :param splunk_home: path for splunk install to
+    :type splunk_home: string
     :rtype: dict
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
@@ -359,7 +378,7 @@ def install(fetcher_arg,
 
     __salt__['cp.get_url'](path=url, dest=pkg_path)
 
-    return installer.install(pkg_path, splunk_home)
+    return installer.install(pkg_path, splunk_home, **kwargs)
 
 
 def config_conf(conf_name, stanza_name, data=None, do_restart=True,
@@ -367,13 +386,13 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     """
     config conf file by REST, if a data is existed, it will skip
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
-    :param owner: namespace of the conf
-    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
     :param data: data under stanza
     :param do_restart: restart after configuration
+    :param app: namespace of the conf
+    :param owner: namespace of the conf
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
     :return: no return value
     :raise EnvironmentError: if restart fail
     """
@@ -416,23 +435,21 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             log.critical(restart_fail_msg)
             raise EnvironmentError(restart_fail_msg)
 
-        return result
-
 
 def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
-        sharing='system'):
+              sharing='system'):
     """
     read config file
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
-    :param owner: namespace of the conf
-    :param app: namespace of the conf
     :param conf_name: name of config file
     :param stanza_name: stanza need to config
-    :param data: data under stanza
-    :param do_restart: restart after configuration
-    :return: no return value
-    :raise EnvironmentError: if restart fail
+    :param key_name: key for the value you want to read
+    :param owner: namespace of the conf
+    :param app: namespace of the conf
+    :param sharing: The scope you want the conf to be. it can be user, app, or
+        system.
+    :return: if no key_name, stanza content will be returned, else will be value
+        of given stanza and key_name
     """
     splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
 
@@ -459,19 +476,18 @@ def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
 
 
 def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
-        sharing='system'):
+                      sharing='system'):
     '''
     check if a stanza is existed in the given conf file
 
-    :param sharing: The scope you want the conf to be. it can be user, app, or system.
+    :type conf_name: string
+    :type stanza_name: string
+    :type sharing: string
+    :param conf_name: name of the conf file
+    :param stanza_name: name of the stanza to check
     :param owner: namespace of the conf
     :param app: namespace of the conf
-    :param conf_name: name of the conf file
-    :type conf_name: string
-    :param stanza_name: name of the stanza to check
-    :type stanza_name: string
-    :param sharing: sharing of the conf file
-    :type sharing: string
+    :param sharing: The scope you want the conf to be. it can be user, app, or system.
     :return: boolean
     '''
     splunk = _get_splunk(sharing=sharing, owner=owner, app=app)
@@ -485,15 +501,15 @@ def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
 
 
 def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
-        search_factor=2):
+                          search_factor=2):
     """
     config splunk as a master of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethemaster
 
-    :param search_factor: factor of bucket be able to search
-    :param replication_factor: factor of bucket be able to replicate
     :param pass4SymmKey: it's a key to communicate between indexer cluster
     :param cluster_label: the label for indexer cluster
+    :param search_factor: factor of bucket be able to search
+    :param replication_factor: factor of bucket be able to replicate
     """
 
     data = {'pass4SymmKey': pass4SymmKey,
@@ -511,17 +527,17 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
 
 
 def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
-        replication_port=9887):
+                         replication_port=9887):
     """
     config splunk as a peer(indexer) of a indexer cluster
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Configurethepeers
 
+    :param pass4SymmKey: is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     :param replication_port: port to replicate data
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         indexer-cluster-master
-    :param pass4SymmKey: is a key to communicate between indexer cluster
-    :param cluster_label: the label for indexer cluster
     """
     _random_sleep()
 
@@ -550,10 +566,10 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None):
     http://docs.splunk.com/Documentation/Splunk/latest/Indexer/Enableclustersindetail
 
     :param pass4SymmKey:  is a key to communicate between indexer cluster
+    :param cluster_label: the label for indexer cluster
     :param master_uri: <ip>:<port> of mgmt_uri, ex 127.0.0.1:8089,
         if not specified, will search minion under same master with role
         splunk-cluster-master
-    :param cluster_label: the label for indexer cluster
     """
     _random_sleep()
 
@@ -580,7 +596,6 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
 
     :param shcluster_label: refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DMC/Setclusterlabels
     :param pass4SymmKey: is a key to communicate between cluster
-    :return: result of splunk restart
     '''
     data = {'pass4SymmKey': pass4SymmKey,
             'shcluster_label': shcluster_label}
@@ -589,16 +604,18 @@ def config_shcluster_deployer(pass4SymmKey, shcluster_label):
 
 
 def config_shcluster_member(
-        pass4SymmKey, shcluster_label, replication_factor, replication_port,
+        pass4SymmKey, shcluster_label, replication_port,
+        replication_factor=None,
         conf_deploy_fetch_url=None):
     '''
     config splunk as a member of a search head cluster
 
-    :param conf_deploy_fetch_url: deployer's mgmt uri
-    :param replication_port: replication port for SHC
-    :param replication_factor: replication factor for SHC
-    :param shcluster_label: shcluster's label
     :param pass4SymmKey: pass4SymmKey for SHC
+    :param shcluster_label: shcluster's label
+    :param replication_port: replication port for SHC
+    :param replication_factor: replication factor for SHC,
+        if it's None use default provided by Splunk
+    :param conf_deploy_fetch_url: deployer's mgmt uri
     '''
 
     if not conf_deploy_fetch_url:
@@ -608,24 +625,20 @@ def config_shcluster_member(
     if not conf_deploy_fetch_url.startswith("https://"):
         conf_deploy_fetch_url = 'https://{u}'.format(u=conf_deploy_fetch_url)
 
-    # data = {
-    #     'pass4SymmKey': pass4SymmKey,
-    #     'shcluster_label': shcluster_label,
-    #     'conf_deploy_fetch_url': conf_deploy_fetch_url,
-    #     'mgmt_uri': 'https://{u}'.format(u=get_mgmt_uri()),
-    #     'replication_factor': replication_factor,
-    #     'disabled': 'false',
-    # }
+    replication_factor_str = ''
+    if replication_factor:
+        replication_factor_str = '-replication_factor {n}'.format(
+            n=replication_factor)
 
     cmd = 'init shcluster-config -auth {username}:{password} ' \
           '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
-          '-replication_factor {n} ' \
+          '{replication_factor_str} ' \
           '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
-          '-secret {security_key} -shcluster_label {label}'\
+          '-secret {security_key} -shcluster_label {label}' \
         .format(username='admin', password='changeme',
                 mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
                 replication_port=replication_port,
-                n=replication_factor,
+                replication_factor_str=replication_factor_str,
                 conf_deploy_fetch_url=conf_deploy_fetch_url,
                 security_key=pass4SymmKey,
                 label=shcluster_label
@@ -637,9 +650,6 @@ def config_shcluster_member(
     result = cli('restart')
     if result['retcode'] != 0:
         raise CommandExecutionError(result['stderr'] + result['stdout'])
-
-    # config_conf('server', 'shclustering', data)
-
 
 
 def bootstrap_shcluster_captain(servers_list=None):
@@ -695,9 +705,10 @@ def config_search_peer(
     will raise EnvironmentError
     refer to http://docs.splunk.com/Documentation/Splunk/6.3.3/DistSearch/Connectclustersearchheadstosearchpeers#Search_head_cluster_with_indexer_cluster
 
+    :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
     :param remote_username: splunk username of the search peer
     :param remote_password: splunk password of the search peer
-    :param servers: list value, ex, ['<ip>:<port>','<ip>:<port>']
+    :raise CommandExecutionError, if failed
     '''
     if not servers:
         servers = get_list_of_mgmt_uri('indexer')
@@ -777,7 +788,6 @@ def config_license_slave(master_uri=None):
     :param master_uri: uri of the license master
     :type master_uri: string
     '''
-    _random_sleep()
 
     splunk = _get_splunk()
 
@@ -797,19 +807,10 @@ def get_mgmt_uri():
     '''
     get mgmt uri of splunk
 
-    :return: The mgmt uri of splunk
+    :return: The mgmt uri of splunk, return None if Splunk is not started
     :rtype: string
     '''
-    # todo merge this to Splunk Object
-    # todo deal with command line parsing
-    # todo when a large traffic, to avoid revisit splunk to get port
-    # use grains system to deal with that.
-    # try to figure out other solution for this since when a port is changed
-    # the grains value won't reflect it
-    # and we have to remove this grains value when uninstall splunk
-    grains_value = __salt__['grains.get']('splunk_mgmt_uri')
-    if grains_value:
-        return grains_value
+    # todo auth parameter
 
     cli_result = cli("show splunkd-port -auth admin:changeme")
 
@@ -819,7 +820,7 @@ def get_mgmt_uri():
         __salt__['grains.set']('splunk_mgmt_uri', mgmt_uri, force=True)
         return mgmt_uri
     else:
-        raise CommandExecutionError(str(cli_result))
+        return None
 
 
 def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
@@ -829,19 +830,11 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
     :rtype: list
     :return: [<ip>:<port>, <ip>:<port>]
     '''
-    # todo avoiding using publish.publish since there's sometimes return nothing
-    # refer to https://github.com/saltstack/salt/issues/19784
-    #
-    # ==========
-    # target = 'role:{r}'.format(r=role)
-    # func_name = 'splunk.get_mgmt_uri'
-    # exp = 'grain'
-    # minions = __salt__['publish.publish'](target, func_name, expr_form=exp)
 
     minions = None
     while True:
-        minions = __salt__['publish.runner'](
-            'splunk.management_uri_list', arg=role)
+        role_str = 'role:' + role
+        minions = __salt__['mine.get'](role_str, 'splunk.get_mgmt_uri', 'grain')
 
         log.warn('runner returned: ' + str(minions))
 
@@ -992,19 +985,19 @@ def config_dmc():
     else:
         config_search_peer(searchheads + license_master + deployer + indexers)
 
-
     # set distsearch groups by editing distsearch.conf
     # indexer
     config_conf('distsearch', 'distributedSearch:dmc_group_indexer',
-        {'servers': ','.join(indexers), 'default': True}, do_restart=False)
+                {'servers': ','.join(indexers), 'default': True},
+                do_restart=False)
 
     # search head
     config_conf('distsearch', 'distributedSearch:dmc_group_search_head',
-        {'servers': ','.join(searchheads)}, do_restart=False)
+                {'servers': ','.join(searchheads)}, do_restart=False)
 
     # kv store
     config_conf('distsearch', 'distributedSearch:dmc_group_kv_store',
-        {'servers': ','.join(searchheads)}, do_restart=False)
+                {'servers': ','.join(searchheads)}, do_restart=False)
 
     # license master
     _config_dmc_group(
@@ -1037,7 +1030,7 @@ def config_dmc():
             l=__pillar__['indexer_cluster']['cluster_label'])
 
         config_conf(
-            'distsearch', stanza, {"servers": ",".join(indexers+searchheads)},
+            'distsearch', stanza, {"servers": ",".join(indexers + searchheads)},
             do_restart=False)
 
     # config shcluster group if shcluster is enabled
@@ -1046,25 +1039,26 @@ def config_dmc():
             l=__pillar__['search_head_cluster']['shcluster_label'])
 
         config_conf(
-            'distsearch', stanza, {"servers": ",".join(searchheads+deployer)},
+            'distsearch', stanza, {"servers": ",".join(searchheads + deployer)},
             do_restart=False)
 
     # set is_configured flag in splunk_management_console app
     config_conf('app', 'install', {'is_configured': True}, owner="admin",
-        app="splunk_management_console", sharing="app", do_restart=False)
+                app="splunk_management_console", sharing="app",
+                do_restart=False)
 
     # add all machines to splunk_management_console_assets.conf
     all_peers = indexers + searchheads + deployer + deployment_server + \
-        license_master
+                license_master
     config_conf('splunk_management_console_assets', 'settings',
-        {'configuredPeers': ','.join(all_peers)}, owner="admin",
-        app="splunk_management_console", sharing="app", do_restart=True)
+                {'configuredPeers': ','.join(all_peers)}, owner="admin",
+                app="splunk_management_console", sharing="app", do_restart=True)
 
     # Run the "DMC Asset - Build Full" saved search
     path = ('https://localhost:8089/servicesNS/nobody/splunk_management_console'
             '/saved/searches/DMC%20Asset%20-%20Build%20Full/dispatch')
     response = requests.post(path, auth=("admin", "changeme"),
-        data={'trigger_actions': 1}, verify=False)
+                             data={'trigger_actions': 1}, verify=False)
 
 
 def get_crash_log():
@@ -1078,12 +1072,13 @@ def get_crash_log():
 
     return crash_file
 
+
 def is_dmc_configured():
     '''
     check if dmc is configured
     '''
     configured = read_conf('app', 'install', 'is_configured', owner="admin",
-        app="splunk_management_console", sharing="app")
+                           app="splunk_management_console", sharing="app")
     if "0" == configured or configured is None:
         return False
     else:
@@ -1095,3 +1090,41 @@ def enable_js_debug_mode():
     by disabling js cache and minify js, javascript could be debugged by browser console
     '''
     config_conf('server', 'settings', {'js_no_cache': True, 'minify_js': False})
+
+
+def get_listen_ports():
+    '''
+    get receiving/listened ports
+    :return: list of listened ports
+    '''
+    try:
+        # todo consider parsing 'display listen' result to get accurate result
+        ports = __grains__['listening_ports']
+        return ports
+    except Exception as err:
+        log.warn(str(err))
+        return None
+
+
+def get_forward_servers(role='indexer'):
+    '''
+    get list of forward server ports
+    :param role: splunk-role
+    :rtype: list
+    :return: [<ip>:<port>, <ip>:<port>]
+    '''
+    minions = __salt__['mine.get']('role:{r}'.format(r=role),
+                                   'splunk.get_listen_ports', 'grain')
+
+    minion_ips = __salt__['mine.get']('role:{r}'.format(r=role),
+                                      'network.ip_addrs', 'grain')
+
+    if not minions:
+        log.error('no minions matched forward servers')
+        return None
+
+    ret = []
+    for minion, ports in minions.items():
+        ret.append(str(minion_ips[minion][0]) + ':' + str(ports[0]))
+
+    return ret
