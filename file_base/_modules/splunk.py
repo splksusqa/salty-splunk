@@ -666,18 +666,25 @@ def config_shcluster_member(
         replication_factor_str = '-replication_factor {n}'.format(
             n=replication_factor)
 
+    # todo, hotfix here, try better fix later
+    shcluster_label_str = ''
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        shcluster_label_str = '-shcluster_label {label}'.format(
+            label=shcluster_label)
+
     cmd = 'init shcluster-config -auth {username}:{password} ' \
           '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
           '{replication_factor_str} ' \
           '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
-          '-secret {security_key} -shcluster_label {label}' \
+          '-secret {security_key} {label}' \
         .format(username='admin', password='changeme',
                 mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
                 replication_port=replication_port,
                 replication_factor_str=replication_factor_str,
                 conf_deploy_fetch_url=conf_deploy_fetch_url,
                 security_key=pass4SymmKey,
-                label=shcluster_label
+                label=shcluster_label_str
                 )
     result = cli(cmd)
     if result['retcode'] != 0:
