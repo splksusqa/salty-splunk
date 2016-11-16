@@ -355,6 +355,8 @@ def install(fetcher_arg,
     """
     installer = InstallerFactory.create_installer(splunk_type=type)
 
+    kwargs = _filter_salt_default_kwags(kwargs)
+
     if installer.is_installed() and not is_upgrade:
         log.debug('splunk is installed')
         return dict({'retcode': 9,
@@ -403,10 +405,7 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
     if not data:
         data = dict()
 
-    # since data from salt kwargs potentially will come with __pub_* data
-    # filter them off here
-    data = {key: data[key] for key in data.keys()
-            if not key.startswith('__pub_')}
+    data = _filter_salt_default_kwags(data)
 
     # lazy load here since splunk sdk is install at run time
     from splunklib.binding import HTTPError
@@ -434,6 +433,14 @@ def config_conf(conf_name, stanza_name, data=None, do_restart=True,
             restart_fail_msg = 'restart fail after config'
             log.critical(restart_fail_msg)
             raise EnvironmentError(restart_fail_msg)
+
+
+def _filter_salt_default_kwags(data):
+    # since data from salt kwargs potentially will come with __pub_* data
+    # filter them off here
+    data = {key: data[key] for key in data.keys()
+            if not key.startswith('__pub_')}
+    return data
 
 
 def read_conf(conf_name, stanza_name, key_name=None, owner=None, app=None,
