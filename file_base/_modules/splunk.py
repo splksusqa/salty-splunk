@@ -595,7 +595,6 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
 
         data = {'pass4SymmKey': pass4SymmKey,
                 'mode': 'master',
-                'cluster_label': cluster_label,
                 'multisite': True,
                 'available_sites': get_availaible_sites(),
                 'site_replication_factor': site_replication_factor,
@@ -606,8 +605,12 @@ def config_cluster_master(pass4SymmKey, cluster_label, replication_factor=2,
                 'replication_factor': replication_factor,
                 'search_factor': search_factor,
                 'mode': 'master',
-                'cluster_label': cluster_label,
                 }
+
+        # todo, hotfix here, try better fix later
+        version = cli('version')['stdout'].strip()
+        if '6.2' not in version:
+            data['cluster_label'] = cluster_label
 
     config_conf('server', 'clustering', data)
 
@@ -638,8 +641,12 @@ def config_cluster_slave(pass4SymmKey, cluster_label, master_uri=None,
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'slave',
-            'cluster_label': cluster_label,
             }
+
+    #todo, hotfix here, try better fix later
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        data['cluster_label'] = cluster_label
 
     if site is not None:  # for multi-site
         config_conf('server', 'general', {'site': site}, do_restart=False)
@@ -670,8 +677,12 @@ def config_cluster_searchhead(pass4SymmKey, cluster_label, master_uri=None,
     data = {'pass4SymmKey': pass4SymmKey,
             'master_uri': 'https://{u}'.format(u=master_uri),
             'mode': 'searchhead',
-            'cluster_label': cluster_label,
             }
+
+    # todo, hotfix here, try better fix later
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        data['cluster_label'] = cluster_label
 
     if site is not None:  # for multi-site
         config_conf('server', 'general', {'site': site}, do_restart=False)
@@ -721,18 +732,25 @@ def config_shcluster_member(
         replication_factor_str = '-replication_factor {n}'.format(
             n=replication_factor)
 
+    # todo, hotfix here, try better fix later
+    shcluster_label_str = ''
+    version = cli('version')['stdout'].strip()
+    if '6.2' not in version:
+        shcluster_label_str = '-shcluster_label {label}'.format(
+            label=shcluster_label)
+
     cmd = 'init shcluster-config -auth {username}:{password} ' \
           '-mgmt_uri {mgmt_uri} -replication_port {replication_port} ' \
           '{replication_factor_str} ' \
           '-conf_deploy_fetch_url {conf_deploy_fetch_url} ' \
-          '-secret {security_key} -shcluster_label {label}' \
+          '-secret {security_key} {label}' \
         .format(username='admin', password='changeme',
                 mgmt_uri='https://{u}'.format(u=get_mgmt_uri()),
                 replication_port=replication_port,
                 replication_factor_str=replication_factor_str,
                 conf_deploy_fetch_url=conf_deploy_fetch_url,
                 security_key=pass4SymmKey,
-                label=shcluster_label
+                label=shcluster_label_str
                 )
     result = cli(cmd)
     if result['retcode'] != 0:
