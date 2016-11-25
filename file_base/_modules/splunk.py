@@ -7,6 +7,7 @@ import re
 from salt.exceptions import CommandExecutionError
 import random
 import time
+import shutil
 
 PLATFORM = sys.platform
 FETCHER_URL = 'http://r.susqa.com/cgi-bin/splunk_build_fetcher.py'
@@ -62,8 +63,10 @@ def cli(command):
     run splunk cli
     :param command: splunk cli command
     '''
-    installer = InstallerFactory.create_installer()
-    splunk_home = installer.splunk_home
+    splunk_home = __salt__['grains.get']('splunk_home')
+    if not splunk_home:
+        return False
+
     cmd = '{p} {c}'.format(p=os.path.join(splunk_home, 'bin', 'splunk'),
                            c=command)
 
@@ -89,10 +92,18 @@ class InstallerFactory(object):
 
     @staticmethod
     def create_installer(splunk_type=None):
+        pkg_path = __salt__['grains.get']('pkg_path')
+
+        if not pkg_path:
+            raise RuntimeError('need pkg path')
+
         if "linux" in PLATFORM:
             installer = LinuxTgzInstaller(splunk_type)
         elif "win" in PLATFORM:
-            installer = WindowsMsiInstaller(splunk_type)
+            if pkg_path.endswith('.zip'):
+                installer = WindowsZipInstaller()
+            else:
+                installer = WindowsMsiInstaller(splunk_type)
         else:
             # to do: throw error when platform is not supported
             raise NotImplementedError
@@ -103,6 +114,7 @@ class Installer(object):
     def __init__(self, splunk_type=None):
         if not self.splunk_type:
             self.splunk_type = splunk_type
+        self.pkg_path = None
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
         pass
@@ -112,15 +124,6 @@ class Installer(object):
 
     def uninstall(self):
         pass
-
-    @property
-    def pkg_path(self):
-        ''' where the package file is stored'''
-        return __salt__['grains.get']('pkg_path')
-
-    @pkg_path.setter
-    def pkg_path(self, value):
-        __salt__['grains.set']('pkg_path', value, force=True)
 
     @property
     def splunk_home(self):
@@ -242,6 +245,58 @@ class LinuxTgzInstaller(Installer):
             __salt__['grains.delval']('splunk_mgmt_uri')
 
 
+class WindowsZipInstaller(Installer):
+    def __init__(self):
+        super(WindowsZipInstaller, self).__init__()
+        if not self.splunk_home:
+            self.splunk_home = "C:\\splunk"
+
+    def install(self, pkg_path, splunk_home=None, **kwargs):
+        if splunk_home:
+            self.splunk_home = splunk_home
+
+        if self.is_installed():
+            cli('stop')
+
+        if not os.path.exists(self.splunk_home):
+            os.mkdir(self.splunk_home)
+
+        self.pkg_path = pkg_path
+        par_home = os.path.dirname(self.splunk_home)
+
+        cmd = ("cd c:\\ & unzip {p} -d {par} & {s}\\bin\\splunk.exe enable boot-start "
+               "& {s}\\bin\\splunk.exe start "
+               "--accept-license --answer-yes".format(s=self.splunk_home, p=pkg_path, par=par_home))
+
+        return __salt__['cmd.run_all'](cmd, python_shell=True)
+
+
+    def is_installed(self):
+        return os.path.exists(os.path.join(self.splunk_home, "bin", "splunk.exe"))
+
+    def uninstall(self):
+        if not self.is_installed():
+            return
+        ret = cli("stop -f")
+        shutil.rmtree(self.splunk_home)
+
+        cmd = 'sc delete Splunkd'
+        __salt__['cmd.run_all'](cmd, python_shell=True)
+
+        cmd = 'sc delete Splunkweb'
+        __salt__['cmd.run_all'](cmd, python_shell=True)
+
+        if 0 == ret['retcode']:
+            os.remove(self.pkg_path)
+            __salt__['grains.delval']('pkg_path')
+            __salt__['grains.delval']('splunk_type')
+        else:
+            raise CommandExecutionError(ret['stdout'] + ret['stderr'])
+
+        if __salt__['grains.has_value']('splunk_mgmt_uri'):
+            __salt__['grains.delval']('splunk_mgmt_uri')
+
+
 def _is_it_version_branch_build(parameter):
     branch = ''
     version = ''
@@ -324,7 +379,10 @@ def is_installed():
     :return: True if splunk is installed, else False
     :rtype: Boolean
     '''
-    installer = InstallerFactory.create_installer()
+    try:
+        installer = InstallerFactory.create_installer()
+    except RuntimeError:
+        return False
     return installer.is_installed()
 
 
@@ -353,6 +411,24 @@ def install(fetcher_arg,
     :rtype: dict
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
+    if fetcher_arg.startswith("http") or fetcher_arg.startswith('salt://'):
+        url = fetcher_arg
+    else:
+        branch, version, build = _is_it_version_branch_build(fetcher_arg)
+        url = _get_pkg_url(
+            branch=branch, version=version, build=build, type=type,
+            fetcher_url=fetcher_url)
+
+    # download the package
+    dest_root = tempfile.gettempdir()
+    pkg_path = os.path.join(dest_root, os.sep, os.path.basename(url))
+    log.debug('download pkg to: {p}'.format(p=pkg_path))
+
+    log.debug('download pkg from: {u}'.format(u=url))
+
+    __salt__['cp.get_url'](path=url, dest=pkg_path)
+    __salt__['grains.set']('pkg_path', pkg_path, force=True)
+
     installer = InstallerFactory.create_installer(splunk_type=type)
 
     kwargs = _filter_salt_default_kwags(kwargs)
@@ -362,23 +438,6 @@ def install(fetcher_arg,
         return dict({'retcode': 9,
                      'stdout': 'splunk is installed',
                      'stderr': 'splunk is installed'})
-
-    if fetcher_arg.startswith("http") or fetcher_arg.startswith('salt://'):
-        url = fetcher_arg
-    else:
-        branch, version, build = _is_it_version_branch_build(fetcher_arg)
-        url = _get_pkg_url(
-            branch=branch, version=version, build=build, type=type,
-            fetcher_url=fetcher_url)
-
-    log.debug('download pkg from: {u}'.format(u=url))
-
-    # download the package
-    dest_root = tempfile.gettempdir()
-    pkg_path = os.path.join(dest_root, os.sep, os.path.basename(url))
-    log.debug('download pkg to: {p}'.format(p=pkg_path))
-
-    __salt__['cp.get_url'](path=url, dest=pkg_path)
 
     return installer.install(pkg_path, splunk_home, **kwargs)
 
@@ -894,7 +953,10 @@ def uninstall():
     '''
     uninstall splunk if splunk is installed
     '''
-    installer = InstallerFactory.create_installer()
+    try:
+        installer = InstallerFactory.create_installer()
+    except RuntimeError:
+        return False
     installer.uninstall()
 
 
@@ -970,8 +1032,7 @@ def add_forward_server(server):
 def add_deployment_app(name):
     '''
     '''
-    installer = InstallerFactory.create_installer()
-    splunk_home = installer.splunk_home
+    splunk_home = __salt__['grains.get']('splunk_home')
     cmd = 'mkdir {p}'.format(
         p=os.path.join(splunk_home, 'etc', 'deployment-apps', name))
     return __salt__['cmd.run_all'](cmd)
@@ -1094,8 +1155,9 @@ def config_dmc():
 
 
 def get_crash_log():
-    installer = InstallerFactory.create_installer()
-    splunk_home = installer.splunk_home
+    splunk_home = __salt__['grains.get']('splunk_home')
+    if not splunk_home:
+        return False
     crash_file = []
     log_path = os.path.join(splunk_home, 'var', 'log', 'splunk')
     for file_name in os.listdir(log_path):
