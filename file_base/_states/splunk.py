@@ -42,7 +42,7 @@ def configured(name, conf_name, stanza_name, data=None, do_restart=True,
     key_to_changed = []
     if data:
         for key, value in data.items():
-            current_value = __salt__['splunk.read_conf'](
+            current_value = __salt__['splunk.read_conf_file'](
                 conf_name, stanza_name, key)
             if str(current_value) != str(value):
                 key_to_changed.append(key)
@@ -57,14 +57,11 @@ def configured(name, conf_name, stanza_name, data=None, do_restart=True,
         new_data[key] = data[key]
 
     try:
-        __salt__['splunk.config_conf'](conf_name, stanza_name, new_data,
-                                       do_restart, app, owner, sharing)
+        __salt__['splunk.edit_conf_file'](
+            conf_name, stanza_name, new_data, app, owner, sharing, do_restart)
         ret['result'] = True
         ret['comment'] = 'config changed successfully'
-        ret['changes'] = {
-            'stanza': stanza_name,
-            'data': new_data
-        }
+        ret['changes'] = {'stanza': stanza_name, 'data': new_data}
     except EnvironmentError as err:
         ret['result'] = False
         ret['comment'] = str(err)
@@ -203,7 +200,7 @@ def search_peer_configured(name, **kwargs):
         'indexer')
 
     # read current servers is configured
-    current_servers = __salt__['splunk.read_conf'](
+    current_servers = __salt__['splunk.read_conf_file'](
         'distsearch', 'distributedSearch', key_name='servers')
     servers_need_to_be_removed = []
     if current_servers:
@@ -213,7 +210,8 @@ def search_peer_configured(name, **kwargs):
         servers_need_to_be_added = \
             set(servers_need_to_be_added) - set(current_servers)
 
-    log.debug('servers need to be removed %s' % str(servers_need_to_be_removed))
+    log.debug(
+        'servers need to be removed %s' % str(servers_need_to_be_removed))
     log.debug('sever need to be added %s' % str(servers_need_to_be_added))
 
     if not servers_need_to_be_added and not servers_need_to_be_removed:
