@@ -4,7 +4,7 @@ include:
 install-splunk:
   splunk:
     - installed
-    - fetcher_arg: {{ pillar['version'] }}
+    - pkg_url: {{ pillar['version'] }}
     {% set is_win_domain = salt.pillar.get('win_domain', default=false) %}
     {% if grains['os'] == 'Windows' and (is_win_domain != false) %}
 

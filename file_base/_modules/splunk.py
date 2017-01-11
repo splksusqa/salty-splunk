@@ -5,7 +5,8 @@ import random
 import time
 
 try:
-    import titanium
+    from titanium.installer import InstallerFactory
+    from titanium.splunk import get_splunk
 except ImportError:
     __salt__['pip.install'](
         'titanium',
@@ -26,9 +27,9 @@ def _get_splunk(username="admin", password="changeme"):
     '''
     returns the object which represents a splunk instance
     '''
-    splunk = titanium.splunk.get_splunk(
+    splunk = get_splunk(
         splunk_home=__salt__['grains.get']('splunk_home'),
-        username=username, password=password, login=True)
+        username=username, password=password)
     return splunk
 
 
@@ -41,7 +42,7 @@ def is_installed():
     '''
     pkg_url = __salt__['grains.get']('pkg_url')
     splunk_home = __salt__['grains.get']('splunk_home')
-    installer = titanium.installer.InstallerFactory.create_installer(
+    installer = InstallerFactory.create_installer(
         pkg_url, 'splunk', splunk_home)
     return installer.is_installed()
 
@@ -62,7 +63,7 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
 
-    installer = titanium.installer.InstallerFactory.create_installer(
+    installer = InstallerFactory.create_installer(
         pkg_url, 'splunk', splunk_home)
 
     if installer.is_installed() and not upgrade:
@@ -405,7 +406,7 @@ def uninstall():
     '''
     uninstall splunk if splunk is installed
     '''
-    installer = titanium.installer.create_installer(
+    installer = InstallerFactory.create_installer(
         pkg_url=__salt__['grains.get']('pkg_url'),
         splunk_type='splunk',
         splunk_home=__salt__['grains.get']('splunk_home'))

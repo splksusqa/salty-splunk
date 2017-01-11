@@ -19,3 +19,8 @@ SplunkdPort:
     - localport: 8089
     - protocol: tcp
 {% endif %}
+
+titanium:
+  pip.installed:
+  - name: titanium>=0.1.6
+  - extra_index_url: "https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/"
