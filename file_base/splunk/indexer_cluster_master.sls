@@ -8,8 +8,10 @@ config_master:
     - replication_factor: {{ pillar['indexer_cluster']['replication_factor'] }}
     - search_factor: {{ pillar['indexer_cluster']['search_factor'] }}
     - cluster_label: {{ pillar['indexer_cluster']['cluster_label'] }}
+    - number_of_sites: {{ pillar['indexer_cluster']['number_of_sites'] }}
+    {% if salt['grains.get']('site') %}
     - site_replication_factor: {{ pillar['indexer_cluster']['site_replication_factor'] }}
     - site_search_factor: {{ pillar['indexer_cluster']['site_search_factor'] }}
-    - number_of_sites: {{ pillar['indexer_cluster']['number_of_sites'] }}
+    {% endif %}
   require:
     - sls: splunk.indexer
