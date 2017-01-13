@@ -95,6 +95,19 @@ def read_conf_file(conf_name, stanza_name=None, key_name=None, owner=None,
         conf_name, stanza_name, key_name, owner, app, sharing)
 
 
+def cli(cmd, auth=None):
+    '''
+    run splunk cli
+    :type cmd: string
+    :param cmd: cmd for splunk to execute
+    :type auth: string
+    :param auth: auth string for executing cmd, ex: 'admin:changeme'
+                 pass None if you don't need auth string
+    '''
+    splunk = _get_splunk()
+    return splunk.cli(cmd, auth)
+
+
 def is_stanza_existed(conf_name, stanza_name, owner=None, app=None,
                       sharing='system'):
     '''
