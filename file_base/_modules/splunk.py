@@ -11,6 +11,8 @@ except ImportError:
     __salt__['pip.install'](
         'titanium',
         extra_index_url="https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/")
+    from titanium.installer import InstallerFactory
+    from titanium.splunk import get_splunk
 
 log = logging.getLogger(__name__)
 
