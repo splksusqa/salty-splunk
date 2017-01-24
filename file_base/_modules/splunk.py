@@ -4,15 +4,7 @@ import logging
 import random
 import time
 
-try:
-    from titanium.installer import InstallerFactory
-    from titanium.splunk import get_splunk
-except ImportError:
-    __salt__['pip.install'](
-        'titanium',
-        extra_index_url="https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/")
-    from titanium.installer import InstallerFactory
-    from titanium.splunk import get_splunk
+INDEX_URL = "https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/"
 
 log = logging.getLogger(__name__)
 
@@ -29,10 +21,28 @@ def _get_splunk(username="admin", password="changeme"):
     '''
     returns the object which represents a splunk instance
     '''
+    try:
+        from titanium.splunk import get_splunk
+    except ImportError:
+        __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        from titanium.splunk import get_splunk
+
     splunk = get_splunk(
         splunk_home=__salt__['grains.get']('splunk_home'),
         username=username, password=password)
     return splunk
+
+
+def _get_installer(pkg_url, splunk_type, splunk_home):
+    '''
+    return the splunk installer object
+    '''
+    try:
+        from titanium.installer import InstallerFactory
+    except ImportError:
+        __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        from titanium.installer import InstallerFactory
+    return InstallerFactory.create_installer(pkg_url, splunk_type, splunk_home)
 
 
 def is_installed():
@@ -44,8 +54,8 @@ def is_installed():
     '''
     pkg_url = __salt__['grains.get']('pkg_url')
     splunk_home = __salt__['grains.get']('splunk_home')
-    installer = InstallerFactory.create_installer(
-        pkg_url, 'splunk', splunk_home)
+    splunk_type = __salt__['grains.get']('splunk_type')
+    installer = _get_installer(pkg_url, splunk_type, splunk_home)
     return installer.is_installed()
 
 
@@ -65,12 +75,12 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
     :return: command line result in dict ['retcode', 'stdout', 'stderr']
     """
 
-    installer = InstallerFactory.create_installer(
-        pkg_url, 'splunk', splunk_home)
+    installer = _get_installer(pkg_url, type, splunk_home)
 
     if installer.is_installed() and not upgrade:
         # set grains
         __salt__['grains.set']('splunk_home', splunk_home)
+        __salt__['grains.set']('splunk_type', type)
         __salt__['grains.set']('pkg_url', pkg_url)
         log.debug('splunk is installed')
         return dict({'retcode': 9,
@@ -421,9 +431,9 @@ def uninstall():
     '''
     uninstall splunk if splunk is installed
     '''
-    installer = InstallerFactory.create_installer(
+    installer = _get_installer(
         pkg_url=__salt__['grains.get']('pkg_url'),
-        splunk_type='splunk',
+        splunk_type=__salt__['grains.get']('splunk_type'),
         splunk_home=__salt__['grains.get']('splunk_home'))
     installer.uninstall()
 
