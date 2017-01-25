@@ -3,6 +3,7 @@ import tempfile
 import logging
 import random
 import time
+import sys
 
 INDEX_URL = "https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/"
 
@@ -24,7 +25,13 @@ def _get_splunk(username="admin", password="changeme"):
     try:
         from titanium.splunk import get_splunk
     except ImportError:
-        __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        if 'win' in sys.platform:
+            __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        else:
+            __salt__['pip.install'](
+                'titanium', index_url=INDEX_URL,
+                cwd='C:\\salt\\bin\\Scripts',
+                bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
         from titanium.splunk import get_splunk
 
     splunk = get_splunk(
@@ -40,7 +47,13 @@ def _get_installer(pkg_url, splunk_type, splunk_home):
     try:
         from titanium.installer import InstallerFactory
     except ImportError:
-        __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        if 'win' in sys.platform:
+            __salt__['pip.install']('titanium', index_url=INDEX_URL)
+        else:
+            __salt__['pip.install'](
+                'titanium', index_url=INDEX_URL,
+                cwd='C:\\salt\\bin\\Scripts',
+                bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
         from titanium.installer import InstallerFactory
     return InstallerFactory.create_installer(pkg_url, splunk_type, splunk_home)
 
