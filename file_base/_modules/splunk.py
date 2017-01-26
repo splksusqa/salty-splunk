@@ -392,17 +392,20 @@ def config_license_slave(master_uri=None):
     splunk.config_license_slave(master_uri)
 
 
-def get_mgmt_uri():
+def get_mgmt_uri(hostname=None):
     '''
     get mgmt uri of splunk
 
+    :param hostname: the hostname to use for mgmt uri
+    :type hostname: string
     :return: The mgmt uri of splunk, return None if Splunk is not started
     :rtype: string
     '''
     # todo auth parameter
 
     splunk = _get_splunk()
-    return splunk.get_mgmt_uri()
+    hostname = hostname if hostname is not None else __grains__['ipv4'][-1]
+    return hostname + ":" + splunk.mgmt_port
 
 
 def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
@@ -416,7 +419,8 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
     minions = None
     while True:
         role_str = 'role:' + role
-        minions = __salt__['mine.get'](role_str, 'splunk.get_mgmt_uri', 'grain')
+        minions = __salt__['mine.get'](
+            role_str, 'splunk.get_mgmt_uri', 'grain')
 
         log.warn('runner returned: ' + str(minions))
 
