@@ -26,12 +26,12 @@ def _get_splunk(username="admin", password="changeme"):
         from titanium.splunk import get_splunk
     except ImportError:
         if 'win' in sys.platform:
-            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
-        else:
             __salt__['pip.install'](
                 'titanium', extra_index_url=INDEX_URL,
                 cwd='C:\\salt\\bin\\Scripts',
                 bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
+        else:
+            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
         from titanium.splunk import get_splunk
 
     splunk = get_splunk(
@@ -48,12 +48,12 @@ def _get_installer(pkg_url, splunk_type, splunk_home, pkg_path=None):
         from titanium.installer import InstallerFactory
     except ImportError:
         if 'win' in sys.platform:
-            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
-        else:
             __salt__['pip.install'](
                 'titanium', extra_index_url=INDEX_URL,
                 cwd='C:\\salt\\bin\\Scripts',
                 bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
+        else:
+            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
         from titanium.installer import InstallerFactory
 
     return InstallerFactory.create_installer(
