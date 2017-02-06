@@ -95,15 +95,15 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
 
     if installer.is_installed() and not upgrade:
         # set grains
-        __salt__['grains.set']('splunk_home', splunk_home)
-        __salt__['grains.set']('splunk_type', type)
-        __salt__['grains.set']('pkg_url', pkg_url)
-        __salt__['grains.set']('pkg_path', installer.pkg_path)
         log.debug('splunk is installed')
         return dict({'retcode': 9,
                      'stdout': 'splunk is installed',
                      'stderr': 'splunk is installed'})
     else:
+        __salt__['grains.set']('splunk_home', splunk_home)
+        __salt__['grains.set']('splunk_type', type)
+        __salt__['grains.set']('pkg_url', pkg_url)
+        __salt__['grains.set']('pkg_path', installer.pkg_path)
         return installer.install()
 
 
