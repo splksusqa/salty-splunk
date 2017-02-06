@@ -71,6 +71,10 @@ def is_installed():
     pkg_path = __salt__['grains.get']('pkg_path')
     splunk_home = __salt__['grains.get']('splunk_home')
     splunk_type = __salt__['grains.get']('splunk_type')
+
+    if splunk_home is None:
+        return False
+
     installer = _get_installer(pkg_url, splunk_type, splunk_home, pkg_path)
     return installer.is_installed()
 
@@ -100,7 +104,7 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
                      'stdout': 'splunk is installed',
                      'stderr': 'splunk is installed'})
     else:
-        __salt__['grains.set']('splunk_home', splunk_home)
+        __salt__['grains.set']('splunk_home', installer.splunk_home)
         __salt__['grains.set']('splunk_type', type)
         __salt__['grains.set']('pkg_url', pkg_url)
         __salt__['grains.set']('pkg_path', installer.pkg_path)
@@ -458,6 +462,12 @@ def uninstall():
         splunk_home=__salt__['grains.get']('splunk_home'),
         pkg_path=__salt__['grains.get']('pkg_path'))
     installer.uninstall()
+
+    # delete grains
+    __salt__['grains.delval']('pkg_url')
+    __salt__['grains.delval']('splunk_type')
+    __salt__['grains.delval']('splunk_home')
+    __salt__['grains.delval']('pkg_path')
 
 
 def create_users(username_prefix, user_count, roles):
