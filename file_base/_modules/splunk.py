@@ -40,7 +40,7 @@ def _get_splunk(username="admin", password="changeme"):
     return splunk
 
 
-def _get_installer(pkg_url, splunk_type, splunk_home):
+def _get_installer(pkg_url, splunk_type, splunk_home, pkg_path=None):
     '''
     return the splunk installer object
     '''
@@ -55,7 +55,9 @@ def _get_installer(pkg_url, splunk_type, splunk_home):
                 cwd='C:\\salt\\bin\\Scripts',
                 bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
         from titanium.installer import InstallerFactory
-    return InstallerFactory.create_installer(pkg_url, splunk_type, splunk_home)
+
+    return InstallerFactory.create_installer(
+        pkg_url, splunk_type, splunk_home, pkg_path)
 
 
 def is_installed():
@@ -66,9 +68,10 @@ def is_installed():
     :rtype: Boolean
     '''
     pkg_url = __salt__['grains.get']('pkg_url')
+    pkg_path = __salt__['grains.get']('pkg_path')
     splunk_home = __salt__['grains.get']('splunk_home')
     splunk_type = __salt__['grains.get']('splunk_type')
-    installer = _get_installer(pkg_url, splunk_type, splunk_home)
+    installer = _get_installer(pkg_url, splunk_type, splunk_home, pkg_path)
     return installer.is_installed()
 
 
@@ -95,6 +98,7 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
         __salt__['grains.set']('splunk_home', splunk_home)
         __salt__['grains.set']('splunk_type', type)
         __salt__['grains.set']('pkg_url', pkg_url)
+        __salt__['grains.set']('pkg_path', installer.pkg_path)
         log.debug('splunk is installed')
         return dict({'retcode': 9,
                      'stdout': 'splunk is installed',
@@ -451,7 +455,8 @@ def uninstall():
     installer = _get_installer(
         pkg_url=__salt__['grains.get']('pkg_url'),
         splunk_type=__salt__['grains.get']('splunk_type'),
-        splunk_home=__salt__['grains.get']('splunk_home'))
+        splunk_home=__salt__['grains.get']('splunk_home'),
+        pkg_path=__salt__['grains.get']('pkg_path'))
     installer.uninstall()
 
 
