@@ -114,7 +114,6 @@ class Installer(object):
     def __init__(self, splunk_type=None):
         if not self.splunk_type:
             self.splunk_type = splunk_type
-        self.pkg_path = None
 
     def install(self, pkg_path, splunk_home=None, **kwargs):
         pass
@@ -146,6 +145,16 @@ class Installer(object):
     @splunk_type.setter
     def splunk_type(self, value):
         __salt__['grains.set']('splunk_type', value, force=True)
+
+    @property
+    def pkg_path(self):
+        ''' splunk pkg path'''
+        pkg_path = __salt__['grains.get']('pkg_path')
+        return pkg_path if pkg_path else None
+
+    @pkg_path.setter
+    def pkg_path(self, value):
+        __salt__['grains.set']('pkg_path', value, force=True)
 
 
 class WindowsMsiInstaller(Installer):
