@@ -282,9 +282,8 @@ def bootstrap_shcluster_captain(shc_members=None):
     :param shc_members: list of shc members,
         ex. https://192.168.0.2:8089,https://192.168.0.3:8089
     '''
-    if not shc_members:
+    if shc_members is None:
         shc_members = get_list_of_mgmt_uri('search-head-cluster-member')
-        shc_members = ['https://{u}'.format(u=e) for e in shc_members]
 
     splunk = _get_splunk()
     splunk.bootstrap_shcluster_captain(shc_members)
@@ -412,8 +411,7 @@ def get_mgmt_uri(hostname=None):
     # todo auth parameter
 
     splunk = _get_splunk()
-    hostname = hostname if hostname is not None else __grains__['ipv4'][-1]
-    return hostname + ":" + splunk.mgmt_port
+    return splunk.mgmt_uri
 
 
 def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
