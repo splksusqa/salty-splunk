@@ -286,11 +286,13 @@ def bootstrap_shcluster_captain(shc_members=None):
         shc_members = get_list_of_mgmt_uri('search-head-cluster-member')
 
     splunk = _get_splunk()
-    splunk.bootstrap_shcluster_captain(shc_members)
+    ret = splunk.bootstrap_shcluster_captain(shc_members)
 
     # remove role after bootstrap
     if 'search-head-cluster-first-captain' in __salt__['grains.get']('role'):
         __salt__['grains.remove']('role', 'search-head-cluster-first-captain')
+
+    return ret
 
 
 def remove_search_peer(peers):

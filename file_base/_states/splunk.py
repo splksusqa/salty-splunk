@@ -12,16 +12,15 @@ def installed(name, **kwargs):
            'result': True,
            'comment': ''}
 
-    if __salt__['splunk.is_installed']():
-        ret['comment'] = 'Splunk is already installed.'
-        return ret
-
     installed_result = __salt__['splunk.install'](**kwargs)
 
     if 0 == installed_result['retcode']:
         ret['result'] = True
         ret['comment'] = "Splunk was installed successfully"
         ret['changes'] = {'new': "installed"}
+    elif 9 == installed_result['retcode']:
+        ret['result'] = True
+        ret['comment'] = "Splunk has been installed before. Nothing changed"
     else:
         ret['result'] = False
         ret['comment'] = "Splunk was not installed: {s}".format(
