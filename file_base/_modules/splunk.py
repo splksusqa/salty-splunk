@@ -457,7 +457,7 @@ def uninstall():
         pkg_path=__salt__['grains.get']('pkg_path'))
     result = installer.uninstall()
 
-    if 0 == result['retcode']:
+    if result:
         # delete grains
         __salt__['grains.delval']('pkg_url')
         __salt__['grains.delval']('splunk_type')
@@ -465,8 +465,7 @@ def uninstall():
         __salt__['grains.delval']('pkg_path')
         return result
     else:
-        msg = "Error when uninstalling Splunk: \n{o}\n{e}".format(
-            o=result['stdout'], e=result['stderr'])
+        msg = "Error when uninstalling Splunk"
         raise Exception(msg)
 
 
