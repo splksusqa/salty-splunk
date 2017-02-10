@@ -455,13 +455,19 @@ def uninstall():
         splunk_type=__salt__['grains.get']('splunk_type'),
         splunk_home=__salt__['grains.get']('splunk_home'),
         pkg_path=__salt__['grains.get']('pkg_path'))
-    installer.uninstall()
+    result = installer.uninstall()
 
-    # delete grains
-    __salt__['grains.delval']('pkg_url')
-    __salt__['grains.delval']('splunk_type')
-    __salt__['grains.delval']('splunk_home')
-    __salt__['grains.delval']('pkg_path')
+    if 0 == result['retcode']:
+        # delete grains
+        __salt__['grains.delval']('pkg_url')
+        __salt__['grains.delval']('splunk_type')
+        __salt__['grains.delval']('splunk_home')
+        __salt__['grains.delval']('pkg_path')
+        return result
+    else:
+        msg = "Error when uninstalling Splunk: \n{o}\n{e}".format(
+            o=result['stdout'], e=result['stderr'])
+        raise Exception(msg)
 
 
 def create_users(username_prefix, user_count, roles):
