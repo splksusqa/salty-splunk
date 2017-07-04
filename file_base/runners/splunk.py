@@ -159,4 +159,4 @@ def _set_grains(site, site_roles):
 
 def _clear_grains():
     client.cmd('*', 'grains.delval', arg=['role'])
-    client.cmd('*', 'grains.delval', arg=['role'])
+    client.cmd('*', 'grains.delval', arg=['site'])
