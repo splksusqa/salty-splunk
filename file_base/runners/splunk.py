@@ -84,11 +84,11 @@ def create_site():
         sites = pillar['sites']
         for site, site_data in sites.items():
             if isinstance(site_data, dict):
-                _set_grains(site_data)
+                _set_grains(site, site_data)
             elif isinstance(site_data, list):
                 minions = _check_number_of_minions(site, site_data)
                 minions_data = _assign_roles_to_minions(minions, site_data)
-                _set_grains(minions_data)
+                _set_grains(site, minions_data)
             else:
                 raise TypeError('sites data should be either dict or array')
     else:
@@ -139,16 +139,24 @@ def destroy_site():
     log.warn(result)
 
 
-def _set_grains(site):
+def _set_grains(site, site_roles):
     # set grains
-    for minion, grains_data in site.items():
-        for key, value in grains_data.items():
-            result = client.cmd(minion, 'grains.set', arg=[key, value])
-            if not result[minion]['result']:
-                log.error(str(result))
-                raise EnvironmentError(
-                    '{m} is fail to set grains'.format(m=minion))
+    for minion, roles in site_roles.items():
+        result = client.cmd(
+            minion, 'grains.set', arg=["role", roles], kwarg={'force': True})
+        if not result[minion]['result']:
+            log.error(str(result))
+            raise EnvironmentError(
+                '{m} is fail to set roles in grains'.format(m=minion))
+
+        result = client.cmd(
+            minion, 'grains.set', arg=["site", site], kwarg={'force': True})
+        if not result[minion]['result']:
+            log.error(str(result))
+            raise EnvironmentError(
+                '{m} failed tp set site in grains'.format(m=minion))
 
 
 def _clear_grains():
+    client.cmd('*', 'grains.delval', arg=['role'])
     client.cmd('*', 'grains.delval', arg=['role'])
