@@ -84,11 +84,11 @@ def create_site():
         sites = pillar['sites']
         for site, site_data in sites.items():
             if isinstance(site_data, dict):
-                _set_grains(site, site_data)
+                _set_roles(site, site_data)
             elif isinstance(site_data, list):
                 minions = _check_number_of_minions(site, site_data)
                 minions_data = _assign_roles_to_minions(minions, site_data)
-                _set_grains(site, minions_data)
+                _set_roles(site, minions_data)
             else:
                 raise TypeError('sites data should be either dict or array')
     else:
@@ -139,7 +139,7 @@ def destroy_site():
     log.warn(result)
 
 
-def _set_grains(site, site_roles):
+def _set_roles(site, site_roles):
     # set grains
     for minion, roles in site_roles.items():
         result = client.cmd(
