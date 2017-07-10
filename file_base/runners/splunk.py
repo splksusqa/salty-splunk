@@ -2,7 +2,7 @@ import salt.client
 import salt.runner
 import salt.config
 import logging
-from salt.utils.odict import OrderedDict
+
 
 log = logging.getLogger(__name__)
 opts = salt.config.master_config('/etc/salt/master')
