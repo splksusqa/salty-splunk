@@ -48,9 +48,7 @@ def join_ad_domain():
 
     log.warn('wait for vm {v}'.format(v=vm_count))
 
-    if vm_count != 0:
-        runner.cmd('state.event', arg=['salt/minion/*/start'],
-                   kwarg={'quiet': True, 'count': vm_count})
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 30)
 
     return result
 
@@ -63,6 +61,31 @@ def get_minions_with_empty_roles():
             minions.append(minion)
 
     return minions
+
+
+def _wait_for_minions_to_connect(minions, timeout=300):
+    '''
+    '''
+    start_time = time.time()
+    all_connected = False
+
+    while True:
+        if time.time() - start_time > timeout and len(minions) > 0:
+            all_connected = False
+            break
+
+        connected = runner.cmd('manage.up', [])
+        for m in connected:
+            minions.remove(m)
+
+        if len(minions) == 0:
+            all_connected = True
+            break
+
+    if all_connected:
+        return True
+    else:
+        raise Exception, "Timeout waiting for minions to connect"
 
 
 def create_site():
@@ -78,6 +101,8 @@ def create_site():
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 30)
+
     if 'sites' in pillar:
         _clear_grains()
 
