@@ -119,10 +119,11 @@ def create_site():
     else:
         log.warn('no site data, run orchestration directly')
 
-    runner.cmd('state.orch', arg=['orchestration.splunk'])
+    result = runner.cmd('state.orch', arg=['orchestration.splunk'])
+    log.info(result)
 
-    # todo check result
-    return True
+    # todo parse result to check if orchestration fails
+    return "False" in str(result)
 
 
 def _check_number_of_minions(site, site_data):
