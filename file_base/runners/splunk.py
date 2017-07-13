@@ -128,7 +128,7 @@ def create_site():
     log.info(result)
 
     # todo parse result to check if orchestration fails
-    return "False" in str(result)
+    return not "False" in str(result)
 
 
 def _check_number_of_minions(site, site_data):
