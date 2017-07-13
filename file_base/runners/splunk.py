@@ -76,8 +76,12 @@ def _wait_for_minions_to_connect(minions, timeout=300):
             break
 
         connected = runner.cmd('manage.up', [])
+
         for m in connected:
-            minions.remove(m)
+            try:
+                minions.remove(m)
+            except ValueError:
+                continue
 
         if len(minions) == 0:
             all_connected = True
