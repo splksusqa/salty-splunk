@@ -49,7 +49,7 @@ def join_ad_domain():
 
     log.warn('wait for vm {v}'.format(v=vm_count))
 
-    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 30)
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 600)
 
     return result
 
@@ -102,7 +102,7 @@ def create_site():
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
-    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 30)
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 600)
 
     if 'sites' in pillar:
         _clear_grains()
