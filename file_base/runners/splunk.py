@@ -2,6 +2,7 @@ import salt.client
 import salt.runner
 import salt.config
 import logging
+import time
 
 
 log = logging.getLogger(__name__)
