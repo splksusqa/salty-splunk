@@ -613,7 +613,7 @@ def get_forward_servers(role='indexer'):
     :return: [<ip>:<port>, <ip>:<port>]
     '''
     minions = __salt__['mine.get']('role:{r}'.format(r=role),
-                                   'splunk.get_listen_ports', 'grain')
+                                   'splunk.get_listening_ports', 'grain')
 
     minion_ips = __salt__['mine.get']('role:{r}'.format(r=role),
                                       'network.ip_addrs', 'grain')
