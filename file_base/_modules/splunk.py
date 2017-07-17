@@ -551,8 +551,16 @@ def config_dmc():
     indexers = get_list_of_mgmt_uri('indexer')
     cluster_master = get_list_of_mgmt_uri('indexer-cluster-master')
     deployment_server = get_list_of_mgmt_uri('deployment-server')
-    cluster_label = __pillar__['indexer_cluster']['cluster_label']
-    shcluster_label = __pillar__['search_head_cluster']['shcluster_label']
+
+    try:
+        cluster_label = __pillar__['indexer_cluster']['cluster_label']
+    except KeyError:
+        cluster_label = None
+
+    try:
+        shcluster_label = __pillar__['search_head_cluster']['shcluster_label']
+    except KeyError:
+        shcluster_label = None
 
     splunk = _get_splunk()
     splunk.config_dmc(

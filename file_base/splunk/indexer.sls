@@ -16,7 +16,6 @@ install-splunk:
     - require:
       - sls: splunk.common
 
-
 allow_remote_login:
   splunk.configured:
     - conf_name: server
