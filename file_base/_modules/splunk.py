@@ -591,7 +591,7 @@ def enable_js_debug_mode():
     splunk.enable_js_debug_mode()
 
 
-def get_listen_ports():
+def get_listening_ports():
     '''
     get receiving/listened ports
     :return: list of listened ports

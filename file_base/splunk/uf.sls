@@ -4,7 +4,7 @@ include:
 install-splunk:
   splunk:
     - installed
-    - fetcher_arg: {{ pillar['universal-forwarder']['version'] }}
+    - pkg_url: {{ pillar['universal-forwarder']['version'] }}
     - type: splunkforwarder
     - require:
       - sls: splunk.common
