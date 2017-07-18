@@ -273,14 +273,14 @@ def license_client_configured(name, **kwargs):
     return ret
 
 
-def license_added(name, **kwargs):
+def license_added(name, license_name):
     ret = {'name': name,
            'changes': {},
            'result': True,
            'comment': ''}
 
     try:
-        __salt__['splunk.add_license'](**kwargs)
+        __salt__['splunk.add_license']("salt://" + license_name)
         ret['result'] = True
         ret['comment'] = "configured as a license master"
         ret['changes'] = {'new': "license added"}

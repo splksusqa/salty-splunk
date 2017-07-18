@@ -538,13 +538,8 @@ def add_batch_of_deployment_apps(name_prefix, count):
 def config_dmc():
     '''
     config deployment management console by editing distsearch.conf
-    https://confluence.splunk.com/display/PROD/How+to+set+up+DMC+in+Dash
-
-    In the doc, it is assumed that indexer cluster is used, dmc is built on
-    indexer cluster master. Therefore we assume that for now, too.
-    TODO: update where the dmc should be built by the deployment
     '''
-    # add all searchheads and license master as search peer
+
     searchheads = get_list_of_mgmt_uri('search-head')
     license_master = get_list_of_mgmt_uri('central-license-master')
     deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
