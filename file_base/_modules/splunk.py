@@ -410,7 +410,8 @@ def get_mgmt_uri(hostname=None):
     return splunk.mgmt_uri
 
 
-def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
+def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5,
+        no_scheme=False):
     '''
     :param role: grains role matched
     :type role: str
@@ -429,7 +430,10 @@ def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5):
         if minions and isinstance(minions, dict):
             ret = []
             for key, value in minions.iteritems():
-                ret.append(value)
+                if no_scheme and value.startswith("https://"):
+                    ret.append(value[8:])
+                else:
+                    ret.append(value)
             return ret
 
         retry_count -= 1
@@ -540,12 +544,16 @@ def config_dmc():
     config deployment management console by editing distsearch.conf
     '''
 
-    searchheads = get_list_of_mgmt_uri('search-head')
-    license_master = get_list_of_mgmt_uri('central-license-master')
-    deployer = get_list_of_mgmt_uri('search-head-cluster-deployer')
-    indexers = get_list_of_mgmt_uri('indexer')
-    cluster_master = get_list_of_mgmt_uri('indexer-cluster-master')
-    deployment_server = get_list_of_mgmt_uri('deployment-server')
+    searchheads = get_list_of_mgmt_uri('search-head', no_scheme=True)
+    license_master = get_list_of_mgmt_uri(
+        'central-license-master', no_scheme=True)
+    deployer = get_list_of_mgmt_uri(
+        'search-head-cluster-deployer', no_scheme=True)
+    indexers = get_list_of_mgmt_uri('indexer', no_scheme=True)
+    cluster_master = get_list_of_mgmt_uri(
+        'indexer-cluster-master', no_scheme=True)
+    deployment_server = get_list_of_mgmt_uri(
+        'deployment-server', no_scheme=True)
 
     try:
         cluster_label = __pillar__['indexer_cluster']['cluster_label']
