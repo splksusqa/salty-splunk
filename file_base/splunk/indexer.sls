@@ -28,6 +28,13 @@ enable-listening-port:
     - listening_ports_enabled
     - ports: {{ pillar['listening_ports'] }}
 
+{% if grains['os'] == 'Windows' %}
+  win_firewall:
+    - add_rule
+    - localport: {{ pillar['listening_ports'] }}
+    - protocol: tcp
+{% endif %}
+
 update-mine-date:
   module.run:
     - name: mine.update
