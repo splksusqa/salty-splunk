@@ -1,0 +1,11 @@
+; DO NOT EDIT (unless you know what you are doing)
+;
+; This subdirectory is a git "subrepo", and this file is maintained by the
+; git-subrepo command. See https://github.com/git-commands/git-subrepo#readme
+;
+[subrepo]
+	remote = https://github.com/splksusqa/titanium.git
+	branch = develop
+	commit = e2307ed6492cb12492c3c44982066fb610c30b5a
+	parent = abd5686478a89d5daa7d08718496c45ccfbeaf44
+	cmdver = 0.3.1

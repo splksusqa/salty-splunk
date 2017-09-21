@@ -1,0 +1,38 @@
+language: python
+python:
+  - "2.7"
+#  - "3.2"
+#  - "3.3"
+#  - "3.4"
+#  - "3.5"
+#  - "3.5-dev" # 3.5 development branch
+#  - "3.6-dev" # 3.6 development branch
+#  - "nightly" # currently points to 3.7-dev
+
+env:
+  global:
+    #PYPISITE variable
+    - secure: "2sgFqlfRrxEQWEYbiH5Jt3ngnZf1xc7nSKOfCJiH6OIIgLGJcbjuWktEqWtIDQJZsaFk2wqEY08WM/B7mNF9hSGs/wAsXwx7m/5oXBkB8oy+7IVjeG5vJ6nKm4jq3tvHoIa5vMaqtfOhwFJHBVXoYqz0sdm8qre3tpnJO29O+r7jaL7N0tvjki8YG6iWP5gOpbTg2fV7FQuBXSDLRwZ2sgNk+g7SsMrMu+WQACpcSsVwmTs6KdpdHOesWSD+zJQ/YwNPfK90dkNL1EbIWkJNUpOVM52sHath14IQQdN0DUGALlVThBSf06sCTWTaC+wdAvb5nSpNmd0U8+Ek4T3GnsbHIw1hKi4pQ8XBe7C1NHyZEXCElJf+CMt+DSWbsFDLW/cPtDbRTRgHocRlfxQ9UTRRXP6Fk/Ucm5C5GTkDSneDowTEr72ovlcmfBKvEcztPskgrHp6Na/x7vhzWM22HOFNDetpp4ZRiGuFJXe3Cwf4SEzrmBYhsdpLNKAmoS2ZSOGHi69FA90iW6ulO1PrN3AZo8UvQlOXQRSPk+SYiWg/9AA6iRWQBM1TjxNeqVsiOHidHuB2iyxXRr7HTg3Ty9EuWrXzzVgZfWMWx9EHvoRITue4QrNn6tgpTrZ5r8U1aSTCHsFpmUdmlZodyemSEFjEDWWHLM6DlzxU5nzf9rE="
+    - BDBRANCH="master"
+    - BDPYVERSION="2.7"
+    - ENCRYPTION_LABEL=ea00192dfd10
+
+before_install:
+  - chmod +x scripts/travis_deploy.sh
+
+install:
+  - "curl https://bootstrap.pypa.io/ez_setup.py -o - | python"
+  - "pip install tox-travis"
+  - "pip install bumpversion"
+  - "pip install ."
+
+# command to run tests
+script:
+  - python setup.py sdist
+  - ./scripts/travis_deploy.sh
+
+notifications:
+  email:
+    recipients:
+      - ftan@splunk.com
+      - clin@splunk.com
