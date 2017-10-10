@@ -1249,3 +1249,16 @@ def get_forward_servers(role='indexer'):
         ret.append(str(minion_ips[minion][0]) + ':' + str(ports[0]))
 
     return ret
+
+
+def add_log_cfg(logcfg_path='salt://log-local.cfg'):
+    '''
+    upload log-local.cfg
+    :type logcfg_path: string
+    :param logcfg_path: where the log-local.cfg is. It should be start with 'salt://'
+    '''
+    name = os.path.basename(logcfg_path)
+    splunk_home = __salt__['grains.get']('splunk_home')
+    logcfgfile = __salt__['cp.get_file'](
+        logcfg_path, os.path.join(splunk_home, 'etc', name))
+    return logcfgfile
