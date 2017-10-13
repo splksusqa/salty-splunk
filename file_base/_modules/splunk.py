@@ -3,7 +3,8 @@ import tempfile
 import logging
 import random
 import time
-import sys
+from titanium.splunk import get_splunk
+from titanium.installer import InstallerFactory
 
 INDEX_URL = "https://pypi.fury.io/m4dy9Unh83NCJdyGHkzY/beelit94/"
 
@@ -22,18 +23,6 @@ def _get_splunk(username="admin", password="changeme"):
     '''
     returns the object which represents a splunk instance
     '''
-    try:
-        from titanium.splunk import get_splunk
-    except ImportError:
-        if 'win' in sys.platform:
-            __salt__['pip.install'](
-                'titanium', extra_index_url=INDEX_URL,
-                cwd='C:\\salt\\bin\\Scripts',
-                bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
-        else:
-            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
-        from titanium.splunk import get_splunk
-
     splunk = get_splunk(
         splunk_home=__salt__['grains.get']('splunk_home'),
         username=username, password=password)
@@ -44,18 +33,6 @@ def _get_installer(pkg_url, splunk_type, splunk_home, pkg_path=None):
     '''
     return the splunk installer object
     '''
-    try:
-        from titanium.installer import InstallerFactory
-    except ImportError:
-        if 'win' in sys.platform:
-            __salt__['pip.install'](
-                'titanium', extra_index_url=INDEX_URL,
-                cwd='C:\\salt\\bin\\Scripts',
-                bin_env='C:\\salt\\bin\\Scripts\\pip.exe')
-        else:
-            __salt__['pip.install']('titanium', extra_index_url=INDEX_URL)
-        from titanium.installer import InstallerFactory
-
     return InstallerFactory.create_installer(
         pkg_url, splunk_type, splunk_home, pkg_path)
 
@@ -343,7 +320,7 @@ def config_deployment_client(server=None):
 
     for role in roles:
         if role == 'indexer-cluster-peer' or \
-                        role == 'search-head-cluster-member':
+           role == 'search-head-cluster-member':
             raise EnvironmentError(
                 'Cant config deployment client for this instance')
 
@@ -411,7 +388,7 @@ def get_mgmt_uri(hostname=None):
 
 
 def get_list_of_mgmt_uri(role, raise_exception=False, retry_count=5,
-        no_scheme=False):
+                         no_scheme=False):
     '''
     :param role: grains role matched
     :type role: str

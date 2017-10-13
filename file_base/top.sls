@@ -1,5 +1,3 @@
-# Using 'id' for now, but better way of specifying nodes is by its 'role'
-
 base:
   'role:search-head':
     - match: grain
@@ -29,7 +27,7 @@ base:
     - match: grain
     - splunk.shcluster_member
 
-  role:search-head-cluster-first-captain:
+  'role:search-head-cluster-first-captain':
     - match: grain
     - splunk.shcluster_captain
 
@@ -41,22 +39,22 @@ base:
     - match: grain
     - splunk.central_license_slave
 
-  role:deployment-client:
+  'role:deployment-client':
     - match: grain
     - splunk.deployment_client
 
-  role:universal-forwarder:
+  'role:universal-forwarder':
     - match: grain
     - splunk.uf
 
-  role:deployment-server:
+  'role:deployment-server':
     - match: grain
     - splunk.indexer
 
-  role:search-head-pooling-shared-storage:
+  'role:search-head-pooling-shared-storage':
     - match: grain
     - splunk.shp_shared_storage
 
-  role:search-head-pooling-member:
+  'role:search-head-pooling-member':
     - match: grain
     - splunk.shp_member

@@ -1,11 +1,17 @@
 import os
-from splunklib import client
-from splunklib.binding import HTTPError
 from util import run_cmd
 from util import MethodMissing
 from exceptions import CommandExecutionError
 import logging
 import json
+
+try:
+    from splunklib import client
+except ImportError:
+    __salt__['pip.install']('splunk-sdk')
+    from splunklib import client
+
+from splunklib.binding import HTTPError
 
 
 logger = logging.getLogger(__name__)

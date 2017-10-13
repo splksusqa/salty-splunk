@@ -2,10 +2,15 @@ import sys
 import shutil
 import tempfile
 import logging
-import requests
 import os
 from zipfile import ZipFile
 from util import run_cmd
+
+try:
+    import requests
+except ImportError:
+    __salt__['pip.install']('requests')
+    import requests
 
 
 PLATFORM = sys.platform

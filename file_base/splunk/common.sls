@@ -1,10 +1,17 @@
-
 # Linux
 {% if grains['os'] != 'Windows' %}
 python-pip:
-  pkg:
-    - installed
+  pkg.installed
 
+requests:
+  pip.installed:
+    - require:
+      - pkg: python-pip
+
+splunk-sdk:
+  pip.installed:
+    - require:
+      - pkg: python-pip
 # Windows
 {% else %}
 SplunkWebPort:
@@ -18,4 +25,11 @@ SplunkdPort:
     - add_rule
     - localport: 8089
     - protocol: tcp
+
+requests:
+  pip.installed
+
+splunk-sdk:
+  pip.installed
+
 {% endif %}
