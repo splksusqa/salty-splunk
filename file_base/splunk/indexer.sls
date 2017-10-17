@@ -28,6 +28,15 @@ enable-listening-port:
     - listening_ports_enabled
     - ports: {{ pillar['listening_ports'] }}
 
+{% if pillar['server_name'] %}
+set-server-name:
+  splunk.configured:
+    - conf_name: server
+    - stanza_name: general
+    - data:
+        serverName: {{ pillar['server_name'] }}
+{% endif %}
+
 {% if grains['os'] == 'Windows' %}
   win_firewall:
     - add_rule
