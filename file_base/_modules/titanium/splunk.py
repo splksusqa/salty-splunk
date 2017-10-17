@@ -664,9 +664,10 @@ class Splunk(MethodMissing):
         self.change_namespace('nobody', 'nobody', 'system')
 
         if self.is_cluster_master():
-            self.config_search_peer(searchheads + deployer)
+            self.config_search_peer(searchheads + deployer + deployment_server)
         else:
-            self.config_search_peer(searchheads + deployer + indexers)
+            self.config_search_peer(
+                searchheads + deployer + indexers + deployment_server)
 
         if not self.is_license_master():
             self.config_search_peer(license_master)
