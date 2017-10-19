@@ -118,6 +118,12 @@ class Splunk(MethodMissing):
     def change_namespace(self, owner, app, sharing):
         '''
         '''
+        try:
+            from splunklib import client
+        except ImportError:
+            __salt__['pip.install']('splunk-sdk')
+            from splunklib import client
+
         self.splunk = client.connect(
             username=self.username, password=self.password, owner=owner,
             app=app, sharing=sharing, autologin=True)
