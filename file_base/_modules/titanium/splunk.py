@@ -5,14 +5,6 @@ from exceptions import CommandExecutionError
 import logging
 import json
 
-try:
-    from splunklib import client
-except ImportError:
-    __salt__['pip.install']('splunk-sdk')
-    from splunklib import client
-
-from splunklib.binding import HTTPError
-
 
 logger = logging.getLogger(__name__)
 
@@ -70,6 +62,12 @@ class Splunk(MethodMissing):
         '''
         get splunk instance
         '''
+        try:
+            from splunklib import client
+        except ImportError:
+            __salt__['pip.install']('splunk-sdk')
+            from splunklib import client
+
         self.splunk = client.connect(
             username=self.username, password=self.password, scheme=self.scheme,
             autologin=True)
@@ -224,6 +222,8 @@ class Splunk(MethodMissing):
         :return: no return value
         :raise EnvironmentError: if restart fail
         """
+        from splunklib.binding import HTTPError
+
         self.change_namespace(app=app, owner=owner, sharing=sharing)
         conf = self.splunk.confs[conf_name]
 
@@ -424,8 +424,9 @@ class Splunk(MethodMissing):
                 app='nobody', owner='nobody', sharing='system',
                 do_restart=False)
 
-        self.edit_conf_file('server', 'clustering', data,
-            app='nobody', owner='nobody', sharing='system')
+        self.edit_conf_file(
+            'server', 'clustering', data, app='nobody', owner='nobody',
+            sharing='system')
 
     def config_cluster_searchhead(
             self, pass4SymmKey, cluster_label, master_uri, site=None):
@@ -458,7 +459,8 @@ class Splunk(MethodMissing):
                 app='nobody', owner='nobody', sharing='system')
             data['multisite'] = True
 
-        self.edit_conf_file('server', 'clustering', data,
+        self.edit_conf_file(
+            'server', 'clustering', data,
             app='nobody', owner='nobody', sharing='system')
 
     def config_shcluster_deployer(self, pass4SymmKey, shcluster_label):
@@ -471,7 +473,8 @@ class Splunk(MethodMissing):
         data = {'pass4SymmKey': pass4SymmKey,
                 'shcluster_label': shcluster_label}
 
-        self.edit_conf_file('server', 'shclustering', data=data,
+        self.edit_conf_file(
+            'server', 'shclustering', data=data,
             app='nobody', owner='nobody', sharing='system')
 
     def config_shcluster_member(
@@ -556,7 +559,7 @@ class Splunk(MethodMissing):
         for peer in peers:
             cmd = ('add search-server -host {h} -remoteUsername {u} '
                    '-remotePassword {p}'.format(
-                     h=peer, p=remote_password, u=remote_username))
+                    h=peer, p=remote_password, u=remote_username))
             result = self.cli(cmd)
 
             if result['retcode'] != 0:
@@ -586,7 +589,8 @@ class Splunk(MethodMissing):
         :param master_uri: uri of the license master
         :type master_uri: string
         '''
-        self.edit_conf_file('server', 'license', {'master_uri': master_uri},
+        self.edit_conf_file(
+            'server', 'license', {'master_uri': master_uri},
             app='nobody', owner='nobody', sharing='system')
 
     def create_users(self, count, prefix='user', roles=['user']):
@@ -664,13 +668,15 @@ class Splunk(MethodMissing):
         self.change_namespace('nobody', 'nobody', 'system')
 
         if self.is_cluster_master():
-            self.config_search_peer(searchheads + deployer + deployment_server)
+            self.config_search_peer(searchheads + deployer)
         else:
-            self.config_search_peer(
-                searchheads + deployer + indexers + deployment_server)
+            self.config_search_peer(searchheads + deployer + indexers)
 
         if not self.is_license_master():
             self.config_search_peer(license_master)
+
+        if not self.is_deployment_server():
+            self.config_search_peer(deployment_server)
 
         # set distsearch groups by editing distsearch.conf
         # indexer
