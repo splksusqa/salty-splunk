@@ -28,7 +28,7 @@ enable-listening-port:
     - listening_ports_enabled
     - ports: {{ pillar['listening_ports'] }}
 
-{% if pillar['server_name'] %}
+{% if pillar.server_name is defined %}
 set-server-name:
   splunk.configured:
     - conf_name: server
