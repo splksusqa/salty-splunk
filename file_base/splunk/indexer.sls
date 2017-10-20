@@ -35,6 +35,13 @@ set-server-name:
     - stanza_name: general
     - data:
         serverName: {{ pillar['server_name'] }}
+
+set-host-name:
+  splunk.configured:
+    - conf_name: inputs
+    - stanza_name: default
+    - data:
+        host: {{ pillar['server_name'] }}
 {% endif %}
 
 {% if grains['os'] == 'Windows' %}
