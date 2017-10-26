@@ -5,12 +5,7 @@ import logging
 import os
 from zipfile import ZipFile
 from util import run_cmd
-
-try:
-    import requests
-except ImportError:
-    __salt__['pip.install']('requests')
-    import requests
+import requests
 
 
 PLATFORM = sys.platform
@@ -207,10 +202,9 @@ class WindowsZipInstaller(WindowsInstaller):
         zip_file = ZipFile(self.pkg_path)
         zip_file.extractall(path=par_home)
 
-        cmd = ("{s}\\bin\\splunk.exe enable boot-start & "
-               "{s}\\bin\\splunk.exe start --accept-license --answer-yes"
-               .format(
-                s=self.splunk_home, p=self.pkg_path, par=par_home))
+        cmd = ("\"{s}\\bin\\splunk.exe\" enable boot-start & "
+               "\"{s}\\bin\\splunk.exe\" start --accept-license --answer-yes"
+               .format(s=self.splunk_home, p=self.pkg_path, par=par_home))
         return run_cmd(cmd)
 
     def is_installed(self):
