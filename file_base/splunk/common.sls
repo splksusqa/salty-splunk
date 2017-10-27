@@ -26,10 +26,16 @@ SplunkdPort:
     - localport: 8089
     - protocol: tcp
 
-requests:
-  pip.installed
+install-requests:
+  pip.installed:
+    - name: requests
+    - cwd: 'C:\salt\bin\scripts'
+    - bin_env: 'C:\salt\bin\scripts\pip.exe'
 
-splunk-sdk:
-  pip.installed
+install-splunk-sdk:
+  pip.installed:
+    - name: splunk-sdk
+    - cwd: 'C:\salt\bin\scripts'
+    - bin_env: 'C:\salt\bin\scripts\pip.exe'
 
 {% endif %}
