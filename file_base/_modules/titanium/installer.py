@@ -151,7 +151,7 @@ class WindowsMsiInstaller(WindowsInstaller):
             os.mkdir(self.splunk_home)
 
         if self.is_installed():
-            cmd = "{s}\\bin\\splunk stop".format(s=self.splunk_home)
+            cmd = '"{s}\\bin\\splunk" stop'.format(s=self.splunk_home)
             run_cmd(cmd)
 
         install_flags = []
@@ -215,7 +215,7 @@ class WindowsZipInstaller(WindowsInstaller):
         if not self.is_installed():
             return True
         # stop splunk
-        cmd = "{s}\\bin\\splunk stop".format(s=self.splunk_home)
+        cmd = '"{s}\\bin\\splunk" stop'.format(s=self.splunk_home)
         run_cmd(cmd)
 
         shutil.rmtree(self.splunk_home)
