@@ -4,7 +4,7 @@ include:
 install-splunk:
   splunk:
     - installed
-    - fetcher_arg: {{ pillar['universal-forwarder']['version'] }}
+    - pkg_url: {{ pillar['universal-forwarder']['version'] }}
     - type: splunkforwarder
     - require:
       - sls: splunk.common
@@ -30,3 +30,9 @@ enable-listening-port:
   splunk:
     - listening_ports_enabled
     - ports: {{ pillar['universal-forwarder']['listening_ports'] }}
+  {% if grains['os'] == 'Windows' %}
+  win_firewall:
+    - add_rule
+    - localport: {{ pillar['universal-forwarder']['listening_ports'] }}
+    - protocol: tcp
+  {% endif %}

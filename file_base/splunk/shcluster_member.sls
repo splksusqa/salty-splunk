@@ -20,3 +20,11 @@ config_search_head_cluster_search_peer:
   require:
     - splunk: config_member
 {% endif %}
+
+{% if grains['os'] == 'Windows' %}
+win-fire-wall-replication-port:
+  win_firewall:
+    - add_rule
+    - localport: {{ pillar['search_head_cluster']['replication_port'] }}
+    - protocol: tcp
+{% endif %}
