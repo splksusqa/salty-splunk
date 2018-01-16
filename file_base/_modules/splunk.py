@@ -103,7 +103,7 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
             if installer.version[0] >= 7 and installer.version[1] >= 1:
                 _write_user_seed(installer.splunk_home)
             splunk = _get_splunk(login=False)
-            splunk.cli("start --accept-license --answer-yes")
+            splunk.cli("start --accept-license --answer-yes", auth=None)
         return result
 
 
@@ -133,7 +133,7 @@ def cli(cmd, auth=None):
     :param auth: auth string for executing cmd, ex: 'admin:changeme'
                  pass None if you don't need auth string
     '''
-    splunk = _get_splunk()
+    splunk = _get_splunk(login=False)
     return splunk.cli(cmd, auth)
 
 
