@@ -20,10 +20,14 @@ def get_splunk(splunk_home, username="admin", password="changeme",
         return SplunkDash(splunk_home, username, password, scheme, login)
     elif version[0] == 6 and version[1] >= 5:
         return SplunkIvory(splunk_home, username, password, scheme, login)
+    elif version[0] == 7 and version[1] >= 1:
+        return SplunkNightlight(
+            splunk_home, username, password, scheme, login)
     elif version[0] == 7:
         return SplunkIvory(splunk_home, username, password, scheme, login)
     else:
-        return Splunk(splunk_home, username, password, scheme, login)
+        return SplunkNightlight(
+            splunk_home, username, password, scheme, login)
 
 
 class Splunk(MethodMissing):
@@ -95,7 +99,7 @@ class Splunk(MethodMissing):
         '''
         start splunk via cli
         '''
-        result = self.cli("start", auth=None)
+        result = self.cli("start --accept-license --answer-yes", auth=None)
         return result['retcode']
 
     def stop(self):
@@ -910,3 +914,20 @@ class SplunkIvory(Splunk):
         '''
         return super(SplunkIvory, self).is_dmc_configured(
             app_name='splunk_monitoring_console')
+
+
+class SplunkNightlight(SplunkIvory):
+    '''
+    '''
+    def start(self):
+        ftr = os.path.join(self.splunk_home, 'ftr')
+        if os.path.exists(ftr):
+            # write user-seed.conf
+            path = os.path.join(
+                self.splunk_home, 'etc', 'system', 'local', 'user-seed.conf')
+            content = "[user_info]\nUSERNAME = admin\nPASSWORD = changeme"
+            with open(path, 'w') as conf:
+                conf.write(content)
+
+        result = self.cli("start --accept-license --answer-yes", auth=None)
+        return result['retcode']

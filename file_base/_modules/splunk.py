@@ -37,19 +37,6 @@ def _get_installer(pkg_url, splunk_type, splunk_home, pkg_path=None):
         pkg_url, splunk_type, splunk_home, pkg_path)
 
 
-def _write_user_seed(splunk_home):
-    '''
-    write user-seed.conf
-    '''
-    path = os.path.join(
-        splunk_home, 'etc', 'system', 'local', 'user-seed.conf')
-
-    content = "[user_info]\nUSERNAME = admin\nPASSWORD = changeme"
-
-    with open(path, 'w') as conf:
-        conf.write(content)
-
-
 def is_installed():
     '''
     check if splunk is installed or not
@@ -99,11 +86,8 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
         __salt__['grains.set']('pkg_url', pkg_url)
         __salt__['grains.set']('pkg_path', installer.pkg_path)
         result = installer.install()
-        if 0 == result['retcode']:
-            if installer.version[0] >= 7 and installer.version[1] >= 1:
-                _write_user_seed(installer.splunk_home)
-            splunk = _get_splunk(login=False)
-            splunk.cli("start --accept-license --answer-yes", auth=None)
+        splunk = _get_splunk(login=False)
+        splunk.start()
         return result
 
 
