@@ -1,5 +1,5 @@
 import os
-from util import run_cmd
+from util import run_cmd, get_version
 from util import MethodMissing
 from exceptions import CommandExecutionError
 import logging
@@ -14,15 +14,16 @@ def get_splunk(splunk_home, username="admin", password="changeme",
     '''
     get splunk object by splunk version
     '''
-    splunk = Splunk(splunk_home, username, password, scheme, login=True)
-    version = splunk.splunk_version
+    version = get_version(splunk_home)
 
     if version[0] == 6 and version[1] == 2:
         return SplunkDash(splunk_home, username, password, scheme, login=True)
     elif version[0] == 6 and version[1] >= 5:
         return SplunkIvory(splunk_home, username, password, scheme, login=True)
+    elif version[0] == 7:
+        return SplunkIvory(splunk_home, username, password, scheme, login=True)
     else:
-        return splunk
+        return Splunk(splunk_home, username, password, scheme, login=True)
 
 
 class Splunk(MethodMissing):

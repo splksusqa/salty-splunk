@@ -4,7 +4,7 @@ import tempfile
 import logging
 import os
 from zipfile import ZipFile
-from util import run_cmd
+from util import run_cmd, get_version
 import requests
 
 
@@ -94,6 +94,10 @@ class Installer(object):
     def uninstall(self):
         pass
 
+    @property
+    def version(self):
+        return get_version(self.splunk_home)
+
 
 class LinuxTgzInstaller(Installer):
     def __init__(self, pkg_path, splunk_type, splunk_home):
@@ -111,9 +115,8 @@ class LinuxTgzInstaller(Installer):
             cmd = "{s}/bin/splunk stop".format(s=self.splunk_home)
             run_cmd(cmd)
 
-        cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
-               "start --accept-license --answer-yes"
-               .format(s=self.splunk_home, p=self.pkg_path))
+        cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
+            s=self.splunk_home, p=self.pkg_path)
 
         return run_cmd(cmd)
 
