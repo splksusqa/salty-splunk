@@ -19,13 +19,13 @@ def _random_sleep():
     time.sleep(m_sec / 100)
 
 
-def _get_splunk(username="admin", password="changeme"):
+def _get_splunk(username="admin", password="changeme", login=True):
     '''
     returns the object which represents a splunk instance
     '''
     splunk = get_splunk(
         splunk_home=__salt__['grains.get']('splunk_home'),
-        username=username, password=password)
+        username=username, password=password, login=login)
     return splunk
 
 
@@ -44,11 +44,7 @@ def _write_user_seed(splunk_home):
     path = os.path.join(
         splunk_home, 'etc', 'system', 'local', 'user-seed.conf')
 
-    content = '''
-    [user_info]
-    USERNAME = admin
-    PASSWORD = changeme
-    '''
+    content = "[user_info]\nUSERNAME = admin\nPASSWORD = changeme"
 
     with open(path, 'w') as conf:
         conf.write(content)
@@ -106,6 +102,8 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
         if 0 == result['retcode']:
             if installer.version[0] >= 7 and installer.version[1] >= 1:
                 _write_user_seed(installer.splunk_home)
+            splunk = _get_splunk(login=False)
+            splunk.cli("start --accept-license --answer-yes")
         return result
 
 

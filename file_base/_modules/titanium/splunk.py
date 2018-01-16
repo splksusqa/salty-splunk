@@ -10,20 +10,20 @@ logger = logging.getLogger(__name__)
 
 
 def get_splunk(splunk_home, username="admin", password="changeme",
-               scheme='https'):
+               scheme='https', login=True):
     '''
     get splunk object by splunk version
     '''
     version = get_version(splunk_home)
 
     if version[0] == 6 and version[1] == 2:
-        return SplunkDash(splunk_home, username, password, scheme, login=True)
+        return SplunkDash(splunk_home, username, password, scheme, login)
     elif version[0] == 6 and version[1] >= 5:
-        return SplunkIvory(splunk_home, username, password, scheme, login=True)
+        return SplunkIvory(splunk_home, username, password, scheme, login)
     elif version[0] == 7:
-        return SplunkIvory(splunk_home, username, password, scheme, login=True)
+        return SplunkIvory(splunk_home, username, password, scheme, login)
     else:
-        return Splunk(splunk_home, username, password, scheme, login=True)
+        return Splunk(splunk_home, username, password, scheme, login)
 
 
 class Splunk(MethodMissing):
