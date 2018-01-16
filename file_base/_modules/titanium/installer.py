@@ -162,7 +162,7 @@ class WindowsMsiInstaller(WindowsInstaller):
             install_flags.append('{k}="{v}"'.format(k=key, v=value))
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q} ' \
-              '/L*V "C:\\msi_install.log"'. \
+              'SPLUNKPASSWORD=changeme /L*V "C:\\msi_install.log"'. \
               format(c=self.pkg_path, h=self.splunk_home, q='/quiet',
                      f=' '.join(install_flags))
 
@@ -205,9 +205,6 @@ class WindowsZipInstaller(WindowsInstaller):
         zip_file = ZipFile(self.pkg_path)
         zip_file.extractall(path=par_home)
 
-        cmd = ("\"{s}\\bin\\splunk.exe\" enable boot-start & "
-               "\"{s}\\bin\\splunk.exe\" start --accept-license --answer-yes"
-               .format(s=self.splunk_home, p=self.pkg_path, par=par_home))
         return run_cmd(cmd)
 
     def is_installed(self):
