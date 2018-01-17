@@ -2,7 +2,8 @@ import salt.client
 import salt.runner
 import salt.config
 import logging
-from salt.utils.odict import OrderedDict
+import time
+
 
 log = logging.getLogger(__name__)
 opts = salt.config.master_config('/etc/salt/master')
@@ -48,9 +49,7 @@ def join_ad_domain():
 
     log.warn('wait for vm {v}'.format(v=vm_count))
 
-    if vm_count != 0:
-        runner.cmd('state.event', arg=['salt/minion/*/start'],
-                   kwarg={'quiet': True, 'count': vm_count})
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 900)
 
     return result
 
@@ -63,6 +62,35 @@ def get_minions_with_empty_roles():
             minions.append(minion)
 
     return minions
+
+
+def _wait_for_minions_to_connect(minions, timeout=300):
+    '''
+    '''
+    start_time = time.time()
+    all_connected = False
+
+    while True:
+        if time.time() - start_time > timeout and len(minions) > 0:
+            all_connected = False
+            break
+
+        connected = runner.cmd('manage.up', [])
+
+        for m in connected:
+            try:
+                minions.remove(m)
+            except ValueError:
+                continue
+
+        if len(minions) == 0:
+            all_connected = True
+            break
+
+    if all_connected:
+        return True
+    else:
+        raise Exception, "Timeout waiting for minions to connect"
 
 
 def create_site():
@@ -78,26 +106,29 @@ def create_site():
     runner.cmd('splunk.join_ad_domain')
     # from pillar list
     pillar = runner.cmd('pillar.show_pillar', [])
+    _wait_for_minions_to_connect(pillar['tsplk']['id_list'], 900)
+
     if 'sites' in pillar:
         _clear_grains()
 
         sites = pillar['sites']
         for site, site_data in sites.items():
             if isinstance(site_data, dict):
-                _set_grains(site_data)
+                _set_roles(site, site_data)
             elif isinstance(site_data, list):
                 minions = _check_number_of_minions(site, site_data)
                 minions_data = _assign_roles_to_minions(minions, site_data)
-                _set_grains(minions_data)
+                _set_roles(site, minions_data)
             else:
                 raise TypeError('sites data should be either dict or array')
     else:
         log.warn('no site data, run orchestration directly')
 
     result = runner.cmd('state.orch', arg=['orchestration.splunk'])
+    log.info(result)
 
-    # todo check result
-    return result
+    # todo parse result to check if orchestration fails
+    return not "False" in str(result)
 
 
 def _check_number_of_minions(site, site_data):
@@ -139,16 +170,24 @@ def destroy_site():
     log.warn(result)
 
 
-def _set_grains(site):
+def _set_roles(site, site_roles):
     # set grains
-    for minion, grains_data in site.items():
-        for key, value in grains_data.items():
-            result = client.cmd(minion, 'grains.set', arg=[key, value])
-            if not result[minion]['result']:
-                log.error(str(result))
-                raise EnvironmentError(
-                    '{m} is fail to set grains'.format(m=minion))
+    for minion, roles in site_roles.items():
+        result = client.cmd(
+            minion, 'grains.set', arg=["role", roles], kwarg={'force': True})
+        if not result[minion]['result']:
+            log.error(str(result))
+            raise EnvironmentError(
+                '{m} is fail to set roles in grains'.format(m=minion))
+
+        result = client.cmd(
+            minion, 'grains.set', arg=["site", site], kwarg={'force': True})
+        if not result[minion]['result']:
+            log.error(str(result))
+            raise EnvironmentError(
+                '{m} failed tp set site in grains'.format(m=minion))
 
 
 def _clear_grains():
     client.cmd('*', 'grains.delval', arg=['role'])
+    client.cmd('*', 'grains.delval', arg=['site'])

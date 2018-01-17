@@ -4,6 +4,6 @@ include:
 add_license:
   splunk:
     - license_added
-    - license_path: {{ pillar['license_path'] }}
+    - license_name: {{ pillar['license_name'] }}
   require:
     - sls: splunk.indexer
