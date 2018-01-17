@@ -106,7 +106,10 @@ class Splunk(MethodMissing):
         '''
         start splunk via cli
         '''
-        result = self.cli("start --accept-license --answer-yes", auth=None)
+        cmd = "start --accept-license --answer-yes"
+        if self.is_ftr:
+            cmd += "& enable boot-start"
+        result = self.cli(cmd, auth=None)
         return result['retcode']
 
     def stop(self):
@@ -939,8 +942,4 @@ class SplunkNightlight(SplunkIvory):
             with open(path, 'w') as conf:
                 conf.write(content)
 
-            result = self.cli("start --accept-license --answer-yes", auth=None)
-        else:
-            result = self.cli("start", auth=None)
-
-        return result['retcode']
+        return super(SplunkNightlight, self).start()
