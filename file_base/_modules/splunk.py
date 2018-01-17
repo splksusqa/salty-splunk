@@ -19,13 +19,13 @@ def _random_sleep():
     time.sleep(m_sec / 100)
 
 
-def _get_splunk(username="admin", password="changeme"):
+def _get_splunk(username="admin", password="changeme", login=True):
     '''
     returns the object which represents a splunk instance
     '''
     splunk = get_splunk(
         splunk_home=__salt__['grains.get']('splunk_home'),
-        username=username, password=password)
+        username=username, password=password, login=login)
     return splunk
 
 
@@ -85,7 +85,10 @@ def install(pkg_url, type='splunk', upgrade=False, splunk_home=None):
         __salt__['grains.set']('splunk_type', type)
         __salt__['grains.set']('pkg_url', pkg_url)
         __salt__['grains.set']('pkg_path', installer.pkg_path)
-        return installer.install()
+        result = installer.install()
+        splunk = _get_splunk(login=False)
+        splunk.start()
+        return result
 
 
 def edit_conf_file(conf_name, stanza_name, data=None, app=None, owner=None,
@@ -114,7 +117,7 @@ def cli(cmd, auth=None):
     :param auth: auth string for executing cmd, ex: 'admin:changeme'
                  pass None if you don't need auth string
     '''
-    splunk = _get_splunk()
+    splunk = _get_splunk(login=False)
     return splunk.cli(cmd, auth)
 
 

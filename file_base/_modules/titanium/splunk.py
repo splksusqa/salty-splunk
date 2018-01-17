@@ -1,5 +1,5 @@
 import os
-from util import run_cmd
+from util import run_cmd, get_version
 from util import MethodMissing
 from exceptions import CommandExecutionError
 import logging
@@ -10,19 +10,24 @@ logger = logging.getLogger(__name__)
 
 
 def get_splunk(splunk_home, username="admin", password="changeme",
-               scheme='https'):
+               scheme='https', login=True):
     '''
     get splunk object by splunk version
     '''
-    splunk = Splunk(splunk_home, username, password, scheme, login=True)
-    version = splunk.splunk_version
+    version = get_version(splunk_home)
 
     if version[0] == 6 and version[1] == 2:
-        return SplunkDash(splunk_home, username, password, scheme, login=True)
+        return SplunkDash(splunk_home, username, password, scheme, login)
     elif version[0] == 6 and version[1] >= 5:
-        return SplunkIvory(splunk_home, username, password, scheme, login=True)
+        return SplunkIvory(splunk_home, username, password, scheme, login)
+    elif version[0] == 7 and version[1] >= 1:
+        return SplunkNightlight(
+            splunk_home, username, password, scheme, login)
+    elif version[0] == 7:
+        return SplunkIvory(splunk_home, username, password, scheme, login)
     else:
-        return splunk
+        return SplunkNightlight(
+            splunk_home, username, password, scheme, login)
 
 
 class Splunk(MethodMissing):
@@ -57,6 +62,13 @@ class Splunk(MethodMissing):
         else:
             raise AttributeError(
                 "Splunk does not respond to {n}".format(n=name))
+
+    @property
+    def is_ftr(self):
+        '''
+        check if the splunk is first time run
+        '''
+        return os.path.exists(os.path.join(self.splunk_home, 'ftr'))
 
     def login(self):
         '''
@@ -94,6 +106,12 @@ class Splunk(MethodMissing):
         '''
         start splunk via cli
         '''
+        if self.is_ftr:
+            result = self.cli(
+                "enable boot-start --accept-license --answer-yes", auth=None)
+            if result['retcode'] != 0:
+                return result['retcode']
+
         result = self.cli("start", auth=None)
         return result['retcode']
 
@@ -909,3 +927,22 @@ class SplunkIvory(Splunk):
         '''
         return super(SplunkIvory, self).is_dmc_configured(
             app_name='splunk_monitoring_console')
+
+
+class SplunkNightlight(SplunkIvory):
+    '''
+    Version 7.1 (or up) of Splunk
+    '''
+    def start(self):
+        '''
+        start splunk
+        '''
+        if self.is_ftr:
+            # write user-seed.conf
+            path = os.path.join(
+                self.splunk_home, 'etc', 'system', 'local', 'user-seed.conf')
+            content = "[user_info]\nUSERNAME = admin\nPASSWORD = changeme"
+            with open(path, 'w') as conf:
+                conf.write(content)
+
+        return super(SplunkNightlight, self).start()

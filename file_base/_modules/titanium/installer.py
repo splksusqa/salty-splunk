@@ -4,7 +4,7 @@ import tempfile
 import logging
 import os
 from zipfile import ZipFile
-from util import run_cmd
+from util import run_cmd, get_version
 import requests
 
 
@@ -94,6 +94,10 @@ class Installer(object):
     def uninstall(self):
         pass
 
+    @property
+    def version(self):
+        return get_version(self.splunk_home)
+
 
 class LinuxTgzInstaller(Installer):
     def __init__(self, pkg_path, splunk_type, splunk_home):
@@ -111,9 +115,8 @@ class LinuxTgzInstaller(Installer):
             cmd = "{s}/bin/splunk stop".format(s=self.splunk_home)
             run_cmd(cmd)
 
-        cmd = ("tar --strip-components=1 -xf {p} -C {s}; {s}/bin/splunk "
-               "start --accept-license --answer-yes"
-               .format(s=self.splunk_home, p=self.pkg_path))
+        cmd = "tar --strip-components=1 -xf {p} -C {s}".format(
+            s=self.splunk_home, p=self.pkg_path)
 
         return run_cmd(cmd)
 
@@ -159,7 +162,7 @@ class WindowsMsiInstaller(WindowsInstaller):
             install_flags.append('{k}="{v}"'.format(k=key, v=value))
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q} ' \
-              '/L*V "C:\\msi_install.log"'. \
+              'SPLUNKPASSWORD=changeme /L*V "C:\\msi_install.log"'. \
               format(c=self.pkg_path, h=self.splunk_home, q='/quiet',
                      f=' '.join(install_flags))
 
@@ -199,13 +202,13 @@ class WindowsZipInstaller(WindowsInstaller):
         par_home = os.path.dirname(self.splunk_home)
 
         # unzip the pkg
-        zip_file = ZipFile(self.pkg_path)
-        zip_file.extractall(path=par_home)
-
-        cmd = ("\"{s}\\bin\\splunk.exe\" enable boot-start & "
-               "\"{s}\\bin\\splunk.exe\" start --accept-license --answer-yes"
-               .format(s=self.splunk_home, p=self.pkg_path, par=par_home))
-        return run_cmd(cmd)
+        try:
+            zip_file = ZipFile(self.pkg_path)
+            zip_file.extractall(path=par_home)
+            return {'stdout': 'Splunk was installed successfully',
+                    'stderr': '', 'retcode': 0}
+        except Exception, message:
+            return {'stdout': '', 'stderr': str(message), 'retcode': 1}
 
     def is_installed(self):
         return os.path.exists(
