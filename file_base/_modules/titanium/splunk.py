@@ -106,13 +106,13 @@ class Splunk(MethodMissing):
         '''
         start splunk via cli
         '''
-        cmd = "start --accept-license --answer-yes"
         if self.is_ftr:
-            result = self.cli("enable boot-start", auth=None)
+            result = self.cli(
+                "enable boot-start --accept-license --answer-yes", auth=None)
             if result['retcode'] != 0:
                 return result['retcode']
 
-        result = self.cli(cmd, auth=None)
+        result = self.cli("start", auth=None)
         return result['retcode']
 
     def stop(self):
