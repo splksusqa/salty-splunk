@@ -108,7 +108,7 @@ class Splunk(MethodMissing):
         '''
         cmd = "start --accept-license --answer-yes"
         if self.is_ftr:
-            result = self.cli("enable boot-start")
+            result = self.cli("enable boot-start", anth=None)
             if result['retcode'] != 0:
                 return result['retcode']
 
