@@ -208,7 +208,7 @@ class WindowsZipInstaller(WindowsInstaller):
             return {'stdout': 'Splunk was installed successfully',
                     'stderr': '', 'retcode': 0}
         except Exception, message:
-            return {'stdout': '', 'stderr': message, 'retcode': 1}
+            return {'stdout': '', 'stderr': str(message), 'retcode': 1}
 
     def is_installed(self):
         return os.path.exists(
