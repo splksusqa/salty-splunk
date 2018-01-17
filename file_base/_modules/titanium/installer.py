@@ -205,6 +205,8 @@ class WindowsZipInstaller(WindowsInstaller):
         zip_file = ZipFile(self.pkg_path)
         zip_file.extractall(path=par_home)
 
+        return {'stdout': '', 'stderr': '', 'retcode': 0}
+
     def is_installed(self):
         return os.path.exists(
             os.path.join(self.splunk_home, "bin", "splunk.exe"))
