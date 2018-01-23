@@ -162,7 +162,7 @@ class WindowsMsiInstaller(WindowsInstaller):
             install_flags.append('{k}="{v}"'.format(k=key, v=value))
 
         cmd = 'msiexec /i "{c}" INSTALLDIR="{h}" AGREETOLICENSE=Yes {f} {q} ' \
-              'SPLUNKPASSWORD=changeme /L*V "C:\\msi_install.log"'. \
+              'LAUNCHSPLUNK=0 /L*V "C:\\msi_install.log"'. \
               format(c=self.pkg_path, h=self.splunk_home, q='/quiet',
                      f=' '.join(install_flags))
 
