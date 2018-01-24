@@ -944,7 +944,7 @@ class SplunkNightlight(SplunkIvory):
             return True
         else:
             path = os.path.join(self.splunk_home, self.USERSEED_PATH)
-            return os.path.exists(path)
+            return not os.path.exists(path)
 
     def start(self):
         '''
