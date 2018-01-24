@@ -933,14 +933,26 @@ class SplunkNightlight(SplunkIvory):
     '''
     Version 7.1 (or up) of Splunk
     '''
+    USERSEED_PATH = os.path.join('etc', 'system', 'local', 'user-seed.conf')
+
+    @property
+    def is_ftr(self):
+        '''
+        check if splunk is first time run
+        '''
+        if super(SplunkNightlight, self).is_ftr:
+            return True
+        else:
+            path = os.path.join(self.splunk_home, self.USERSEED_PATH)
+            return os.path.exists(path)
+
     def start(self):
         '''
         start splunk
         '''
         if self.is_ftr:
             # write user-seed.conf
-            path = os.path.join(
-                self.splunk_home, 'etc', 'system', 'local', 'user-seed.conf')
+            path = os.path.join(self.splunk_home, self.USERSEED_PATH)
             content = "[user_info]\nUSERNAME = admin\nPASSWORD = changeme"
             with open(path, 'w') as conf:
                 conf.write(content)
