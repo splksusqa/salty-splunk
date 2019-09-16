@@ -26,6 +26,12 @@ SplunkdPort:
     - localport: 8089
     - protocol: tcp
 
+Kvstore:
+  win_firewall:
+    - add_rule
+    - localport: 8191
+    - protocol: tcp
+
 install-requests:
   pip.installed:
     - name: requests
